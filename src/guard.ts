@@ -1,0 +1,283 @@
+import { SuiObjectResponse, SuiObjectDataOptions, SuiParsedData } from '@mysten/sui.js/client';
+import { TransactionBlock, Inputs, type TransactionResult } from '@mysten/sui.js/transactions';
+import { BCS, getSuiMoveConfig, toHEX, fromHEX, BcsReader } from '@mysten/bcs';
+import { PROTOCOL, GuardAddress, FnCallType, Data_Type, MODULES, GuardObject, OBJECTS_TYPE, OBJECTS_TYPE_PREFIX, Query_Param} from './protocol';
+import { concatenate, array_equal, ulebDecode, array_unique } from './util';
+import { TransactionBlockDataBuilder } from '@mysten/sui.js/dist/cjs/builder/TransactionBlockData';
+
+export enum Guard_Sense_Binder {
+    AND = 1, // first sense of guard always AND; for combining other guards
+    OR = 2,
+}
+
+export type Guard_Sense = { 
+    input: Uint8Array; 
+    notAfterSense: boolean; 
+    binder:Guard_Sense_Binder ;
+};
+
+export type Guard_Creation = {
+    description: string;
+    senses: Guard_Sense[];
+}
+
+export function launch(txb:TransactionBlock, creation:Guard_Creation) : GuardAddress {
+    var guard = txb.moveCall({
+        target: PROTOCOL.GuardFn('new') as FnCallType,
+        arguments: [            txb.pure(creation.description , BCS.STRING),        ],  
+    });
+    creation?.senses.forEach((sense: Guard_Sense) => {
+        txb.moveCall({
+            target: PROTOCOL.GuardFn('sense_add') as FnCallType,
+            arguments:[                guard,                txb.pure([].slice.call(sense.input)),
+                txb.pure(sense.notAfterSense, BCS.BOOL),
+                txb.pure(sense.binder, BCS.U8),
+            ]
+        })
+    });
+    return txb.moveCall({
+        target:PROTOCOL.GuardFn("create") as FnCallType,
+        arguments:[guard]
+    });
+}
+
+export function signer_guard(txb:TransactionBlock) {
+    txb.moveCall({
+        target: PROTOCOL.GuardFn('signer_guard') as FnCallType,
+        arguments: []
+    }); // { kind: 'Result', index: 0 }, ref to address could used by PTB
+}
+
+export function query_description(txb:TransactionBlock, guard:GuardObject) {
+    txb.moveCall({
+        target: PROTOCOL.GuardFn('description') as FnCallType,
+        arguments:[guard]
+    })
+}
+
+export type Sense_Cmd_Type = {
+    module:MODULES, 
+    name:string, 
+    cmd:number, 
+    params:Data_Type[], 
+    result:Data_Type
+};
+
+export const Sense_Cmd:any = [    [MODULES.permission, 'creator', 1, [], Data_Type.TYPE_STATIC_address],
+    [MODULES.permission, 'is_admin', 2, [Data_Type.TYPE_STATIC_address], Data_Type.TYPE_STATIC_bool],
+    [MODULES.permission, 'has_rights', 3, [Data_Type.TYPE_STATIC_address, Data_Type.TYPE_STATIC_u64], Data_Type.TYPE_STATIC_bool],
+    [MODULES.permission, 'contains_address', 4, [Data_Type.TYPE_STATIC_address], Data_Type.TYPE_STATIC_bool],
+    [MODULES.permission, 'contains_index', 5, [Data_Type.TYPE_STATIC_address, Data_Type.TYPE_STATIC_u64], Data_Type.TYPE_STATIC_bool],
+    [MODULES.permission, 'contains_guard', 6, [Data_Type.TYPE_STATIC_address, Data_Type.TYPE_STATIC_u64], Data_Type.TYPE_STATIC_bool],
+    [MODULES.repository, 'permission', 1, [], Data_Type.TYPE_STATIC_address],
+    [MODULES.repository, 'policy_contains', 2, [Data_Type.TYPE_STATIC_vec_u8], Data_Type.TYPE_STATIC_bool],
+    [MODULES.repository, 'policy_has_permission_index', 3, [Data_Type.TYPE_STATIC_vec_u8], Data_Type.TYPE_STATIC_bool],
+    [MODULES.repository, 'policy_permission_index', 4, [Data_Type.TYPE_STATIC_vec_u8], Data_Type.TYPE_STATIC_u64],
+    [MODULES.repository, 'policy_value_type', 5, [Data_Type.TYPE_STATIC_vec_u8], Data_Type.TYPE_STATIC_u8],
+    [MODULES.repository, 'contains_id', 6, [Data_Type.TYPE_STATIC_address], Data_Type.TYPE_STATIC_bool],   
+    [MODULES.repository, 'contains_value', 7, [Data_Type.TYPE_STATIC_address, Data_Type.TYPE_STATIC_vec_u8], Data_Type.TYPE_STATIC_bool],
+    [MODULES.repository, 'value_without_type', 8, [Data_Type.TYPE_STATIC_address, Data_Type.TYPE_STATIC_vec_u8], Data_Type.TYPE_STATIC_vec_u8],       
+    [MODULES.repository, 'value', 9, [Data_Type.TYPE_STATIC_address, Data_Type.TYPE_STATIC_vec_u8], Data_Type.TYPE_STATIC_vec_u8],
+    [MODULES.repository, 'type', 10, [], Data_Type.TYPE_STATIC_u8],   
+    [MODULES.repository, 'policy_mode', 11, [], Data_Type.TYPE_STATIC_u8],   
+]
+
+export class SenseMaker {
+    protected data : Uint8Array[] = [];
+    protected type_validator : Data_Type[] = [];
+
+    constructor() { }
+    // serialize const & data
+    add_param(type:Data_Type, param?:any) : boolean {
+        const bcs = new BCS(getSuiMoveConfig());
+        switch(type)  {
+        case Data_Type.TYPE_STATIC_address: 
+            this.data.push(bcs.ser(BCS.U8, type).toBytes());
+            this.data.push(bcs.ser(BCS.ADDRESS, param).toBytes());
+            this.type_validator.push(type);
+            break;
+        case Data_Type.TYPE_STATIC_bool:
+            this.data.push(bcs.ser(BCS.U8, type).toBytes());
+            this.data.push(bcs.ser(BCS.BOOL, param).toBytes());
+            this.type_validator.push(type);
+            break;
+        case Data_Type.TYPE_STATIC_u8:
+            this.data.push(bcs.ser(BCS.U8, type).toBytes());
+            this.data.push(bcs.ser(BCS.U8, param).toBytes());
+            this.type_validator.push(type);
+            break;
+        case Data_Type.TYPE_STATIC_u64: 
+            this.data.push(bcs.ser(BCS.U8, type).toBytes());
+            this.data.push(bcs.ser(BCS.U64, param).toBytes());
+            this.type_validator.push(type);
+            break;
+        case Data_Type.TYPE_STATIC_vec_u8:
+            this.data.push(bcs.ser(BCS.U8, type).toBytes());
+            this.data.push(bcs.ser("vector<u8>", param).toBytes());
+            this.type_validator.push(type);
+            // this.data[this.data.length-1].forEach((item : number) => console.log(item))
+            break;
+        case Data_Type.TYPE_CONTEXT_SIGNER:
+            this.data.push(bcs.ser(BCS.U8, type).toBytes());
+            this.type_validator.push(Data_Type.TYPE_STATIC_address);
+            break;
+        case Data_Type.TYPE_CONTEXT_CURRENT_CLOCK:
+            this.data.push(bcs.ser(BCS.U8, type).toBytes());
+            this.type_validator.push(Data_Type.TYPE_STATIC_u64);
+            break;
+        case Data_Type.TYPE_CONTEXT_CURRENT_PROGRESS:
+            this.data.push(bcs.ser(BCS.U8, type).toBytes());
+            this.type_validator.push(Data_Type.TYPE_STATIC_address);
+            break;
+        default:
+            return false;
+        };
+        
+        return true;
+    }
+    add_cmd(object_address:string, sense_index:number) : boolean {
+        if (!object_address || sense_index >= Sense_Cmd.length) { return false; }
+        let offset = this.type_validator.length - Sense_Cmd[sense_index][3].length;
+        if (offset < 0) { 
+            return false; 
+        }
+
+        let types = this.type_validator.slice(offset);
+        if (!array_equal(types, Sense_Cmd[sense_index][3])) { // type validate 
+            return false; 
+        }
+        
+        const bcs = new BCS(getSuiMoveConfig());
+        this.data.push(bcs.ser(BCS.U8, Data_Type.TYPE_DYNAMIC_QUERY).toBytes()); // TYPE
+        this.data.push(bcs.ser(BCS.ADDRESS, object_address).toBytes()); // object address
+        this.data.push(bcs.ser(BCS.U8, Sense_Cmd[sense_index][2]).toBytes()); // cmd
+
+        this.type_validator.splice(offset, Sense_Cmd[sense_index][3].length); // delete type stack
+        this.type_validator.push(Sense_Cmd[sense_index][4]); // add the return value type to type stack
+        // console.log(this.type_validator)
+        return true;
+    }
+    add_logic(type:Data_Type) : boolean {
+        switch (type) {
+            case Data_Type.TYPE_LOGIC_OPERATOR_U128_GREATER:
+            case Data_Type.TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL:
+            case Data_Type.TYPE_LOGIC_OPERATOR_U128_LESSER:
+            case Data_Type.TYPE_LOGIC_OPERATOR_U128_LESSER_EQUAL:
+            case Data_Type.TYPE_LOGIC_OPERATOR_U128_EQUAL:
+                if (this.type_validator.length < 2)  { return false; }
+                if (!match_u128(this.type_validator[this.type_validator.length - 1])) { return false; }
+                if (!match_u128(this.type_validator[this.type_validator.length - 2])) { return false; }
+                break;
+            case Data_Type.TYPE_LOGIC_OPERATOR_EQUAL:
+            case Data_Type.TYPE_LOGIC_OPERATOR_HAS_SUBSTRING:
+                if (this.type_validator.length < 2)  { return false; }
+                break;
+            default:
+                return false;
+        }
+        const bcs = new BCS(getSuiMoveConfig());
+        this.data.push(bcs.ser(BCS.U8, type).toBytes()); // TYPE     
+        this.type_validator.splice(this.type_validator.length - 2); // delete type stack   
+        this.type_validator.push(Data_Type.TYPE_STATIC_bool); // add bool to type stack
+        return true;
+    }
+
+    make(bNotAfterSense:boolean, binder:Guard_Sense_Binder) : undefined | Guard_Sense {
+        //console.log(this.type_validator);
+        //this.data.forEach((value:Uint8Array) => console.log(value));
+        if (this.type_validator.length != 1 || this.type_validator[0] != Data_Type.TYPE_STATIC_bool) { 
+            return undefined;
+        } // ERROR
+
+        let input = concatenate(Uint8Array, ...this.data) as Uint8Array;
+        const sense:Guard_Sense = {input:input, notAfterSense:bNotAfterSense, binder:binder};
+        return sense;
+    }
+}
+
+function match_u128(type:Data_Type) : boolean {
+    if (type == Data_Type.TYPE_STATIC_option_u8 || 
+        type == Data_Type.TYPE_STATIC_option_u64 || 
+        type == Data_Type.TYPE_STATIC_option_u128 ) {
+            return true;
+    }
+    return false;
+}
+
+// parse guard senses input bytes of a guard, return [objectids] for 'query_cmd' 
+export function parse_sense_bsc(chain_sense_bsc:Uint8Array)  : undefined | string[] {
+    // console.log(data);
+    var array = [].slice.call(chain_sense_bsc.reverse());
+    const bcs = new BCS(getSuiMoveConfig());
+    var result = [];
+    while (array.length > 0) {
+        var type : unknown = array.shift() ;
+        // console.log(type);
+        switch (type as Data_Type) {
+            case Data_Type.TYPE_CONTEXT_SIGNER:
+            case Data_Type.TYPE_CONTEXT_CURRENT_CLOCK:
+            case Data_Type.TYPE_CONTEXT_CURRENT_PROGRESS:
+            case Data_Type.TYPE_LOGIC_OPERATOR_U128_GREATER:
+            case Data_Type.TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL:
+            case Data_Type.TYPE_LOGIC_OPERATOR_U128_LESSER:
+            case Data_Type.TYPE_LOGIC_OPERATOR_U128_LESSER_EQUAL:
+            case Data_Type.TYPE_LOGIC_OPERATOR_U128_EQUAL:
+            case Data_Type.TYPE_LOGIC_OPERATOR_EQUAL:
+            case Data_Type.TYPE_LOGIC_OPERATOR_HAS_SUBSTRING:
+            break;    
+        case Data_Type.TYPE_STATIC_address: 
+            //console.log('0x' + bcs.de(BCS.ADDRESS,  Uint8Array.from(array)).toString());
+            array.splice(0, 32);
+            break;
+        case Data_Type.TYPE_STATIC_bool:
+        case Data_Type.TYPE_STATIC_u8:
+            array.splice(0, 1);
+            break;
+        case Data_Type.TYPE_STATIC_u64: 
+            array.splice(0, 8);
+            break;
+        case Data_Type.TYPE_STATIC_u128: 
+            array.splice(0, 16);
+            break;
+        case Data_Type.TYPE_STATIC_vec_u8:
+            let {value, length} = ulebDecode(Uint8Array.from(array));
+            array.splice(0, value+length);
+            break;     
+        case Data_Type.TYPE_DYNAMIC_QUERY:
+            result.push('0x' + bcs.de(BCS.ADDRESS,  Uint8Array.from(array)).toString());
+            array.splice(0, 33); // address + cmd
+            break;
+        default:
+            // console.log('parse_sense_bsc:undefined');
+            return undefined; // error
+        }
+    } 
+    return result;
+}
+
+const MODULE_GUARD_INDEX = 7;
+export const description_fn = (response:SuiObjectResponse, param:Query_Param, option:SuiObjectDataOptions) => {
+    if (!response.error) {
+        let c = response?.data?.content as any;
+        if (c.type == OBJECTS_TYPE[MODULE_GUARD_INDEX] && c.fields.id.id == param.objectid) { // GUARD OBJECT
+            let description = c.fields.description;
+            if (!param.data.includes(description)) {
+                param.data.push(description);
+            }
+        }        
+    }
+}
+export const sense_objects_fn = (response:SuiObjectResponse, param:Query_Param, option:SuiObjectDataOptions) => {
+    if (!response.error) {
+        let c = response?.data?.content as any;
+        if (c.type == OBJECTS_TYPE[MODULE_GUARD_INDEX] && c.fields.id.id == param.objectid) { // GUARD OBJECT
+            for (let i = 0; i < c.fields.senses.length; i ++) {
+                let sense = c.fields.senses[i];
+                if (sense.type == (OBJECTS_TYPE_PREFIX[MODULE_GUARD_INDEX] + 'Sense')) { // ...::guard::Sense                    
+                    let ids = parse_sense_bsc(Uint8Array.from(sense.fields.input.fields.bytes)) as string[];
+                    param.data = array_unique(param.data.concat(ids));
+                }                         
+            }
+        } 
+    }
+}

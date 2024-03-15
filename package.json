@@ -1,0 +1,24 @@
+{
+  "name": "wowok",
+  "version": "1.0.1",
+  "description": "",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "module": "node",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@digitak/esrun": "^3.2.26",
+    "@mysten/bcs": "^0.11.1",
+    "@mysten/sui.js": "^0.50.1",
+    "esrun": "^3.2.26"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.1"
+  }
+}
