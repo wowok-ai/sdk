@@ -144,7 +144,7 @@ exports.demand_yes = demand_yes;
 function deposit(earnest_type, txb, demand, earnest) {
     return txb.moveCall({
         target: protocol_1.PROTOCOL.DemandFn('deposit'),
-        arguments: [demand, earnest],
+        arguments: [demand, txb.makeMoveVec({ objects: earnest })],
         typeArguments: [earnest_type],
     });
 }

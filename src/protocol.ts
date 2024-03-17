@@ -105,8 +105,8 @@ export class Protocol {
         this.signer = signer;
         switch(network) {
             case ENTRYPOINT.localnet:
-                this.package = "0x74bc92ffc14f5a443e27dfd0016cdb37ac5a45a0ebd54ce0875b40d213600f3d";
-                this.everyone_guard = "0x5db7fa50a92c45c3ac7b0110b1c68e2113ac4a82f1bb780c398eaac940b651c4";
+                this.package = "0x74df733df2395d0c3a34c6d086d2e1f130603b8aa16962e53781cb0fa9c6958c";
+                this.everyone_guard = "0xb1a2e3d0cf13c3fcb491f126af8422f7d098147659d8a58a52511cfbb783a6e8";
                 break;
             case ENTRYPOINT.devnet:
                 break;

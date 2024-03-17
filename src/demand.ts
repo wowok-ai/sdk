@@ -36,6 +36,7 @@ export function launch(earnest_type:string, txb:TransactionBlock, demand:DemandO
         typeArguments:[earnest_type],
     })
 }
+
 export function destroy(earnest_type:string, txb:TransactionBlock, demand:DemandObject) {
     return txb.moveCall({
         target:PROTOCOL.DemandFn('destroy') as FnCallType,
