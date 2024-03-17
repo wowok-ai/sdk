@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.change_permission = exports.deposit = exports.claim = exports.reward_lock_guards = exports.reward_set_description = exports.reward_remove_guard = exports.reward_add_guard = exports.reward_expand_time = exports.reward_refund = exports.destroy = exports.launch = exports.reward = void 0;
+exports.change_permission = exports.deposit = exports.claim = exports.reward_lock_guards = exports.reward_set_description = exports.allow_repeat_claim = exports.reward_remove_guard = exports.reward_add_guard = exports.reward_expand_time = exports.reward_refund = exports.destroy = exports.launch = exports.reward = void 0;
 const bcs_1 = require("@mysten/bcs");
 const protocol_1 = require("./protocol");
 function reward(reward_type, txb, permission, description, minutes_duration, passport) {
@@ -123,6 +123,23 @@ function reward_remove_guard(reward_type, txb, reward, permission, guards, remov
     }
 }
 exports.reward_remove_guard = reward_remove_guard;
+function allow_repeat_claim(reward_type, txb, reward, permission, allow_repeat_claim, passport) {
+    if (passport) {
+        txb.moveCall({
+            target: protocol_1.PROTOCOL.RewardFn('allow_repeat_claim_with_passport'),
+            arguments: [passport, reward, permission, txb.pure(allow_repeat_claim, bcs_1.BCS.BOOL)],
+            typeArguments: [reward_type]
+        });
+    }
+    else {
+        txb.moveCall({
+            target: protocol_1.PROTOCOL.RewardFn('allow_repeat_claim_with_passport'),
+            arguments: [reward, permission, txb.pure(allow_repeat_claim, bcs_1.BCS.BOOL)],
+            typeArguments: [reward_type]
+        });
+    }
+}
+exports.allow_repeat_claim = allow_repeat_claim;
 function reward_set_description(reward_type, txb, reward, permission, description, passport) {
     if (passport) {
         txb.moveCall({
@@ -174,10 +191,10 @@ function claim(reward_type, txb, reward, passport) {
     }
 }
 exports.claim = claim;
-function deposit(reward_type, txb, reward, reward_objects) {
+function deposit(reward_type, txb, reward, rewards) {
     txb.moveCall({
         target: protocol_1.PROTOCOL.RewardFn('deposit'),
-        arguments: [reward, txb.makeMoveVec({ objects: reward_objects })],
+        arguments: [reward, txb.makeMoveVec({ objects: rewards })],
         typeArguments: [reward_type]
     });
 }

@@ -7,6 +7,7 @@ import { PermissionIndex, PermissionObject } from './permission'
 export type RewardObject = TransactionResult;
 export type RewardAddress = TransactionResult;
 export type Reward = TransactionResult;
+export type CoinReward = TransactionResult;
 
 export function reward(reward_type:string, txb:TransactionBlock, permission:PermissionObject, description:string, minutes_duration:number, passport?:PassportObject) : RewardObject {
     if (passport) {
@@ -123,6 +124,21 @@ export function reward_remove_guard(reward_type:string, txb:TransactionBlock, re
         }
     }
 }
+export function allow_repeat_claim(reward_type:string, txb:TransactionBlock, reward:RewardObject, permission:PermissionObject, allow_repeat_claim:boolean, passport?:PassportObject) {
+    if (passport) {
+        txb.moveCall({
+            target:PROTOCOL.RewardFn('allow_repeat_claim_with_passport') as FnCallType,
+            arguments:[passport, reward, permission, txb.pure(allow_repeat_claim, BCS.BOOL)], 
+            typeArguments:[reward_type]
+        })
+    } else {
+        txb.moveCall({
+            target:PROTOCOL.RewardFn('allow_repeat_claim_with_passport') as FnCallType,
+            arguments:[reward, permission, txb.pure(allow_repeat_claim, BCS.BOOL)], 
+            typeArguments:[reward_type]
+        })
+    }
+}
 export function reward_set_description(reward_type:string, txb:TransactionBlock, reward:RewardObject, permission:PermissionObject, description:string, passport?:PassportObject) {
     if (passport) {
         txb.moveCall({
@@ -168,13 +184,14 @@ export function claim(reward_type:string, txb:TransactionBlock, reward:RewardObj
         })        
     }
 }
-export function deposit(reward_type:string, txb:TransactionBlock, reward:RewardObject, reward_objects:Reward[]) {
+export function deposit(reward_type:string, txb:TransactionBlock, reward:RewardObject, rewards:Reward[]) {
     txb.moveCall({
         target:PROTOCOL.RewardFn('deposit') as FnCallType,
-        arguments:[reward, txb.makeMoveVec({objects:reward_objects})], //@
+        arguments:[reward, txb.makeMoveVec({objects:rewards})], //@
         typeArguments:[reward_type]
     })
 }
+
 export function change_permission(reward_type:string, txb:TransactionBlock, reward:RewardObject, old_permission:PermissionObject, new_permission:PermissionObject) {
     txb.moveCall({
         target:PROTOCOL.RewardFn('permission_set') as FnCallType,
