@@ -101,18 +101,21 @@ export class Protocol {
     protected everyone_guard = '';
 
     constructor(network:ENTRYPOINT=ENTRYPOINT.localnet, signer="0xe386bb9e01b3528b75f3751ad8a1e418b207ad979fea364087deef5250a73d3f") {
-        this.network = network;
         this.signer = signer;
+        this.UseNetwork(network);
+    }
+    UseNetwork(network:ENTRYPOINT=ENTRYPOINT.localnet) {
+        this.network = network;
         switch(network) {
             case ENTRYPOINT.localnet:
-                this.package = "0x74df733df2395d0c3a34c6d086d2e1f130603b8aa16962e53781cb0fa9c6958c";
-                this.everyone_guard = "0xb1a2e3d0cf13c3fcb491f126af8422f7d098147659d8a58a52511cfbb783a6e8";
+                this.package = "0xe9721254e97dd074e06c5efe5c57be169b64b39ae48939d89c00bf2f62b19e10";
+                this.everyone_guard = "0xb2a3fe7881cb883743c4e962b7e3c7716a1cd47a67adad01dc79795def4f769d";
                 break;
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0x038b0be329e4fd227d846b850aeb1822f9629c62c14d85ffcd22d856c843923f";
-                this.everyone_guard = "0xdfe42468bfc7d7988fa1707978ef9376178dcefbe938d140a1bfd97abe755998";
+                this.package = "0x5f9d5e9596375888ff2b5d5a4dbffbb4c3a1a0489da87a69743b5cf2c2ad70e0";
+                this.everyone_guard = "0x2e69f2be62d75c97640eb387a4dfffdc7ecb9e7dce5323d1ab3385dd18dc6043";
                 break;
             case ENTRYPOINT.mainnet:
                 break;

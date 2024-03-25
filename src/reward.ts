@@ -178,7 +178,7 @@ export function claim(reward_type:string, txb:TransactionBlock, reward:RewardObj
         })
     } else {
         txb.moveCall({
-            target:PROTOCOL.RewardFn('claim_with_passport') as FnCallType,
+            target:PROTOCOL.RewardFn('claim') as FnCallType,
             arguments:[reward, txb.object(CLOCK_OBJECT)], 
             typeArguments:[reward_type]
         })        

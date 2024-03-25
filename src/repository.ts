@@ -64,7 +64,7 @@ export function add_data(txb:TransactionBlock, repository:RepositoryObject, perm
                 txb.pure(d.address, BCS.ADDRESS),
                 txb.pure(name_data(data.name)), 
                 txb.pure(data.value_type, BCS.U8),
-                txb.pure(d.value, 'vector<u8>'),
+                txb.pure([...d.value], 'vector<u8>'),
                 permission,
             ],
         }))            
@@ -74,7 +74,7 @@ export function add_data(txb:TransactionBlock, repository:RepositoryObject, perm
             arguments:[repository, 
                 txb.pure(d.address, BCS.ADDRESS),
                 txb.pure(name_data(data.name)), 
-                txb.pure(d.value, 'vector<u8>'),
+                txb.pure([...d.value], 'vector<u8>'),
                 permission,
             ],
         }))   
