@@ -46,7 +46,7 @@ function add_data(txb, repository, permission, data) {
                 txb.pure(d.address, bcs_1.BCS.ADDRESS),
                 txb.pure((0, protocol_1.name_data)(data.name)),
                 txb.pure(data.value_type, bcs_1.BCS.U8),
-                txb.pure(d.value, 'vector<u8>'),
+                txb.pure([...d.value], 'vector<u8>'),
                 permission,
             ],
         }));
@@ -57,7 +57,7 @@ function add_data(txb, repository, permission, data) {
             arguments: [repository,
                 txb.pure(d.address, bcs_1.BCS.ADDRESS),
                 txb.pure((0, protocol_1.name_data)(data.name)),
-                txb.pure(d.value, 'vector<u8>'),
+                txb.pure([...d.value], 'vector<u8>'),
                 permission,
             ],
         }));
@@ -78,6 +78,7 @@ exports.remove = remove;
 // add or modify the old 
 function repository_add_policies(txb, repository, permission, policies, passport) {
     policies.forEach((policy) => {
+        console.log(policy);
         let permission_index = policy?.permission ? txb.pure(policy.permission, bcs_1.BCS.U64) : txb.pure([0], bcs_1.BCS.U8);
         if (passport) {
             txb.moveCall({
@@ -85,7 +86,8 @@ function repository_add_policies(txb, repository, permission, policies, passport
                 arguments: [passport, repository,
                     txb.pure((0, protocol_1.name_data)(policy.name)),
                     txb.pure((0, protocol_1.description_data)(policy.description)),
-                    permission_index, txb.pure(policy.value_type, bcs_1.BCS.U8)]
+                    permission_index, txb.pure(policy.value_type, bcs_1.BCS.U8),
+                    permission]
             });
         }
         else {
@@ -94,7 +96,8 @@ function repository_add_policies(txb, repository, permission, policies, passport
                 arguments: [repository,
                     txb.pure((0, protocol_1.name_data)(policy.name)),
                     txb.pure((0, protocol_1.description_data)(policy.description)),
-                    permission_index, txb.pure(policy.value_type, bcs_1.BCS.U8)]
+                    permission_index, txb.pure(policy.value_type, bcs_1.BCS.U8),
+                    permission]
             });
         }
     });

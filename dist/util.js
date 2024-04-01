@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.objectids_from_response = exports.Object_Type_Extra = exports.BCS_CONVERT = exports.Bcs = exports.parse_object_type = exports.capitalize = exports.array_unique = exports.array_equal = exports.concatenate = exports.ulebDecode = void 0;
+exports.stringToUint8Array = exports.objectids_from_response = exports.Object_Type_Extra = exports.BCS_CONVERT = exports.Bcs = exports.parse_object_type = exports.capitalize = exports.array_unique = exports.array_equal = exports.concatenate = exports.ulebDecode = void 0;
 const bcs_1 = require("@mysten/bcs");
 const protocol_1 = require("./protocol");
 function ulebDecode(arr) {
@@ -129,3 +129,12 @@ const objectids_from_response = (response, concat_result) => {
     return ret;
 };
 exports.objectids_from_response = objectids_from_response;
+function stringToUint8Array(str) {
+    var arr = [];
+    for (var i = 0, j = str.length; i < j; ++i) {
+        arr.push(str.charCodeAt(i));
+    }
+    var tmpUint8Array = new Uint8Array(arr);
+    return tmpUint8Array;
+}
+exports.stringToUint8Array = stringToUint8Array;

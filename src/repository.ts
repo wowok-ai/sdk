@@ -3,6 +3,7 @@ import { BCS } from '@mysten/bcs';
 import { name_data, FnCallType, Data_Type, PROTOCOL, description_data} from './protocol';
 import { PassportObject, verify,  } from './passport'
 import { PermissionIndex, PermissionObject } from './permission'
+import { BCS_CONVERT } from './util';
 
 export const MAX_POLICY_COUNT = 128;
 
@@ -13,8 +14,8 @@ export enum Repository_Policy_Mode {
 export type Repository_Policy = {
     name:string;
     description: string;
-    permission?: PermissionIndex;
     value_type: Data_Type;
+    permission?: number; // PermissionIndex like, must be geater than 10000
 }
 export type Repository_Policy_Data = {
     name: string;
@@ -94,14 +95,15 @@ export function remove(txb:TransactionBlock, repository:RepositoryObject, permis
 // add or modify the old 
 export function repository_add_policies(txb:TransactionBlock, repository:RepositoryObject, permission:PermissionObject, policies:Repository_Policy[], passport?:PassportObject) {
     policies.forEach((policy) => {
-        let permission_index = policy?.permission ? txb.pure(policy.permission, BCS.U64) : txb.pure([0], BCS.U8);
+        let permission_index = policy?.permission ? txb.pure(BCS_CONVERT.ser_option_u64(policy.permission)) : txb.pure([0], BCS.U8);
         if (passport) {
             txb.moveCall({
                 target:PROTOCOL.RepositoryFn('policy_add_with_passport') as FnCallType,
                 arguments:[passport, repository, 
                     txb.pure(name_data(policy.name)), 
                     txb.pure(description_data(policy.description)),
-                    permission_index, txb.pure(policy.value_type, BCS.U8)]
+                    permission_index, txb.pure(policy.value_type, BCS.U8),
+                    permission]
             })              
         } else {
             txb.moveCall({
@@ -109,7 +111,8 @@ export function repository_add_policies(txb:TransactionBlock, repository:Reposit
                 arguments:[repository, 
                     txb.pure(name_data(policy.name)), 
                     txb.pure(description_data(policy.description)),
-                    permission_index, txb.pure(policy.value_type, BCS.U8)]
+                    permission_index, txb.pure(policy.value_type, BCS.U8),
+                    permission]
             })  
         }
     });    
@@ -210,4 +213,5 @@ export function change_permission(txb:TransactionBlock, repository:RepositoryObj
         typeArguments:[]            
     })    
 }
+
 

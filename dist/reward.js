@@ -184,7 +184,7 @@ function claim(reward_type, txb, reward, passport) {
     }
     else {
         txb.moveCall({
-            target: protocol_1.PROTOCOL.RewardFn('claim_with_passport'),
+            target: protocol_1.PROTOCOL.RewardFn('claim'),
             arguments: [reward, txb.object(protocol_1.CLOCK_OBJECT)],
             typeArguments: [reward_type]
         });

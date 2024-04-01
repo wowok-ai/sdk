@@ -1,0 +1,30 @@
+{
+  object(
+    address: "0x30feecaf0e3930da9c6deab887413a25e956572330a1071f3b29ad83764ba384"
+  ) {
+    asMoveObject {
+      contents {
+        json
+        type {
+          repr
+        }
+      }
+    }
+    dynamicFields {
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
+      nodes {
+        name {
+          json
+        }
+        value {
+          ... on MoveValue {
+            json
+          }
+        }
+      }
+    }
+  }
+}

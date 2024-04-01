@@ -96,11 +96,11 @@ class Protocol {
     signer = '';
     everyone_guard = '';
     constructor(network = ENTRYPOINT.localnet, signer = "0xe386bb9e01b3528b75f3751ad8a1e418b207ad979fea364087deef5250a73d3f") {
-        this.network = network;
         this.signer = signer;
         this.UseNetwork(network);
     }
     UseNetwork(network = ENTRYPOINT.localnet) {
+        this.network = network;
         switch (network) {
             case ENTRYPOINT.localnet:
                 this.package = "0xe9721254e97dd074e06c5efe5c57be169b64b39ae48939d89c00bf2f62b19e10";
@@ -109,8 +109,8 @@ class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0xe9721254e97dd074e06c5efe5c57be169b64b39ae48939d89c00bf2f62b19e10";
-                this.everyone_guard = "0xb2a3fe7881cb883743c4e962b7e3c7716a1cd47a67adad01dc79795def4f769d";
+                this.package = "0x5f9d5e9596375888ff2b5d5a4dbffbb4c3a1a0489da87a69743b5cf2c2ad70e0";
+                this.everyone_guard = "0x2e69f2be62d75c97640eb387a4dfffdc7ecb9e7dce5323d1ab3385dd18dc6043";
                 break;
             case ENTRYPOINT.mainnet:
                 break;

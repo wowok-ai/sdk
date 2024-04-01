@@ -24,12 +24,12 @@ export type Guard_Creation = {
 export function launch(txb:TransactionBlock, creation:Guard_Creation) : GuardAddress {
     var guard = txb.moveCall({
         target: PROTOCOL.GuardFn('new') as FnCallType,
-        arguments: [            txb.pure(creation.description , BCS.STRING),        ],  
+        arguments: [txb.pure(creation.description , BCS.STRING),        ],  
     });
     creation?.senses.forEach((sense: Guard_Sense) => {
         txb.moveCall({
             target: PROTOCOL.GuardFn('sense_add') as FnCallType,
-            arguments:[                guard,                txb.pure([].slice.call(sense.input)),
+            arguments:[guard, txb.pure([].slice.call(sense.input)),
                 txb.pure(sense.notAfterSense, BCS.BOOL),
                 txb.pure(sense.binder, BCS.U8),
             ]
