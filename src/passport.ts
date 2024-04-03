@@ -4,7 +4,7 @@ import { PROTOCOL, FnCallType, CLOCK_OBJECT, Query_Param, OBJECTS_TYPE, OBJECTS_
 import { parse_object_type, array_unique } from './util';
 import { sense_objects_fn } from './guard';
 
-export const MAX_GUARD_COUNT = 4;
+export const MAX_GUARD_COUNT = 8;
 
 // passport verify for some guards, MUST be in ONE pxb:
 // 0. construct Guard_Query_Objects(passport_quries) from queries for guards of objects
@@ -17,7 +17,7 @@ export const MAX_GUARD_COUNT = 4;
 
 export type PassportObject = TransactionResult;
 
-export const passport_quries = async (guards:string[]) : Promise<Guard_Query_Object[]> => {
+export const passport_queries = async (guards:string[]) : Promise<Guard_Query_Object[]> => {
     let sense_objects = guards.map((value) => {
         return {objectid:value, callback:sense_objects_fn, data:[]} as Query_Param
     });

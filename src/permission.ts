@@ -5,8 +5,8 @@ import { array_unique } from './util';
 
 
 export const MAX_ADMIN_COUNT = 64;
-export const MAX_ENTITY_COUNT = 1024;
-export const MAX_PERMISSION_INDEX_COUNT = 512;
+export const MAX_ENTITY_COUNT = 2028;
+export const MAX_PERMISSION_INDEX_COUNT = 128;
 
 export enum PermissionIndex {
     repository = 100,

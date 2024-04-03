@@ -5,9 +5,10 @@ import { PROTOCOL, GuardAddress, FnCallType, Data_Type, MODULES, GuardObject, OB
 import { concatenate, array_equal, ulebDecode, array_unique } from './util';
 import { TransactionBlockDataBuilder } from '@mysten/sui.js/dist/cjs/builder/TransactionBlockData';
 
+export const MAX_SENSE_COUNT = 16;
 export enum Guard_Sense_Binder {
-    AND = 1, // first sense of guard always AND; for combining other guards
-    OR = 2,
+    AND = 0, // first sense of guard always AND; for combining other guards
+    OR = 1,
 }
 
 export type Guard_Sense = { 

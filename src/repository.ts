@@ -1,11 +1,13 @@
 import { TransactionBlock, Inputs, type TransactionResult } from '@mysten/sui.js/transactions';
 import { BCS } from '@mysten/bcs';
-import { name_data, FnCallType, Data_Type, PROTOCOL, description_data} from './protocol';
+import { FnCallType, Data_Type, PROTOCOL, description_data} from './protocol';
 import { PassportObject, verify,  } from './passport'
 import { PermissionIndex, PermissionObject } from './permission'
 import { BCS_CONVERT } from './util';
 
-export const MAX_POLICY_COUNT = 128;
+export const MAX_POLICY_COUNT = 1024;
+export const MAX_KEY_LENGTH = 128;
+export const MAX_VALUE_LENGTH = 204800;
 
 export enum Repository_Policy_Mode {
     POLICY_MODE_FREE = 0,
@@ -63,7 +65,7 @@ export function add_data(txb:TransactionBlock, repository:RepositoryObject, perm
             target:PROTOCOL.RepositoryFn('add') as FnCallType,
             arguments:[repository, 
                 txb.pure(d.address, BCS.ADDRESS),
-                txb.pure(name_data(data.name)), 
+                txb.pure(data.name), 
                 txb.pure(data.value_type, BCS.U8),
                 txb.pure([...d.value], 'vector<u8>'),
                 permission,
@@ -74,7 +76,7 @@ export function add_data(txb:TransactionBlock, repository:RepositoryObject, perm
             target:PROTOCOL.RepositoryFn('add_typed_data') as FnCallType,
             arguments:[repository, 
                 txb.pure(d.address, BCS.ADDRESS),
-                txb.pure(name_data(data.name)), 
+                txb.pure(data.name), 
                 txb.pure([...d.value], 'vector<u8>'),
                 permission,
             ],
@@ -87,7 +89,7 @@ export function remove(txb:TransactionBlock, repository:RepositoryObject, permis
         target:PROTOCOL.RepositoryFn('remove') as FnCallType,
         arguments:[repository, 
             txb.pure(address, BCS.ADDRESS),
-            txb.pure(name_data(name)), 
+            txb.pure(name), 
             permission,
         ],
     })    
@@ -100,7 +102,7 @@ export function repository_add_policies(txb:TransactionBlock, repository:Reposit
             txb.moveCall({
                 target:PROTOCOL.RepositoryFn('policy_add_with_passport') as FnCallType,
                 arguments:[passport, repository, 
-                    txb.pure(name_data(policy.name)), 
+                    txb.pure(policy.name), 
                     txb.pure(description_data(policy.description)),
                     permission_index, txb.pure(policy.value_type, BCS.U8),
                     permission]
@@ -109,7 +111,7 @@ export function repository_add_policies(txb:TransactionBlock, repository:Reposit
             txb.moveCall({
                 target:PROTOCOL.RepositoryFn('policy_add') as FnCallType,
                 arguments:[repository, 
-                    txb.pure(name_data(policy.name)), 
+                    txb.pure(policy.name), 
                     txb.pure(description_data(policy.description)),
                     permission_index, txb.pure(policy.value_type, BCS.U8),
                     permission]
@@ -129,7 +131,7 @@ export function repository_remove_policies(txb:TransactionBlock, repository:Repo
             policy_names.forEach((name) => {
                 txb.moveCall({
                     target:PROTOCOL.RepositoryFn('policy_remove_with_passport') as FnCallType,
-                    arguments:[passport, repository, txb.pure(name_data(name)), permission]
+                    arguments:[passport, repository, txb.pure(name), permission]
                 })                
             })
         }
@@ -143,7 +145,7 @@ export function repository_remove_policies(txb:TransactionBlock, repository:Repo
             policy_names.forEach((name) => {
                 txb.moveCall({
                     target:PROTOCOL.RepositoryFn('policy_remove') as FnCallType,
-                    arguments:[repository, txb.pure(name_data(name)), permission]
+                    arguments:[repository, txb.pure(name), permission]
                 })                
             })
         }
