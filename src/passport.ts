@@ -1,6 +1,6 @@
 import { SuiObjectResponse, SuiObjectDataOptions } from '@mysten/sui.js/client';
 import { TransactionBlock, TransactionResult, type TransactionObjectInput, Inputs } from '@mysten/sui.js/transactions';
-import { PROTOCOL, FnCallType, CLOCK_OBJECT, Query_Param, OBJECTS_TYPE, OBJECTS_TYPE_PREFIX} from './protocol';
+import { PROTOCOL, FnCallType, CLOCK_OBJECT, Query_Param, OBJECTS_TYPE, OBJECTS_TYPE_PREFIX, PassportObject} from './protocol';
 import { parse_object_type, array_unique } from './util';
 import { sense_objects_fn } from './guard';
 
@@ -15,7 +15,6 @@ export const MAX_GUARD_COUNT = 8;
 // 5. ops using passport(guard set on object)
 // 6. destroy passport
 
-export type PassportObject = TransactionResult;
 
 export const passport_queries = async (guards:string[]) : Promise<Guard_Query_Object[]> => {
     let sense_objects = guards.map((value) => {
@@ -38,9 +37,9 @@ export const passport_queries = async (guards:string[]) : Promise<Guard_Query_Ob
     })
 }
 // return passport object for using
-export function verify(txb:TransactionBlock, passport_queries:Guard_Query_Object[]) : PassportObject | undefined {
+export function verify(txb:TransactionBlock, passport_queries:Guard_Query_Object[]) : PassportObject | boolean {
     if (passport_queries.length == 0 || passport_queries.length > MAX_GUARD_COUNT) {
-        return undefined;
+        return false;
     }
     let guard_ids = passport_queries.map((value)=>value.id);
     var passport = txb.moveCall({
@@ -76,11 +75,12 @@ export function verify(txb:TransactionBlock, passport_queries:Guard_Query_Object
     return passport;
 }
 
-export function destroy(txb:TransactionBlock, passport:PassportObject) {
+export function destroy(txb:TransactionBlock, passport:PassportObject) : boolean {
     txb.moveCall({
         target: PROTOCOL.PassportFn('destroy') as FnCallType,
         arguments: [ passport ]
     });  
+    return true
 }
 
 export type Guard_Query_Object = {

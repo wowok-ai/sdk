@@ -2,25 +2,39 @@ import { SuiClient, SuiObjectResponse, SuiObjectDataOptions, SuiTransactionBlock
     SuiTransactionBlockResponse, SuiObjectChange } from '@mysten/sui.js/client';
 import { Ed25519Keypair } from '@mysten/sui.js/keypairs/ed25519';
 import { BCS, getSuiMoveConfig, toHEX, fromHEX, BcsReader } from '@mysten/bcs';
-import { TransactionBlock, Inputs, type TransactionResult } from '@mysten/sui.js/transactions';
+import { TransactionBlock, Inputs, type TransactionResult, type TransactionArgument } from '@mysten/sui.js/transactions';
 import { capitalize } from './util'
-
-export type GuardObject = TransactionResult;
-export type GuardAddress = TransactionResult;
 
 export const MAX_DESCRIPTION_LENGTH = 1024;
 export const MAX_NAME_LENGTH = 64;
 export const MAX_ENDPOINT_LENGTH = 1024;
+export const OptionNone = (txb:TransactionBlock) : TransactionArgument => { return txb.pure([], BCS.U8) };
 
-export function description_data(description:string) : string {
-    return description.substring(0, MAX_DESCRIPTION_LENGTH);
+export const IsValidDesription = (description:string) : boolean => { return description.length <= MAX_DESCRIPTION_LENGTH }
+export const IsValidName = (name:string) : boolean => { return name.length <= MAX_NAME_LENGTH && name.length != 0 }
+export const IsValidName_AllowEmpty = (name:string) : boolean => { return name.length <= MAX_NAME_LENGTH }
+export const IsValidEndpoint = (endpoint:string) : boolean => { return endpoint.length <= MAX_DESCRIPTION_LENGTH }
+export const IsValidAddress = (address:string) : boolean => { return address.length != 0 }
+export const IsValidArgType = (argType: string) : boolean => { return argType.length != 0 }
+export const IsValidUint = (value: number) : boolean => { return Number.isSafeInteger(value) && value != 0 }
+export const IsValidInt = (value: number) : boolean => { return Number.isSafeInteger(value) }
+export const IsValidPercent = (value: number) : boolean => { return Number.isSafeInteger(value) && value > 0 && value <= 100 }
+export const IsValidArray = (arr: any[], validFunc:any) : boolean => {
+    let bValid = true;
+    arr.forEach((v) => {
+        if (!validFunc(v)) {
+            bValid = false; 
+        }
+    })
+    return bValid;
 }
-export function endpoint_data(endpoint:string) : string {
-    return endpoint.substring(0, MAX_ENDPOINT_LENGTH);
+export const IsValidObjects = (arr:TxbObject[]) : boolean => { 
+    return IsValidArray(arr, (v:TxbObject)=>{ 
+        if (!v)  return false
+        return true
+    })
 }
-export function name_data(name:string) : string {
-    return name.substring(0, MAX_NAME_LENGTH);
-}
+
 export enum MODULES {
     machine = 'machine',
     node = 'node',
@@ -38,7 +52,32 @@ export enum MODULES {
     wowok = 'wowok',
 }
 
-export type TxbObject = string | TransactionResult;
+export type PermissionAddress = TransactionResult;
+export type PermissionObject = TransactionResult | string;
+export type RepositoryAddress = TransactionResult;
+export type RepositoryObject = TransactionResult | string;
+export type GuardAddress = TransactionResult;
+export type GuardObject = TransactionResult | string;
+export type MachineAddress = TransactionResult;
+export type MachineObject = TransactionResult | string;
+export type PassportObject = TransactionResult;
+export type DemandAddress = TransactionResult;
+export type DemandObject = TransactionResult | string;
+export type ServiceObject = TransactionResult  | string;
+export type ServiceAddress = TransactionResult;
+export type ProgressObject = TransactionResult | string;
+export type ProgressAddress = TransactionResult;
+export type RewardObject = TransactionResult | string;
+export type RewardAddress = TransactionResult;
+export type OrderObject = TransactionResult | string;
+export type OrderAddress = TransactionResult;
+export type DiscountObject = TransactionResult | string;
+export type CoinObject = TransactionResult | string;
+export type VoteObject = TransactionResult | string;
+export type VoteAddress = TransactionResult;
+
+export type TxbObject = string | TransactionResult | GuardObject |  RepositoryObject | PermissionObject | MachineObject | PassportObject |
+    DemandObject | ServiceObject | RewardObject | OrderObject | DiscountObject | VoteObject | DemandObject;
 export function TXB_OBJECT(txb:TransactionBlock, arg:TxbObject) : TransactionResult {
     if (typeof arg == 'string') return txb.object(arg) as TransactionResult;
     return arg;
@@ -53,20 +92,7 @@ export const CLOCK_OBJECT = Inputs.SharedObjectRef({
     initialSharedVersion: 1,
 });
 
-export enum Data_Type {
-    TYPE_DYNAMIC_QUERY = 1,
-    TYPE_LOGIC_OPERATOR_U128_GREATER = 11,
-    TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL = 12,
-    TYPE_LOGIC_OPERATOR_U128_LESSER = 13,
-    TYPE_LOGIC_OPERATOR_U128_LESSER_EQUAL = 14,
-    TYPE_LOGIC_OPERATOR_U128_EQUAL = 15,
-    TYPE_LOGIC_OPERATOR_EQUAL = 16, // TYPE&DATA(vector<u8>) MUST BE EQUAL
-    TYPE_LOGIC_OPERATOR_HAS_SUBSTRING = 17, // SUBSTRING
-    TYPE_LOGIC_ALWAYS_TRUE = 18, // aways true
-    // TYPE_LOGIC_OPERATOR_VECU8_CONTAINS = 18, // SUB VEC<U8>
-    TYPE_CONTEXT_SIGNER  = 60,
-    TYPE_CONTEXT_CURRENT_PROGRESS = 61,
-    TYPE_CONTEXT_CURRENT_CLOCK = 62,
+export enum ValueType {
     TYPE_STATIC_bool = 100,
     TYPE_STATIC_address = 101,
     TYPE_STATIC_u64 = 102,
@@ -83,9 +109,27 @@ export enum Data_Type {
     TYPE_STATIC_option_u8 = 113,
     TYPE_STATIC_option_u64 = 114,
     TYPE_STATIC_option_u128 = 115,
-    TYPE_STATIC_by_value_specified = 126,
-    TYPE_STATIC_error = 127,
 }
+
+export enum OperatorType {
+    TYPE_DYNAMIC_QUERY = 1, // query wowok object
+    TYPE_LOGIC_OPERATOR_U128_GREATER = 11,
+    TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL = 12,
+    TYPE_LOGIC_OPERATOR_U128_LESSER = 13,
+    TYPE_LOGIC_OPERATOR_U128_LESSER_EQUAL = 14,
+    TYPE_LOGIC_OPERATOR_U128_EQUAL = 15,
+    TYPE_LOGIC_OPERATOR_EQUAL = 16, // TYPE&DATA(vector<u8>) MUST BE EQUAL
+    TYPE_LOGIC_OPERATOR_HAS_SUBSTRING = 17, // SUBSTRING
+    TYPE_LOGIC_ALWAYS_TRUE = 18, // aways true
+}
+
+export enum ContextType {
+    TYPE_CONTEXT_SIGNER  = 60,
+    TYPE_CONTEXT_CURRENT_PROGRESS = 61,
+    TYPE_CONTEXT_CURRENT_CLOCK = 62,
+}
+
+export type Data_Type = ValueType | OperatorType | ContextType;
 
 export enum ENTRYPOINT {
     mainnet = 'mainnet',

@@ -1,12 +1,20 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.query_cmd_fn = exports.destroy = exports.verify = exports.passport_quries = exports.MAX_GUARD_COUNT = void 0;
+exports.query_cmd_fn = exports.destroy = exports.verify = exports.passport_queries = exports.MAX_GUARD_COUNT = void 0;
 const transactions_1 = require("@mysten/sui.js/transactions");
 const protocol_1 = require("./protocol");
 const util_1 = require("./util");
 const guard_1 = require("./guard");
-exports.MAX_GUARD_COUNT = 4;
-const passport_quries = async (guards) => {
+exports.MAX_GUARD_COUNT = 8;
+// passport verify for some guards, MUST be in ONE pxb:
+// 0. construct Guard_Query_Objects(passport_quries) from queries for guards of objects
+// 1. create passport
+// 2. add all guards
+// 3. verify passport
+// 4. ops using passport(guard set on object)
+// 5. ops using passport(guard set on object)
+// 6. destroy passport
+const passport_queries = async (guards) => {
     let sense_objects = guards.map((value) => {
         return { objectid: value, callback: guard_1.sense_objects_fn, data: [] };
     });
@@ -25,11 +33,11 @@ const passport_quries = async (guards) => {
         return value.data;
     });
 };
-exports.passport_quries = passport_quries;
+exports.passport_queries = passport_queries;
 // return passport object for using
 function verify(txb, passport_queries) {
     if (passport_queries.length == 0 || passport_queries.length > exports.MAX_GUARD_COUNT) {
-        return undefined;
+        return false;
     }
     let guard_ids = passport_queries.map((value) => value.id);
     var passport = txb.moveCall({
@@ -67,6 +75,7 @@ function destroy(txb, passport) {
         target: protocol_1.PROTOCOL.PassportFn('destroy'),
         arguments: [passport]
     });
+    return true;
 }
 exports.destroy = destroy;
 // construct Guard_Query_Object of wowok objects for passport verify

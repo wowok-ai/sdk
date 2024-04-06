@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.OBJECTS_TYPE = exports.OBJECTS_TYPE_PREFIX = exports.PROTOCOL = exports.Protocol = exports.ENTRYPOINT = exports.Data_Type = exports.CLOCK_OBJECT = exports.TXB_OBJECT = exports.MODULES = exports.name_data = exports.endpoint_data = exports.description_data = exports.MAX_ENDPOINT_LENGTH = exports.MAX_NAME_LENGTH = exports.MAX_DESCRIPTION_LENGTH = void 0;
+exports.OBJECTS_TYPE = exports.OBJECTS_TYPE_PREFIX = exports.PROTOCOL = exports.Protocol = exports.ENTRYPOINT = exports.ContextType = exports.OperatorType = exports.ValueType = exports.CLOCK_OBJECT = exports.TXB_OBJECT = exports.MODULES = exports.IsValidObjects = exports.IsValidArray = exports.IsValidPercent = exports.IsValidInt = exports.IsValidUint = exports.IsValidArgType = exports.IsValidAddress = exports.IsValidEndpoint = exports.IsValidName_AllowEmpty = exports.IsValidName = exports.IsValidDesription = exports.OptionNone = exports.MAX_ENDPOINT_LENGTH = exports.MAX_NAME_LENGTH = exports.MAX_DESCRIPTION_LENGTH = void 0;
 const client_1 = require("@mysten/sui.js/client");
 const ed25519_1 = require("@mysten/sui.js/keypairs/ed25519");
 const bcs_1 = require("@mysten/bcs");
@@ -9,18 +9,44 @@ const util_1 = require("./util");
 exports.MAX_DESCRIPTION_LENGTH = 1024;
 exports.MAX_NAME_LENGTH = 64;
 exports.MAX_ENDPOINT_LENGTH = 1024;
-function description_data(description) {
-    return description.substring(0, exports.MAX_DESCRIPTION_LENGTH);
-}
-exports.description_data = description_data;
-function endpoint_data(endpoint) {
-    return endpoint.substring(0, exports.MAX_ENDPOINT_LENGTH);
-}
-exports.endpoint_data = endpoint_data;
-function name_data(name) {
-    return name.substring(0, exports.MAX_NAME_LENGTH);
-}
-exports.name_data = name_data;
+const OptionNone = (txb) => { return txb.pure([], bcs_1.BCS.U8); };
+exports.OptionNone = OptionNone;
+const IsValidDesription = (description) => { return description.length <= exports.MAX_DESCRIPTION_LENGTH; };
+exports.IsValidDesription = IsValidDesription;
+const IsValidName = (name) => { return name.length <= exports.MAX_NAME_LENGTH && name.length != 0; };
+exports.IsValidName = IsValidName;
+const IsValidName_AllowEmpty = (name) => { return name.length <= exports.MAX_NAME_LENGTH; };
+exports.IsValidName_AllowEmpty = IsValidName_AllowEmpty;
+const IsValidEndpoint = (endpoint) => { return endpoint.length <= exports.MAX_DESCRIPTION_LENGTH; };
+exports.IsValidEndpoint = IsValidEndpoint;
+const IsValidAddress = (address) => { return address.length != 0; };
+exports.IsValidAddress = IsValidAddress;
+const IsValidArgType = (argType) => { return argType.length != 0; };
+exports.IsValidArgType = IsValidArgType;
+const IsValidUint = (value) => { return Number.isSafeInteger(value) && value != 0; };
+exports.IsValidUint = IsValidUint;
+const IsValidInt = (value) => { return Number.isSafeInteger(value); };
+exports.IsValidInt = IsValidInt;
+const IsValidPercent = (value) => { return Number.isSafeInteger(value) && value > 0 && value <= 100; };
+exports.IsValidPercent = IsValidPercent;
+const IsValidArray = (arr, validFunc) => {
+    let bValid = true;
+    arr.forEach((v) => {
+        if (!validFunc(v)) {
+            bValid = false;
+        }
+    });
+    return bValid;
+};
+exports.IsValidArray = IsValidArray;
+const IsValidObjects = (arr) => {
+    return (0, exports.IsValidArray)(arr, (v) => {
+        if (!v)
+            return false;
+        return true;
+    });
+};
+exports.IsValidObjects = IsValidObjects;
 var MODULES;
 (function (MODULES) {
     MODULES["machine"] = "machine";
@@ -49,40 +75,43 @@ exports.CLOCK_OBJECT = transactions_1.Inputs.SharedObjectRef({
     mutable: false,
     initialSharedVersion: 1,
 });
-var Data_Type;
-(function (Data_Type) {
-    Data_Type[Data_Type["TYPE_DYNAMIC_QUERY"] = 1] = "TYPE_DYNAMIC_QUERY";
-    Data_Type[Data_Type["TYPE_LOGIC_OPERATOR_U128_GREATER"] = 11] = "TYPE_LOGIC_OPERATOR_U128_GREATER";
-    Data_Type[Data_Type["TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL"] = 12] = "TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL";
-    Data_Type[Data_Type["TYPE_LOGIC_OPERATOR_U128_LESSER"] = 13] = "TYPE_LOGIC_OPERATOR_U128_LESSER";
-    Data_Type[Data_Type["TYPE_LOGIC_OPERATOR_U128_LESSER_EQUAL"] = 14] = "TYPE_LOGIC_OPERATOR_U128_LESSER_EQUAL";
-    Data_Type[Data_Type["TYPE_LOGIC_OPERATOR_U128_EQUAL"] = 15] = "TYPE_LOGIC_OPERATOR_U128_EQUAL";
-    Data_Type[Data_Type["TYPE_LOGIC_OPERATOR_EQUAL"] = 16] = "TYPE_LOGIC_OPERATOR_EQUAL";
-    Data_Type[Data_Type["TYPE_LOGIC_OPERATOR_HAS_SUBSTRING"] = 17] = "TYPE_LOGIC_OPERATOR_HAS_SUBSTRING";
-    Data_Type[Data_Type["TYPE_LOGIC_ALWAYS_TRUE"] = 18] = "TYPE_LOGIC_ALWAYS_TRUE";
-    // TYPE_LOGIC_OPERATOR_VECU8_CONTAINS = 18, // SUB VEC<U8>
-    Data_Type[Data_Type["TYPE_CONTEXT_SIGNER"] = 60] = "TYPE_CONTEXT_SIGNER";
-    Data_Type[Data_Type["TYPE_CONTEXT_CURRENT_PROGRESS"] = 61] = "TYPE_CONTEXT_CURRENT_PROGRESS";
-    Data_Type[Data_Type["TYPE_CONTEXT_CURRENT_CLOCK"] = 62] = "TYPE_CONTEXT_CURRENT_CLOCK";
-    Data_Type[Data_Type["TYPE_STATIC_bool"] = 100] = "TYPE_STATIC_bool";
-    Data_Type[Data_Type["TYPE_STATIC_address"] = 101] = "TYPE_STATIC_address";
-    Data_Type[Data_Type["TYPE_STATIC_u64"] = 102] = "TYPE_STATIC_u64";
-    Data_Type[Data_Type["TYPE_STATIC_u8"] = 103] = "TYPE_STATIC_u8";
-    Data_Type[Data_Type["TYPE_STATIC_u128"] = 104] = "TYPE_STATIC_u128";
-    Data_Type[Data_Type["TYPE_STATIC_vec_u8"] = 105] = "TYPE_STATIC_vec_u8";
-    Data_Type[Data_Type["TYPE_STATIC_vec_address"] = 106] = "TYPE_STATIC_vec_address";
-    Data_Type[Data_Type["TYPE_STATIC_vec_bool"] = 107] = "TYPE_STATIC_vec_bool";
-    Data_Type[Data_Type["TYPE_STATIC_vec_vec_u8"] = 108] = "TYPE_STATIC_vec_vec_u8";
-    Data_Type[Data_Type["TYPE_STATIC_vec_u64"] = 109] = "TYPE_STATIC_vec_u64";
-    Data_Type[Data_Type["TYPE_STATIC_vec_u128"] = 110] = "TYPE_STATIC_vec_u128";
-    Data_Type[Data_Type["TYPE_STATIC_option_address"] = 111] = "TYPE_STATIC_option_address";
-    Data_Type[Data_Type["TYPE_STATIC_option_bool"] = 112] = "TYPE_STATIC_option_bool";
-    Data_Type[Data_Type["TYPE_STATIC_option_u8"] = 113] = "TYPE_STATIC_option_u8";
-    Data_Type[Data_Type["TYPE_STATIC_option_u64"] = 114] = "TYPE_STATIC_option_u64";
-    Data_Type[Data_Type["TYPE_STATIC_option_u128"] = 115] = "TYPE_STATIC_option_u128";
-    Data_Type[Data_Type["TYPE_STATIC_by_value_specified"] = 126] = "TYPE_STATIC_by_value_specified";
-    Data_Type[Data_Type["TYPE_STATIC_error"] = 127] = "TYPE_STATIC_error";
-})(Data_Type || (exports.Data_Type = Data_Type = {}));
+var ValueType;
+(function (ValueType) {
+    ValueType[ValueType["TYPE_STATIC_bool"] = 100] = "TYPE_STATIC_bool";
+    ValueType[ValueType["TYPE_STATIC_address"] = 101] = "TYPE_STATIC_address";
+    ValueType[ValueType["TYPE_STATIC_u64"] = 102] = "TYPE_STATIC_u64";
+    ValueType[ValueType["TYPE_STATIC_u8"] = 103] = "TYPE_STATIC_u8";
+    ValueType[ValueType["TYPE_STATIC_u128"] = 104] = "TYPE_STATIC_u128";
+    ValueType[ValueType["TYPE_STATIC_vec_u8"] = 105] = "TYPE_STATIC_vec_u8";
+    ValueType[ValueType["TYPE_STATIC_vec_address"] = 106] = "TYPE_STATIC_vec_address";
+    ValueType[ValueType["TYPE_STATIC_vec_bool"] = 107] = "TYPE_STATIC_vec_bool";
+    ValueType[ValueType["TYPE_STATIC_vec_vec_u8"] = 108] = "TYPE_STATIC_vec_vec_u8";
+    ValueType[ValueType["TYPE_STATIC_vec_u64"] = 109] = "TYPE_STATIC_vec_u64";
+    ValueType[ValueType["TYPE_STATIC_vec_u128"] = 110] = "TYPE_STATIC_vec_u128";
+    ValueType[ValueType["TYPE_STATIC_option_address"] = 111] = "TYPE_STATIC_option_address";
+    ValueType[ValueType["TYPE_STATIC_option_bool"] = 112] = "TYPE_STATIC_option_bool";
+    ValueType[ValueType["TYPE_STATIC_option_u8"] = 113] = "TYPE_STATIC_option_u8";
+    ValueType[ValueType["TYPE_STATIC_option_u64"] = 114] = "TYPE_STATIC_option_u64";
+    ValueType[ValueType["TYPE_STATIC_option_u128"] = 115] = "TYPE_STATIC_option_u128";
+})(ValueType || (exports.ValueType = ValueType = {}));
+var OperatorType;
+(function (OperatorType) {
+    OperatorType[OperatorType["TYPE_DYNAMIC_QUERY"] = 1] = "TYPE_DYNAMIC_QUERY";
+    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_GREATER"] = 11] = "TYPE_LOGIC_OPERATOR_U128_GREATER";
+    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL"] = 12] = "TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL";
+    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_LESSER"] = 13] = "TYPE_LOGIC_OPERATOR_U128_LESSER";
+    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_LESSER_EQUAL"] = 14] = "TYPE_LOGIC_OPERATOR_U128_LESSER_EQUAL";
+    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_EQUAL"] = 15] = "TYPE_LOGIC_OPERATOR_U128_EQUAL";
+    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_EQUAL"] = 16] = "TYPE_LOGIC_OPERATOR_EQUAL";
+    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_HAS_SUBSTRING"] = 17] = "TYPE_LOGIC_OPERATOR_HAS_SUBSTRING";
+    OperatorType[OperatorType["TYPE_LOGIC_ALWAYS_TRUE"] = 18] = "TYPE_LOGIC_ALWAYS_TRUE";
+})(OperatorType || (exports.OperatorType = OperatorType = {}));
+var ContextType;
+(function (ContextType) {
+    ContextType[ContextType["TYPE_CONTEXT_SIGNER"] = 60] = "TYPE_CONTEXT_SIGNER";
+    ContextType[ContextType["TYPE_CONTEXT_CURRENT_PROGRESS"] = 61] = "TYPE_CONTEXT_CURRENT_PROGRESS";
+    ContextType[ContextType["TYPE_CONTEXT_CURRENT_CLOCK"] = 62] = "TYPE_CONTEXT_CURRENT_CLOCK";
+})(ContextType || (exports.ContextType = ContextType = {}));
 var ENTRYPOINT;
 (function (ENTRYPOINT) {
     ENTRYPOINT["mainnet"] = "mainnet";
@@ -109,8 +138,8 @@ class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0x5f9d5e9596375888ff2b5d5a4dbffbb4c3a1a0489da87a69743b5cf2c2ad70e0";
-                this.everyone_guard = "0x2e69f2be62d75c97640eb387a4dfffdc7ecb9e7dce5323d1ab3385dd18dc6043";
+                this.package = "0x27ab80fa4fed1755508558ed430453ee9aa36f9c9f0982cf8bbe94a5aac8543b";
+                this.everyone_guard = "0xafc6ddc2509f17afb9b0617aebb38208218cf48cff39cd04ef4a127b1ea3bec0";
                 break;
             case ENTRYPOINT.mainnet:
                 break;

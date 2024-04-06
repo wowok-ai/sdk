@@ -84,8 +84,14 @@ class Bcs {
     ser_option_u64(data) {
         return this.bcs.ser('Option<u64>', { 'some': data }).toBytes();
     }
+    ser_option_address(data) {
+        return this.bcs.ser('Option<address>', { 'some': data }).toBytes();
+    }
     ser_vector_string(data) {
         return this.bcs.ser('vector<string>', data).toBytes();
+    }
+    ser_vector_vector_u8(data) {
+        return this.bcs.ser('vector<vector<u8>>', data).toBytes();
     }
     ser_vector_u64(data) {
         return this.bcs.ser('vector<u64>', data).toBytes();
