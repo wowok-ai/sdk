@@ -127,7 +127,7 @@ export function machine_remove_node(txb:TransactionBlock, machine:MachineObject,
 export function machine(txb:TransactionBlock, permission:PermissionObject, description:string, 
     endpoint?:string, passport?:PassportObject) : MachineObject | boolean {
     if (!IsValidObjects([permission])) return false;    
-    if (IsValidDesription(description)) return false;
+    if (!IsValidDesription(description)) return false;
     if (endpoint && !IsValidEndpoint(endpoint)) return false;
     let ep = endpoint? txb.pure(BCS_CONVERT.ser_option_string(endpoint)) : OptionNone(txb);
 

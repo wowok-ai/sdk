@@ -13,7 +13,7 @@ export const OptionNone = (txb:TransactionBlock) : TransactionArgument => { retu
 export const IsValidDesription = (description:string) : boolean => { return description.length <= MAX_DESCRIPTION_LENGTH }
 export const IsValidName = (name:string) : boolean => { return name.length <= MAX_NAME_LENGTH && name.length != 0 }
 export const IsValidName_AllowEmpty = (name:string) : boolean => { return name.length <= MAX_NAME_LENGTH }
-export const IsValidEndpoint = (endpoint:string) : boolean => { return endpoint.length <= MAX_DESCRIPTION_LENGTH }
+export const IsValidEndpoint = (endpoint:string) : boolean => { return endpoint.length <= MAX_ENDPOINT_LENGTH }
 export const IsValidAddress = (address:string) : boolean => { return address.length != 0 }
 export const IsValidArgType = (argType: string) : boolean => { return argType.length != 0 }
 export const IsValidUint = (value: number) : boolean => { return Number.isSafeInteger(value) && value != 0 }
@@ -158,8 +158,8 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0x27ab80fa4fed1755508558ed430453ee9aa36f9c9f0982cf8bbe94a5aac8543b";
-                this.everyone_guard = "0xafc6ddc2509f17afb9b0617aebb38208218cf48cff39cd04ef4a127b1ea3bec0";
+                this.package = "0x3943853a7075742d89cea2df2980c32353a88fca0eec2f7d43d097e857e381bb";
+                this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
                 break;
             case ENTRYPOINT.mainnet:
                 break;
