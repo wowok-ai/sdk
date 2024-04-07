@@ -123,7 +123,7 @@ exports.machine_remove_node = machine_remove_node;
 function machine(txb, permission, description, endpoint, passport) {
     if (!(0, protocol_1.IsValidObjects)([permission]))
         return false;
-    if ((0, protocol_1.IsValidDesription)(description))
+    if (!(0, protocol_1.IsValidDesription)(description))
         return false;
     if (endpoint && !(0, protocol_1.IsValidEndpoint)(endpoint))
         return false;

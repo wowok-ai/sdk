@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sense_objects_fn = exports.description_fn = exports.parse_sense_bsc = exports.SenseMaker = exports.Sense_Cmd = exports.signer_guard = exports.launch = exports.Guard_Sense_Binder = exports.MAX_SENSE_COUNT = void 0;
+exports.sense_objects_fn = exports.description_fn = exports.parse_sense_bsc = exports.SenseMaker = exports.QUERIES = exports.everyone_guard = exports.signer_guard = exports.launch = exports.Guard_Sense_Binder = exports.MAX_SENSE_COUNT = void 0;
 const bcs_1 = require("@mysten/bcs");
 const protocol_1 = require("./protocol");
 const util_1 = require("./util");
@@ -17,7 +17,7 @@ function launch(txb, creation) {
         return false;
     let bValid = true;
     creation.senses.forEach((v) => {
-        if (v.input.length == 0)
+        if (!v.input || v.input.length == 0)
             bValid = false;
     });
     if (!bValid)
@@ -45,16 +45,29 @@ function signer_guard(txb) {
     txb.moveCall({
         target: protocol_1.PROTOCOL.GuardFn('signer_guard'),
         arguments: []
-    }); // { kind: 'Result', index: 0 }, ref to address could used by PTB
+    });
     return true;
 }
 exports.signer_guard = signer_guard;
-exports.Sense_Cmd = [[protocol_1.MODULES.permission, 'creator', 1, [], protocol_1.ValueType.TYPE_STATIC_address],
+function everyone_guard(txb) {
+    txb.moveCall({
+        target: protocol_1.PROTOCOL.GuardFn('everyone_guard'),
+        arguments: []
+    });
+    return true;
+}
+exports.everyone_guard = everyone_guard;
+exports.QUERIES = [
+    // module, 'name', 'id', [input], output
+    [protocol_1.MODULES.permission, 'builder', 1, [], protocol_1.ValueType.TYPE_STATIC_address],
     [protocol_1.MODULES.permission, 'is_admin', 2, [protocol_1.ValueType.TYPE_STATIC_address], protocol_1.ValueType.TYPE_STATIC_bool],
     [protocol_1.MODULES.permission, 'has_rights', 3, [protocol_1.ValueType.TYPE_STATIC_address, protocol_1.ValueType.TYPE_STATIC_u64], protocol_1.ValueType.TYPE_STATIC_bool],
     [protocol_1.MODULES.permission, 'contains_address', 4, [protocol_1.ValueType.TYPE_STATIC_address], protocol_1.ValueType.TYPE_STATIC_bool],
     [protocol_1.MODULES.permission, 'contains_index', 5, [protocol_1.ValueType.TYPE_STATIC_address, protocol_1.ValueType.TYPE_STATIC_u64], protocol_1.ValueType.TYPE_STATIC_bool],
     [protocol_1.MODULES.permission, 'contains_guard', 6, [protocol_1.ValueType.TYPE_STATIC_address, protocol_1.ValueType.TYPE_STATIC_u64], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.permission, 'contains_guard', 7, [protocol_1.ValueType.TYPE_STATIC_address, protocol_1.ValueType.TYPE_STATIC_u64], protocol_1.ValueType.TYPE_STATIC_address],
+    [protocol_1.MODULES.permission, 'entity_count', 8, [], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.permission, 'admin_count', 9, [], protocol_1.ValueType.TYPE_STATIC_u64],
     [protocol_1.MODULES.repository, 'permission', 1, [], protocol_1.ValueType.TYPE_STATIC_address],
     [protocol_1.MODULES.repository, 'policy_contains', 2, [protocol_1.ValueType.TYPE_STATIC_vec_u8], protocol_1.ValueType.TYPE_STATIC_bool],
     [protocol_1.MODULES.repository, 'policy_has_permission_index', 3, [protocol_1.ValueType.TYPE_STATIC_vec_u8], protocol_1.ValueType.TYPE_STATIC_bool],
@@ -66,6 +79,102 @@ exports.Sense_Cmd = [[protocol_1.MODULES.permission, 'creator', 1, [], protocol_
     [protocol_1.MODULES.repository, 'value', 9, [protocol_1.ValueType.TYPE_STATIC_address, protocol_1.ValueType.TYPE_STATIC_vec_u8], protocol_1.ValueType.TYPE_STATIC_vec_u8],
     [protocol_1.MODULES.repository, 'type', 10, [], protocol_1.ValueType.TYPE_STATIC_u8],
     [protocol_1.MODULES.repository, 'policy_mode', 11, [], protocol_1.ValueType.TYPE_STATIC_u8],
+    [protocol_1.MODULES.machine, 'permission', 1, [], protocol_1.ValueType.TYPE_STATIC_address],
+    [protocol_1.MODULES.machine, 'has_paused', 2, [], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.machine, 'has_published', 3, [], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.machine, 'consensus_repositories_contains', 5, [protocol_1.ValueType.TYPE_STATIC_address], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.machine, 'has_endpoint', 6, [], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.machine, 'endpoint', 7, [], protocol_1.ValueType.TYPE_STATIC_vec_u8],
+    [protocol_1.MODULES.progress, 'machine', 1, [], protocol_1.ValueType.TYPE_STATIC_address],
+    [protocol_1.MODULES.progress, 'current', 2, [], protocol_1.ValueType.TYPE_STATIC_vec_u8],
+    [protocol_1.MODULES.progress, 'has_parent', 3, [], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.progress, 'parent', 4, [], protocol_1.ValueType.TYPE_STATIC_address],
+    [protocol_1.MODULES.progress, 'has_task', 5, [], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.progress, 'task', 6, [], protocol_1.ValueType.TYPE_STATIC_address],
+    [protocol_1.MODULES.progress, 'has_namedOperator', 7, [protocol_1.ValueType.TYPE_STATIC_vec_u8], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.progress, 'namedOperator_contains', 8, [protocol_1.ValueType.TYPE_STATIC_vec_u8, protocol_1.ValueType.TYPE_STATIC_address], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.progress, 'has_context_repository', 9, [], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.progress, 'context_repository', 10, [], protocol_1.ValueType.TYPE_STATIC_address],
+    [protocol_1.MODULES.demand, 'permission', 1, [], protocol_1.ValueType.TYPE_STATIC_address],
+    [protocol_1.MODULES.demand, 'has_time_expire', 2, [], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.demand, 'time_expire', 3, [], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.demand, 'earnest_count', 4, [], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.demand, 'has_guard', 5, [], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.demand, 'guard', 6, [], protocol_1.ValueType.TYPE_STATIC_address],
+    [protocol_1.MODULES.demand, 'has_yes', 7, [], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.demand, 'yes', 8, [], protocol_1.ValueType.TYPE_STATIC_address],
+    [protocol_1.MODULES.demand, 'presenters_count', 9, [], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.demand, 'has_presenter', 10, [protocol_1.ValueType.TYPE_STATIC_address], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.demand, 'persenter', 11, [protocol_1.ValueType.TYPE_STATIC_address], protocol_1.ValueType.TYPE_STATIC_address],
+    [protocol_1.MODULES.order, 'amount', 1, [], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.order, 'payer', 2, [], protocol_1.ValueType.TYPE_STATIC_address],
+    [protocol_1.MODULES.order, 'service', 3, [], protocol_1.ValueType.TYPE_STATIC_address],
+    [protocol_1.MODULES.order, 'has_progress', 4, [], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.order, 'progress', 5, [], protocol_1.ValueType.TYPE_STATIC_address],
+    [protocol_1.MODULES.order, 'has_requred_info', 6, [], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.order, 'requred_info_service_pubkey', 7, [], protocol_1.ValueType.TYPE_STATIC_vec_u8],
+    [protocol_1.MODULES.order, 'requred_info_customer_pubkey', 8, [], protocol_1.ValueType.TYPE_STATIC_vec_u8],
+    [protocol_1.MODULES.order, 'requred_info_info', 9, [], protocol_1.ValueType.TYPE_STATIC_vec_vec_u8],
+    [protocol_1.MODULES.order, 'has_discount', 10, [], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.order, 'discount', 11, [], protocol_1.ValueType.TYPE_STATIC_address],
+    [protocol_1.MODULES.order, 'balance', 12, [], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.order, 'bRefunded', 13, [], protocol_1.ValueType.TYPE_STATIC_u8],
+    [protocol_1.MODULES.order, 'bWithdrawed', 14, [], protocol_1.ValueType.TYPE_STATIC_u8],
+    [protocol_1.MODULES.service, 'permission', 1, [], protocol_1.ValueType.TYPE_STATIC_address],
+    [protocol_1.MODULES.service, 'payee', 2, [], protocol_1.ValueType.TYPE_STATIC_address],
+    [protocol_1.MODULES.service, 'has_buy_guard', 3, [], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.service, 'buy_guard', 4, [], protocol_1.ValueType.TYPE_STATIC_address],
+    [protocol_1.MODULES.service, 'repository_contains', 5, [protocol_1.ValueType.TYPE_STATIC_address], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.service, 'has_withdraw_guard', 6, [protocol_1.ValueType.TYPE_STATIC_address], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.service, 'withdraw_guard_percent', 7, [protocol_1.ValueType.TYPE_STATIC_address], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.service, 'has_refund_guard', 8, [protocol_1.ValueType.TYPE_STATIC_address], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.service, 'refund_guard_percent', 9, [protocol_1.ValueType.TYPE_STATIC_address], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.service, 'has_sale', 10, [protocol_1.ValueType.TYPE_STATIC_vec_u8], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.service, 'sale_price', 11, [protocol_1.ValueType.TYPE_STATIC_vec_u8], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.service, 'sale_stock', 12, [protocol_1.ValueType.TYPE_STATIC_vec_u8], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.service, 'has_machine', 13, [], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.service, 'machine', 14, [], protocol_1.ValueType.TYPE_STATIC_address],
+    [protocol_1.MODULES.service, 'bPaused', 15, [], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.service, 'bPublished', 16, [], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.service, 'has_required', 17, [], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.service, 'requrired_pubkey', 18, [], protocol_1.ValueType.TYPE_STATIC_vec_u8],
+    [protocol_1.MODULES.service, 'requrired_info', 19, [], protocol_1.ValueType.TYPE_STATIC_vec_vec_u8],
+    [protocol_1.MODULES.reward, 'permission', 1, [], protocol_1.ValueType.TYPE_STATIC_address],
+    [protocol_1.MODULES.reward, 'rewards_count_remain', 2, [], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.reward, 'rewards_count_supplied', 3, [], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.reward, 'guard_count', 4, [], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.reward, 'has_guard', 5, [protocol_1.ValueType.TYPE_STATIC_address], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.reward, 'guard_portions', 6, [protocol_1.ValueType.TYPE_STATIC_address], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.reward, 'time_expire', 7, [], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.reward, 'has_claimed', 8, [protocol_1.ValueType.TYPE_STATIC_address], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.reward, 'claimed', 9, [protocol_1.ValueType.TYPE_STATIC_address], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.reward, 'has_claimed_count', 10, [], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.reward, 'is_sponsor', 11, [protocol_1.ValueType.TYPE_STATIC_address], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.reward, 'sponsor', 12, [protocol_1.ValueType.TYPE_STATIC_address], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.reward, 'sponsor_count', 13, [], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.reward, 'bAllowRepeatClaim', 14, [], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.vote, 'permission', 1, [], protocol_1.ValueType.TYPE_STATIC_address],
+    [protocol_1.MODULES.vote, 'bOptions_locked_for_voting', 2, [], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.vote, 'bdeadline_locked', 3, [], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.vote, 'bLockedGuard', 4, [], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.vote, 'max_choice_count', 5, [], protocol_1.ValueType.TYPE_STATIC_u8],
+    [protocol_1.MODULES.vote, 'deadline', 6, [], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.vote, 'has_reference', 7, [], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.vote, 'reference', 8, [], protocol_1.ValueType.TYPE_STATIC_address],
+    [protocol_1.MODULES.vote, 'has_guard', 9, [protocol_1.ValueType.TYPE_STATIC_address], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.vote, 'guard', 10, [protocol_1.ValueType.TYPE_STATIC_address], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.vote, 'voted', 11, [protocol_1.ValueType.TYPE_STATIC_address], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.vote, 'voted_weight', 12, [protocol_1.ValueType.TYPE_STATIC_address], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.vote, 'has_agree', 13, [protocol_1.ValueType.TYPE_STATIC_vec_u8], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.vote, 'agree_has_object', 14, [protocol_1.ValueType.TYPE_STATIC_vec_u8], protocol_1.ValueType.TYPE_STATIC_bool],
+    [protocol_1.MODULES.vote, 'agree_object', 15, [protocol_1.ValueType.TYPE_STATIC_vec_u8], protocol_1.ValueType.TYPE_STATIC_address],
+    [protocol_1.MODULES.vote, 'agree_count', 16, [protocol_1.ValueType.TYPE_STATIC_vec_u8], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.vote, 'agree_votes', 17, [protocol_1.ValueType.TYPE_STATIC_vec_u8], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.vote, 'voted_count', 18, [], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.vote, 'top1_name_by_count', 19, [], protocol_1.ValueType.TYPE_STATIC_vec_u8],
+    [protocol_1.MODULES.vote, 'top1_count', 20, [], protocol_1.ValueType.TYPE_STATIC_u64],
+    [protocol_1.MODULES.vote, 'top1_name_by_votes', 21, [], protocol_1.ValueType.TYPE_STATIC_vec_u8],
+    [protocol_1.MODULES.vote, 'top1_votes', 22, [], protocol_1.ValueType.TYPE_STATIC_u64],
 ];
 class SenseMaker {
     data = [];
@@ -97,7 +206,7 @@ class SenseMaker {
                 break;
             case protocol_1.ValueType.TYPE_STATIC_vec_u8:
                 this.data.push(bcs.ser(bcs_1.BCS.U8, type).toBytes());
-                this.data.push(bcs.ser("vector<u8>", param).toBytes());
+                this.data.push(bcs.ser(bcs_1.BCS.STRING, param).toBytes());
                 this.type_validator.push(type);
                 // this.data[this.data.length-1].forEach((item : number) => console.log(item))
                 break;
@@ -119,24 +228,34 @@ class SenseMaker {
         ;
         return true;
     }
-    add_cmd(object_address, sense_index) {
-        if (!object_address || sense_index >= exports.Sense_Cmd.length) {
+    query_index(module, query_name) {
+        for (let i = 0; i < exports.QUERIES.length; i++) {
+            if (exports.QUERIES[i][0] == module && exports.QUERIES[i][1] == query_name) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    // query_index: index(from 0) of array QUERIES 
+    add_query(object_address, module, query_name) {
+        let query_index = this.query_index(module, query_name);
+        if (!object_address || query_index == -1) {
             return false;
         }
-        let offset = this.type_validator.length - exports.Sense_Cmd[sense_index][3].length;
+        let offset = this.type_validator.length - exports.QUERIES[query_index][3].length;
         if (offset < 0) {
             return false;
         }
         let types = this.type_validator.slice(offset);
-        if (!(0, util_1.array_equal)(types, exports.Sense_Cmd[sense_index][3])) { // type validate 
+        if (!(0, util_1.array_equal)(types, exports.QUERIES[query_index][3])) { // type validate 
             return false;
         }
         const bcs = new bcs_1.BCS((0, bcs_1.getSuiMoveConfig)());
         this.data.push(bcs.ser(bcs_1.BCS.U8, protocol_1.OperatorType.TYPE_DYNAMIC_QUERY).toBytes()); // TYPE
         this.data.push(bcs.ser(bcs_1.BCS.ADDRESS, object_address).toBytes()); // object address
-        this.data.push(bcs.ser(bcs_1.BCS.U8, exports.Sense_Cmd[sense_index][2]).toBytes()); // cmd
-        this.type_validator.splice(offset, exports.Sense_Cmd[sense_index][3].length); // delete type stack
-        this.type_validator.push(exports.Sense_Cmd[sense_index][4]); // add the return value type to type stack
+        this.data.push(bcs.ser(bcs_1.BCS.U8, exports.QUERIES[query_index][2]).toBytes()); // cmd
+        this.type_validator.splice(offset, exports.QUERIES[query_index][3].length); // delete type stack
+        this.type_validator.push(exports.QUERIES[query_index][4]); // add the return value type to type stack
         // console.log(this.type_validator)
         return true;
     }
@@ -172,10 +291,11 @@ class SenseMaker {
         this.type_validator.push(protocol_1.ValueType.TYPE_STATIC_bool); // add bool to type stack
         return true;
     }
-    make(bNotAfterSense, binder) {
+    make(bNotAfterSense = false, binder = Guard_Sense_Binder.AND) {
         //console.log(this.type_validator);
         //this.data.forEach((value:Uint8Array) => console.log(value));
         if (this.type_validator.length != 1 || this.type_validator[0] != protocol_1.ValueType.TYPE_STATIC_bool) {
+            // console.log(this.type_validator)
             return false;
         } // ERROR
         let input = (0, util_1.concatenate)(Uint8Array, ...this.data);
@@ -185,9 +305,9 @@ class SenseMaker {
 }
 exports.SenseMaker = SenseMaker;
 function match_u128(type) {
-    if (type == protocol_1.ValueType.TYPE_STATIC_option_u8 ||
-        type == protocol_1.ValueType.TYPE_STATIC_option_u64 ||
-        type == protocol_1.ValueType.TYPE_STATIC_option_u128) {
+    if (type == protocol_1.ValueType.TYPE_STATIC_u8 ||
+        type == protocol_1.ValueType.TYPE_STATIC_u64 ||
+        type == protocol_1.ValueType.TYPE_STATIC_u128) {
         return true;
     }
     return false;

@@ -93,9 +93,11 @@ export const IsValidUserDefinedIndex = (index:number) : boolean => {
     return index >= PermissionIndex.user_defined_start && IsValidUint(index)
 }
 export const IsValidPermissionIndex = (index:PermissionIndexType) : boolean => {
+    //console.log(index)
     if (Object.values(PermissionIndex).includes(index)) {
         return true
     }
+    //console.log(Object.keys(PermissionIndex))
     return IsValidUserDefinedIndex(index);
 }
 
@@ -139,8 +141,11 @@ export function add_entity(txb:TransactionBlock, permission:PermissionObject, en
 
     let bValid = true;
     let e = entities.forEach((v) => {
-        if (!IsValidArray(v.permissions, IsValidPermissionIndex)) bValid = false;
         if (!IsValidAddress(v.entity_address)) bValid = false;
+        v.permissions.forEach((p) => {
+            if (!IsValidPermissionIndex(p.index)) bValid = false;
+            if (p?.guard && !IsValidObjects([p.guard])) bValid = false;
+        })
     });
     if (!bValid) return false;
 

@@ -17,7 +17,7 @@ const IsValidName = (name) => { return name.length <= exports.MAX_NAME_LENGTH &&
 exports.IsValidName = IsValidName;
 const IsValidName_AllowEmpty = (name) => { return name.length <= exports.MAX_NAME_LENGTH; };
 exports.IsValidName_AllowEmpty = IsValidName_AllowEmpty;
-const IsValidEndpoint = (endpoint) => { return endpoint.length <= exports.MAX_DESCRIPTION_LENGTH; };
+const IsValidEndpoint = (endpoint) => { return endpoint.length <= exports.MAX_ENDPOINT_LENGTH; };
 exports.IsValidEndpoint = IsValidEndpoint;
 const IsValidAddress = (address) => { return address.length != 0; };
 exports.IsValidAddress = IsValidAddress;
@@ -138,8 +138,8 @@ class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0x27ab80fa4fed1755508558ed430453ee9aa36f9c9f0982cf8bbe94a5aac8543b";
-                this.everyone_guard = "0xafc6ddc2509f17afb9b0617aebb38208218cf48cff39cd04ef4a127b1ea3bec0";
+                this.package = "0x717b14e0fb287594ce9aed4ee5fb87323469c79d15c1f82c676cf55c338bfb76";
+                this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
                 break;
             case ENTRYPOINT.mainnet:
                 break;
@@ -192,7 +192,7 @@ class Protocol {
     Sign_Excute = async (exes, priv_key, param, options = { showObjectChanges: true }) => {
         const client = new client_1.SuiClient({ url: exports.PROTOCOL.NetworkUrl() });
         const txb = new transactions_1.TransactionBlock();
-        exes(txb, param);
+        exes.forEach((e) => { e(txb, param); });
         const privkey = (0, bcs_1.fromHEX)(priv_key);
         const keypair = ed25519_1.Ed25519Keypair.fromSecretKey(privkey);
         const response = await client.signAndExecuteTransactionBlock({

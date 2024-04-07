@@ -1,9 +1,10 @@
 import { TransactionBlock, Inputs, type TransactionResult } from '@mysten/sui.js/transactions';
 import { BCS } from '@mysten/bcs';
 import { FnCallType, PROTOCOL, ValueType, IsValidDesription, IsValidAddress, IsValidArray, OptionNone, 
-    RepositoryObject, RepositoryAddress, PermissionObject, TXB_OBJECT, PassportObject, IsValidObjects} from './protocol';
+    RepositoryObject, RepositoryAddress, PermissionObject, TXB_OBJECT, PassportObject, IsValidObjects,
+    IsValidInt} from './protocol';
 import { IsValidPermissionIndex, PermissionIndexType  } from './permission'
-import { BCS_CONVERT, array_unique } from './util';
+import { BCS_CONVERT, array_unique, stringToUint8Array, numToUint8Array } from './util';
 
 export const MAX_POLICY_COUNT = 1000;
 export const MAX_KEY_LENGTH = 128;
@@ -70,14 +71,14 @@ export function destroy(txb:TransactionBlock, repository:RepositoryObject) : boo
     })   
     return true
 }
+
 export function add_data(txb:TransactionBlock, repository:RepositoryObject, permission:PermissionObject, data:Repository_Policy_Data) : boolean {
     if (!IsValidObjects([repository, permission])) return false;
     if (!IsValidKey(data.key)) return false; 
     let bValid = true;
     data.data.forEach((value) => {
-        if(!IsValidValue(value.value) || !IsValidAddress(value.address)) {
-            bValid = false; 
-        }
+        if (!IsValidAddress(value.address)) bValid = false;
+        if (!IsValidValue(value.value)) bValid = false; 
     });
     if (!bValid) return false;
 
@@ -172,12 +173,10 @@ export function repository_remove_policies(txb:TransactionBlock, repository:Repo
                 arguments:[passport, TXB_OBJECT(txb, repository), TXB_OBJECT(txb, permission)]
             })          
         } else {
-            array_unique(policy_keys).forEach((key) => {
-                txb.moveCall({
-                    target:PROTOCOL.RepositoryFn('policy_remove_with_passport') as FnCallType,
-                    arguments:[passport, TXB_OBJECT(txb, repository), txb.pure(array_unique(key)), TXB_OBJECT(txb, permission)]
-                })                
-            })
+            txb.moveCall({
+                target:PROTOCOL.RepositoryFn('policy_remove_with_passport') as FnCallType,
+                arguments:[passport, TXB_OBJECT(txb, repository), txb.pure(BCS_CONVERT.ser_vector_string(array_unique(policy_keys))), TXB_OBJECT(txb, permission)]
+            })                
         }
     } else {
         if (removeall) {
@@ -186,12 +185,10 @@ export function repository_remove_policies(txb:TransactionBlock, repository:Repo
                 arguments:[TXB_OBJECT(txb, repository), TXB_OBJECT(txb, permission)]
             })          
         } else {
-            policy_keys.forEach((key) => {
-                txb.moveCall({
-                    target:PROTOCOL.RepositoryFn('policy_remove') as FnCallType,
-                    arguments:[TXB_OBJECT(txb, repository), txb.pure(key), TXB_OBJECT(txb, permission)]
-                })                
-            })
+            txb.moveCall({
+                target:PROTOCOL.RepositoryFn('policy_remove') as FnCallType,
+                arguments:[TXB_OBJECT(txb, repository), txb.pure(BCS_CONVERT.ser_vector_string(array_unique(policy_keys))), TXB_OBJECT(txb, permission)]
+            })                
         }
     }
     return true;

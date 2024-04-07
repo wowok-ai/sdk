@@ -158,7 +158,7 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0x3943853a7075742d89cea2df2980c32353a88fca0eec2f7d43d097e857e381bb";
+                this.package = "0xef182154b3fe41061f748a86694d47ebae69e57417ff582020f1a54eb013cc92";
                 this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
                 break;
             case ENTRYPOINT.mainnet:
@@ -207,11 +207,11 @@ export class Protocol {
         }   
         return res;
     } 
-    Sign_Excute = async (exes: (txb:TransactionBlock, param:any) => void, priv_key:string, param?:any, options:SuiTransactionBlockResponseOptions={showObjectChanges:true}) : Promise<SuiTransactionBlockResponse> => {
+    Sign_Excute = async (exes: ((txb:TransactionBlock, param:any) => void)[], priv_key:string, param?:any, options:SuiTransactionBlockResponseOptions={showObjectChanges:true}) : Promise<SuiTransactionBlockResponse> => {
         const client =  new SuiClient({ url: PROTOCOL.NetworkUrl() });  
         const txb = new TransactionBlock();
     
-        exes(txb, param);
+        exes.forEach((e) => { e(txb, param) });
         const privkey = fromHEX(priv_key);
         const keypair = Ed25519Keypair.fromSecretKey(privkey);
     
@@ -229,8 +229,9 @@ export type Query_Param = {
     callback: (response:SuiObjectResponse, param:Query_Param, option:SuiObjectDataOptions)=>void;
     data?: any; // response data filted by callback
 };
-
-
 export const PROTOCOL = new Protocol();
+export const SUI_TYPE = '0x2::coin::Coin<0x2::sui::SUI>';
+export const WOWOK_TYPE = '0x2::coin::Coin<' + PROTOCOL.Package + '::wowok::WOWOK';
+
 export const OBJECTS_TYPE_PREFIX = (Object.keys(MODULES) as Array<keyof typeof MODULES>).map((key) => { return PROTOCOL.Package() + '::' + key + '::'; })
 export const OBJECTS_TYPE = (Object.keys(MODULES) as Array<keyof typeof MODULES>).map((key) => { let i = PROTOCOL.Package() + '::' + key + '::'; return i + capitalize(key); })

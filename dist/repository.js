@@ -13,7 +13,15 @@ const IsValidKey = (key) => {
 };
 exports.IsValidKey = IsValidKey;
 const IsValidValue = (value) => {
-    return value.length < exports.MAX_VALUE_LENGTH;
+    if (typeof (value === 'number')) {
+        return (0, protocol_1.IsValidInt)(value);
+    }
+    else if (typeof (value === 'string')) {
+        return value.length < exports.MAX_VALUE_LENGTH;
+    }
+    else {
+        return value.length < exports.MAX_VALUE_LENGTH;
+    }
 };
 exports.IsValidValue = IsValidValue;
 var Repository_Policy_Mode;
@@ -60,6 +68,15 @@ function destroy(txb, repository) {
     return true;
 }
 exports.destroy = destroy;
+function to_uint8Array(value) {
+    if (typeof (value === 'number')) {
+        return (0, util_1.numToUint8Array)(value);
+    }
+    else if (typeof (value === 'string')) {
+        return (0, util_1.stringToUint8Array)(value);
+    }
+    return value;
+}
 function add_data(txb, repository, permission, data) {
     if (!(0, protocol_1.IsValidObjects)([repository, permission]))
         return false;
@@ -67,9 +84,8 @@ function add_data(txb, repository, permission, data) {
         return false;
     let bValid = true;
     data.data.forEach((value) => {
-        if (!(0, exports.IsValidValue)(value.value) || !(0, protocol_1.IsValidAddress)(value.address)) {
+        if (!(0, protocol_1.IsValidAddress)(value.address) || !(0, exports.IsValidValue)(value.value))
             bValid = false;
-        }
     });
     if (!bValid)
         return false;
@@ -80,7 +96,7 @@ function add_data(txb, repository, permission, data) {
                 txb.pure(d.address, bcs_1.BCS.ADDRESS),
                 txb.pure(data.key),
                 txb.pure(data.value_type, bcs_1.BCS.U8),
-                txb.pure([...d.value], 'vector<u8>'),
+                txb.pure([...to_uint8Array(d.value)], 'vector<u8>'),
                 (0, protocol_1.TXB_OBJECT)(txb, permission),
             ],
         }));
@@ -91,7 +107,7 @@ function add_data(txb, repository, permission, data) {
             arguments: [(0, protocol_1.TXB_OBJECT)(txb, repository),
                 txb.pure(d.address, bcs_1.BCS.ADDRESS),
                 txb.pure(data.key),
-                txb.pure([...d.value], 'vector<u8>'),
+                txb.pure([...to_uint8Array(d.value)], 'vector<u8>'),
                 (0, protocol_1.TXB_OBJECT)(txb, permission),
             ],
         }));

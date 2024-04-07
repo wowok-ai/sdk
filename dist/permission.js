@@ -91,9 +91,11 @@ const IsValidUserDefinedIndex = (index) => {
 };
 exports.IsValidUserDefinedIndex = IsValidUserDefinedIndex;
 const IsValidPermissionIndex = (index) => {
+    //console.log(index)
     if (Object.values(PermissionIndex).includes(index)) {
         return true;
     }
+    //console.log(Object.keys(PermissionIndex))
     return (0, exports.IsValidUserDefinedIndex)(index);
 };
 exports.IsValidPermissionIndex = IsValidPermissionIndex;
@@ -132,10 +134,14 @@ function add_entity(txb, permission, entities) {
         return false;
     let bValid = true;
     let e = entities.forEach((v) => {
-        if (!(0, protocol_1.IsValidArray)(v.permissions, exports.IsValidPermissionIndex))
-            bValid = false;
         if (!(0, protocol_1.IsValidAddress)(v.entity_address))
             bValid = false;
+        v.permissions.forEach((p) => {
+            if (!(0, exports.IsValidPermissionIndex)(p.index))
+                bValid = false;
+            if (p?.guard && !(0, protocol_1.IsValidObjects)([p.guard]))
+                bValid = false;
+        });
     });
     if (!bValid)
         return false;
