@@ -1,6 +1,6 @@
 import { SuiObjectResponse, SuiObjectDataOptions } from '@mysten/sui.js/client';
 import { TransactionBlock, TransactionResult, type TransactionObjectInput, Inputs } from '@mysten/sui.js/transactions';
-import { PROTOCOL, FnCallType, CLOCK_OBJECT, Query_Param, OBJECTS_TYPE, OBJECTS_TYPE_PREFIX, PassportObject} from './protocol';
+import { PROTOCOL, FnCallType, CLOCK_OBJECT, Query_Param, OBJECTS_TYPE, OBJECTS_TYPE_PREFIX, PassportObject, GuardObject} from './protocol';
 import { parse_object_type, array_unique } from './util';
 import { sense_objects_fn } from './guard';
 
@@ -36,7 +36,8 @@ export const passport_queries = async (guards:string[]) : Promise<Guard_Query_Ob
         return value.data as Guard_Query_Object;
     })
 }
-// return passport object for using
+
+// return passport object used
 export function verify(txb:TransactionBlock, passport_queries:Guard_Query_Object[]) : PassportObject | boolean {
     if (passport_queries.length == 0 || passport_queries.length > MAX_GUARD_COUNT) {
         return false;

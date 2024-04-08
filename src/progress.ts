@@ -1,7 +1,8 @@
 import { TransactionBlock } from '@mysten/sui.js/transactions';
 import { BCS } from '@mysten/bcs';
 import { FnCallType, PROTOCOL, PermissionObject, RepositoryObject, PassportObject, MachineObject, TXB_OBJECT, 
-    ProgressObject, ProgressAddress, IsValidName, IsValidAddress, IsValidArray, OptionNone,  IsValidObjects } from './protocol';
+    ProgressObject, ProgressAddress, IsValidName, IsValidAddress, IsValidArray, OptionNone,  IsValidObjects, 
+    IsValidInt} from './protocol';
 import { BCS_CONVERT, array_unique } from './util'
 
 export const MAX_NAMED_OPERATOR_COUNT = 100;
@@ -115,14 +116,62 @@ export function progress_set_context_repository(txb:TransactionBlock, machine:Ma
     return true
 }
 export function progress_unhold(txb:TransactionBlock, machine:MachineObject, permission:PermissionObject, 
-    progress:ProgressObject, next:ProgressNext) : boolean {
+    progress:ProgressObject, next:ProgressNext, passport?:PassportObject) : boolean {
     if (!IsValidObjects([machine, permission, progress])) return false;
     if (!IsValidProgressNext(next)) return false;
+    
+    if (passport) {
+        txb.moveCall({
+            target:PROTOCOL.ProgressFn('unhold_with_passport') as FnCallType,
+            arguments: [passport, TXB_OBJECT(txb, progress), TXB_OBJECT(txb, machine), txb.pure(next.next_node_name), txb.pure(next.forward), TXB_OBJECT(txb, permission)],
+        })     
+    } else {
+        txb.moveCall({
+            target:PROTOCOL.ProgressFn('unhold') as FnCallType,
+            arguments: [TXB_OBJECT(txb, progress), TXB_OBJECT(txb, machine), txb.pure(next.next_node_name), txb.pure(next.forward), TXB_OBJECT(txb, permission)],
+        })           
+    }
 
-    txb.moveCall({
-        target:PROTOCOL.ProgressFn('unhold') as FnCallType,
-        arguments: [TXB_OBJECT(txb, progress), TXB_OBJECT(txb, machine), txb.pure(next.next_node_name), txb.pure(next.forward), TXB_OBJECT(txb, permission)],
-    })   
+    return true
+}
+
+export type ParentProgress = {
+    parent_progress_id: string;
+    parent_session_id: number;
+}
+export function progress_parent(txb:TransactionBlock, machine:MachineObject, permission:PermissionObject, progress:ProgressObject, 
+    parent_progress?:ParentProgress, passport?:PassportObject) : boolean {
+    if (!IsValidObjects([machine, permission, progress])) return false;
+    if (parent_progress && (!IsValidAddress(parent_progress.parent_progress_id) || !IsValidInt(parent_progress.parent_session_id))) return false;
+
+    if (passport) {
+        if (parent_progress) {
+            txb.moveCall({
+                target:PROTOCOL.ProgressFn('parent_set_with_passport') as FnCallType,
+                arguments: [passport, TXB_OBJECT(txb, progress), TXB_OBJECT(txb, machine), txb.pure(parent_progress.parent_progress_id, BCS.ADDRESS), 
+                    txb.pure(parent_progress.parent_session_id, BCS.U64), TXB_OBJECT(txb, permission)],
+            })  
+        } else {
+            txb.moveCall({
+                target:PROTOCOL.ProgressFn('parent_none_with_passport') as FnCallType,
+                arguments: [passport, TXB_OBJECT(txb, progress), TXB_OBJECT(txb, machine), TXB_OBJECT(txb, permission)],
+            }) 
+        }
+    } else {
+        if (parent_progress) {
+            txb.moveCall({
+                target:PROTOCOL.ProgressFn('parent_set') as FnCallType,
+                arguments: [TXB_OBJECT(txb, progress), TXB_OBJECT(txb, machine), txb.pure(parent_progress.parent_progress_id, BCS.ADDRESS), 
+                    txb.pure(parent_progress.parent_session_id, BCS.U64), TXB_OBJECT(txb, permission)],
+            })  
+        } else {
+            txb.moveCall({
+                target:PROTOCOL.ProgressFn('parent_none') as FnCallType,
+                arguments: [TXB_OBJECT(txb, progress), TXB_OBJECT(txb, machine), TXB_OBJECT(txb, permission)],
+            }) 
+        } 
+    }
+
     return true
 }
 
@@ -135,27 +184,31 @@ function IsValidProgressNext(next:ProgressNext) : boolean {
 }
 
 export function next(txb:TransactionBlock, machine:MachineObject, permission:PermissionObject, progress:ProgressObject, 
-    next:ProgressNext, deliverables_address?:string, passport?:PassportObject) : boolean {
+    next:ProgressNext, deliverables_address?:string, sub_progress_id?:string, passport?:PassportObject) : boolean {
     if (!IsValidObjects([machine, permission, progress])) return false;
     if (!IsValidProgressNext(next)) return false;
     if (deliverables_address && !IsValidAddress(deliverables_address)) return false;
+    if (sub_progress_id && !IsValidAddress(sub_progress_id)) return false;
 
     let diliverable = deliverables_address? txb.pure(BCS_CONVERT.ser_option_address(deliverables_address)) : OptionNone(txb)
+    let sub = sub_progress_id? txb.pure(BCS_CONVERT.ser_option_address(sub_progress_id)) : OptionNone(txb)
+    
     if (passport) {
         txb.moveCall({
-            target:PROTOCOL.ProgressFn('run_with_passport') as FnCallType,
-            arguments: [passport, TXB_OBJECT(txb, progress), TXB_OBJECT(txb, machine), txb.pure(next.next_node_name), 
-                txb.pure(next.forward), diliverable, TXB_OBJECT(txb, permission)],
+            target:PROTOCOL.ProgressFn('next_with_passport') as FnCallType,
+            arguments: [passport, TXB_OBJECT(txb, progress), TXB_OBJECT(txb, machine), txb.pure(next.next_node_name, BCS.STRING), 
+                txb.pure(next.forward, BCS.STRING), diliverable, sub, TXB_OBJECT(txb, permission)],
         })    
     } else {
         txb.moveCall({
-            target:PROTOCOL.ProgressFn('run') as FnCallType,
-            arguments: [TXB_OBJECT(txb, progress), TXB_OBJECT(txb, machine), txb.pure(next.next_node_name), 
-                txb.pure(next.forward), diliverable, TXB_OBJECT(txb, permission)],
+            target:PROTOCOL.ProgressFn('next') as FnCallType,
+            arguments: [TXB_OBJECT(txb, progress), TXB_OBJECT(txb, machine), txb.pure(next.next_node_name, BCS.STRING), 
+                txb.pure(next.forward, BCS.STRING), diliverable, sub, TXB_OBJECT(txb, permission)],
         })               
     }
     return true
 }
+
 export function hold(txb:TransactionBlock, machine:MachineObject, permission:PermissionObject, progress:ProgressObject, 
     next:ProgressNext, hold:boolean) : boolean {
     if (!IsValidObjects([machine, permission, progress])) return false;
@@ -168,3 +221,5 @@ export function hold(txb:TransactionBlock, machine:MachineObject, permission:Per
     })  
     return true
 }
+
+

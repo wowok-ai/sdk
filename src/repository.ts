@@ -4,7 +4,7 @@ import { FnCallType, PROTOCOL, ValueType, IsValidDesription, IsValidAddress, IsV
     RepositoryObject, RepositoryAddress, PermissionObject, TXB_OBJECT, PassportObject, IsValidObjects,
     IsValidInt} from './protocol';
 import { IsValidPermissionIndex, PermissionIndexType  } from './permission'
-import { BCS_CONVERT, array_unique, stringToUint8Array, numToUint8Array } from './util';
+import { BCS_CONVERT, array_unique } from './util';
 
 export const MAX_POLICY_COUNT = 1000;
 export const MAX_KEY_LENGTH = 128;
@@ -34,7 +34,7 @@ export type Repository_Policy_Data = {
 }
 export type Repository_Value = {
     address: string; // UID: address or objectid
-    value: Uint8Array;
+    bcsBytes: Uint8Array;
 }
 
 export function repository(txb:TransactionBlock, permission:PermissionObject, description:string, 
@@ -78,7 +78,7 @@ export function add_data(txb:TransactionBlock, repository:RepositoryObject, perm
     let bValid = true;
     data.data.forEach((value) => {
         if (!IsValidAddress(value.address)) bValid = false;
-        if (!IsValidValue(value.value)) bValid = false; 
+        if (!IsValidValue(value.bcsBytes)) bValid = false; 
     });
     if (!bValid) return false;
 
@@ -89,7 +89,7 @@ export function add_data(txb:TransactionBlock, repository:RepositoryObject, perm
                 txb.pure(d.address, BCS.ADDRESS),
                 txb.pure(data.key), 
                 txb.pure(data.value_type, BCS.U8),
-                txb.pure([...d.value], 'vector<u8>'),
+                txb.pure([...d.bcsBytes], 'vector<u8>'),
                 TXB_OBJECT(txb, permission),
             ],
         }))       
@@ -99,7 +99,7 @@ export function add_data(txb:TransactionBlock, repository:RepositoryObject, perm
             arguments:[TXB_OBJECT(txb, repository), 
                 txb.pure(d.address, BCS.ADDRESS),
                 txb.pure(data.key), 
-                txb.pure([...d.value], 'vector<u8>'),
+                txb.pure([...d.bcsBytes], 'vector<u8>'),
                 TXB_OBJECT(txb, permission),
             ],
         }))   

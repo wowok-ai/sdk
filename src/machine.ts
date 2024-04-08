@@ -3,13 +3,13 @@ import { BCS } from '@mysten/bcs';
 import { PROTOCOL, FnCallType, PermissionObject, RepositoryObject, IsValidEndpoint, OptionNone, IsValidDesription, PassportObject,
     TXB_OBJECT, MachineObject, MachineAddress, IsValidArray, IsValidAddress, IsValidName, IsValidName_AllowEmpty, GuardObject, 
     IsValidInt, IsValidUint, IsValidObjects} from './protocol';
-import { BCS_CONVERT } from './util'
+import { BCS_CONVERT, array_unique } from './util'
 import { IsValidPermissionIndex, PermissionIndexType } from './permission';
 
 
-export type MachineNodeObject = TransactionResult;
-
+export type MachineNodeObject = TransactionResult | String;
 export const INITIAL_NODE_NAME = '';
+export const namedOperator_ORDER_PAYER = 'order payer';
 
 export type Machine_Forward = {
     name: string; // foward name
@@ -29,7 +29,7 @@ export type Machine_Node = {
     pairs: Machine_Node_Pair[];
 }
 
-// 创建新的node加入到machine
+// create new nodes for machine
 export function machine_add_node(txb:TransactionBlock, machine:MachineObject, permission:PermissionObject, 
     nodes:Machine_Node[], passport?:PassportObject) : boolean {
     if (!IsValidObjects([machine, permission])) return false;
@@ -86,40 +86,46 @@ export function machine_add_node(txb:TransactionBlock, machine:MachineObject, pe
         new_nodes.push(n); 
     }); return machine_add_node2(txb, machine, permission, new_nodes, passport)
 }
-// 把个人拥有的node加入到machine
+// move MachineNodeObject to the machine from signer-owned MachineNode object 
 export function machine_add_node2(txb:TransactionBlock, machine:MachineObject, permission:PermissionObject, 
     nodes:MachineNodeObject[], passport?:PassportObject) : boolean {
     if (!IsValidObjects([machine, permission])) return false;
     if (!nodes) return false;
 
+    let n: TransactionResult[] = [];
+    array_unique(nodes).forEach((v) => {
+        n.push(TXB_OBJECT(txb, v));
+    })
+
     if (passport) {
         txb.moveCall({ // add node
             target:PROTOCOL.MachineFn('node_add_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, machine), txb.makeMoveVec({objects:nodes}), TXB_OBJECT(txb, permission)]
+            arguments:[passport, TXB_OBJECT(txb, machine), txb.makeMoveVec({objects:n}), TXB_OBJECT(txb, permission)]
         });     
     } else {
         txb.moveCall({ // add node
             target:PROTOCOL.MachineFn('node_add') as FnCallType,
-            arguments:[TXB_OBJECT(txb, machine), txb.makeMoveVec({objects:nodes}), TXB_OBJECT(txb, permission)]
+            arguments:[TXB_OBJECT(txb, machine), txb.makeMoveVec({objects:n}), TXB_OBJECT(txb, permission)]
         });     
     }    
     return true
 }
-// 从machine把node移动到个人地址
-export function machine_remove_node(txb:TransactionBlock, machine:MachineObject, permission:TransactionResult, 
-    nodes_name:string[], passport?:PassportObject) : boolean {
+// move MachineNodeObject from machine to signer-owned MachineNode object 
+export function machine_remove_node(txb:TransactionBlock, machine:MachineObject, permission:PermissionObject, 
+    nodes_name:string[], bTransferMyself:boolean = false, passport?:PassportObject) : boolean {
     if (!IsValidObjects([machine, permission])) return false;
     if (!nodes_name || !IsValidArray(nodes_name, IsValidName)) return false;
 
     if (passport) {
         txb.moveCall({
             target:PROTOCOL.MachineFn('node_remove_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, machine), txb.pure(BCS_CONVERT.ser_vector_string(nodes_name)), permission],
+            arguments:[passport, TXB_OBJECT(txb, machine), txb.pure(BCS_CONVERT.ser_vector_string(nodes_name)), 
+                txb.pure(bTransferMyself, BCS.BOOL), TXB_OBJECT(txb, permission)],
         });  
     } else {
         txb.moveCall({
             target:PROTOCOL.MachineFn('node_remove') as FnCallType,
-            arguments:[TXB_OBJECT(txb, machine), txb.pure(BCS_CONVERT.ser_vector_string(nodes_name)), permission],
+            arguments:[TXB_OBJECT(txb, machine), txb.pure(BCS_CONVERT.ser_vector_string(nodes_name)), txb.pure(bTransferMyself, BCS.BOOL), TXB_OBJECT(txb, permission)],
         });
     } 
     return true;

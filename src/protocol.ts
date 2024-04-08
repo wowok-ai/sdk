@@ -158,7 +158,7 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0xef182154b3fe41061f748a86694d47ebae69e57417ff582020f1a54eb013cc92";
+                this.package = "0xf576c59f9f4a91f7e7705f785035d3598a430df4a8051c388c10299347e8d40b";
                 this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
                 break;
             case ENTRYPOINT.mainnet:
@@ -210,8 +210,9 @@ export class Protocol {
     Sign_Excute = async (exes: ((txb:TransactionBlock, param:any) => void)[], priv_key:string, param?:any, options:SuiTransactionBlockResponseOptions={showObjectChanges:true}) : Promise<SuiTransactionBlockResponse> => {
         const client =  new SuiClient({ url: PROTOCOL.NetworkUrl() });  
         const txb = new TransactionBlock();
-    
+
         exes.forEach((e) => { e(txb, param) });
+
         const privkey = fromHEX(priv_key);
         const keypair = Ed25519Keypair.fromSecretKey(privkey);
     

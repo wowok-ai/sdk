@@ -139,6 +139,7 @@ export const objectids_from_response = (response:SuiTransactionBlockResponse, co
     return ret;
 }
 
+
 export function stringToUint8Array(str:string) : Uint8Array {
     var arr = [];
     for (var i = 0, j = str.length; i < j; ++i) {
@@ -157,12 +158,4 @@ export function numToUint8Array(num:number) : Uint8Array {
         a.unshift(num & 255)
     }
     return new Uint8Array(a)
-/*    let arr = new Uint8Array(8);
-  
-    for (let i = 0; i < 8; i++) {
-      arr[i] = num % 256;
-      num = Math.floor(num / 256);
-    }
-  
-    return arr; */
-}
+} 
