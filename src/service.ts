@@ -486,15 +486,19 @@ export function service_discount_transfer(pay_type:string, txb:TransactionBlock,
         if (passport) {
             txb.moveCall({
                 target:PROTOCOL.ServiceFn('dicscount_create_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, service), txb.pure(discount.discount.name), txb.pure(discount.discount.type, BCS.U8), txb.pure(discount.discount.off, BCS.U64), price_greater,
-                    time_start, txb.pure(discount.discount.duration_minutes, BCS.U64), txb.pure(discount.count, BCS.U64), TXB_OBJECT(txb, permission), txb.pure(discount.receiver, BCS.ADDRESS), txb.object(CLOCK_OBJECT)],
+                arguments:[passport, TXB_OBJECT(txb, service), txb.pure(discount.discount.name), txb.pure(discount.discount.type, BCS.U8), 
+                    txb.pure(discount.discount.off, BCS.U64), price_greater, time_start, 
+                    txb.pure(discount.discount.duration_minutes, BCS.U64), txb.pure(discount.count, BCS.U64), 
+                    TXB_OBJECT(txb, permission), txb.pure(discount.receiver, BCS.ADDRESS), txb.object(CLOCK_OBJECT)],
                 typeArguments:[pay_type]
             });
         } else {
             txb.moveCall({
                 target:PROTOCOL.ServiceFn('dicscount_create') as FnCallType,
-                arguments:[TXB_OBJECT(txb, service), txb.pure(discount.discount.name), txb.pure(discount.discount.type, BCS.U8), txb.pure(discount.discount.off, BCS.U64), price_greater,
-                    time_start, txb.pure(discount.discount.duration_minutes, BCS.U64), txb.pure(discount.count, BCS.U64), TXB_OBJECT(txb, permission), txb.pure(discount.receiver, BCS.ADDRESS), txb.object(CLOCK_OBJECT)],
+                arguments:[TXB_OBJECT(txb, service), txb.pure(discount.discount.name), txb.pure(discount.discount.type, BCS.U8), 
+                    txb.pure(discount.discount.off, BCS.U64), price_greater, time_start, 
+                    txb.pure(discount.discount.duration_minutes, BCS.U64), txb.pure(discount.count, BCS.U64), 
+                    TXB_OBJECT(txb, permission), txb.pure(discount.receiver, BCS.ADDRESS), txb.object(CLOCK_OBJECT)],
                 typeArguments:[pay_type]
             })
         }
@@ -511,7 +515,7 @@ export function service_withdraw(pay_type:string, txb:TransactionBlock, service:
     if (passport) {
         txb.moveCall({
             target:PROTOCOL.ServiceFn('withdraw_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, service), TXB_OBJECT(txb, order), passport, TXB_OBJECT(txb, permission)],
+            arguments:[passport, TXB_OBJECT(txb, service), TXB_OBJECT(txb, order), TXB_OBJECT(txb, permission)],
             typeArguments:[pay_type]
         })        
     } else {

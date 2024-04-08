@@ -158,7 +158,7 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0xf576c59f9f4a91f7e7705f785035d3598a430df4a8051c388c10299347e8d40b";
+                this.package = "0x1e8dfbc0e960a516dcfdb1f982e3897c8742aa1a6a53183e4fe3c88895ce8067";
                 this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
                 break;
             case ENTRYPOINT.mainnet:
