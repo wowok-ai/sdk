@@ -539,16 +539,20 @@ function service_discount_transfer(pay_type, txb, service, permission, discount_
         if (passport) {
             txb.moveCall({
                 target: protocol_1.PROTOCOL.ServiceFn('dicscount_create_with_passport'),
-                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(discount.discount.name), txb.pure(discount.discount.type, bcs_1.BCS.U8), txb.pure(discount.discount.off, bcs_1.BCS.U64), price_greater,
-                    time_start, txb.pure(discount.discount.duration_minutes, bcs_1.BCS.U64), txb.pure(discount.count, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure(discount.receiver, bcs_1.BCS.ADDRESS), txb.object(protocol_1.CLOCK_OBJECT)],
+                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(discount.discount.name), txb.pure(discount.discount.type, bcs_1.BCS.U8),
+                    txb.pure(discount.discount.off, bcs_1.BCS.U64), price_greater, time_start,
+                    txb.pure(discount.discount.duration_minutes, bcs_1.BCS.U64), txb.pure(discount.count, bcs_1.BCS.U64),
+                    (0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure(discount.receiver, bcs_1.BCS.ADDRESS), txb.object(protocol_1.CLOCK_OBJECT)],
                 typeArguments: [pay_type]
             });
         }
         else {
             txb.moveCall({
                 target: protocol_1.PROTOCOL.ServiceFn('dicscount_create'),
-                arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(discount.discount.name), txb.pure(discount.discount.type, bcs_1.BCS.U8), txb.pure(discount.discount.off, bcs_1.BCS.U64), price_greater,
-                    time_start, txb.pure(discount.discount.duration_minutes, bcs_1.BCS.U64), txb.pure(discount.count, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure(discount.receiver, bcs_1.BCS.ADDRESS), txb.object(protocol_1.CLOCK_OBJECT)],
+                arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(discount.discount.name), txb.pure(discount.discount.type, bcs_1.BCS.U8),
+                    txb.pure(discount.discount.off, bcs_1.BCS.U64), price_greater, time_start,
+                    txb.pure(discount.discount.duration_minutes, bcs_1.BCS.U64), txb.pure(discount.count, bcs_1.BCS.U64),
+                    (0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure(discount.receiver, bcs_1.BCS.ADDRESS), txb.object(protocol_1.CLOCK_OBJECT)],
                 typeArguments: [pay_type]
             });
         }
@@ -565,7 +569,7 @@ function service_withdraw(pay_type, txb, service, permission, order, passport) {
     if (passport) {
         txb.moveCall({
             target: protocol_1.PROTOCOL.ServiceFn('withdraw_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), (0, protocol_1.TXB_OBJECT)(txb, order), passport, (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), (0, protocol_1.TXB_OBJECT)(txb, order), (0, protocol_1.TXB_OBJECT)(txb, permission)],
             typeArguments: [pay_type]
         });
     }

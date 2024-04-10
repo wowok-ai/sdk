@@ -13,15 +13,7 @@ const IsValidKey = (key) => {
 };
 exports.IsValidKey = IsValidKey;
 const IsValidValue = (value) => {
-    if (typeof (value === 'number')) {
-        return (0, protocol_1.IsValidInt)(value);
-    }
-    else if (typeof (value === 'string')) {
-        return value.length < exports.MAX_VALUE_LENGTH;
-    }
-    else {
-        return value.length < exports.MAX_VALUE_LENGTH;
-    }
+    return value.length < exports.MAX_VALUE_LENGTH;
 };
 exports.IsValidValue = IsValidValue;
 var Repository_Policy_Mode;
@@ -68,15 +60,6 @@ function destroy(txb, repository) {
     return true;
 }
 exports.destroy = destroy;
-function to_uint8Array(value) {
-    if (typeof (value === 'number')) {
-        return (0, util_1.numToUint8Array)(value);
-    }
-    else if (typeof (value === 'string')) {
-        return (0, util_1.stringToUint8Array)(value);
-    }
-    return value;
-}
 function add_data(txb, repository, permission, data) {
     if (!(0, protocol_1.IsValidObjects)([repository, permission]))
         return false;
@@ -84,7 +67,9 @@ function add_data(txb, repository, permission, data) {
         return false;
     let bValid = true;
     data.data.forEach((value) => {
-        if (!(0, protocol_1.IsValidAddress)(value.address) || !(0, exports.IsValidValue)(value.value))
+        if (!(0, protocol_1.IsValidAddress)(value.address))
+            bValid = false;
+        if (!(0, exports.IsValidValue)(value.bcsBytes))
             bValid = false;
     });
     if (!bValid)
@@ -96,7 +81,7 @@ function add_data(txb, repository, permission, data) {
                 txb.pure(d.address, bcs_1.BCS.ADDRESS),
                 txb.pure(data.key),
                 txb.pure(data.value_type, bcs_1.BCS.U8),
-                txb.pure([...to_uint8Array(d.value)], 'vector<u8>'),
+                txb.pure([...d.bcsBytes], 'vector<u8>'),
                 (0, protocol_1.TXB_OBJECT)(txb, permission),
             ],
         }));
@@ -107,7 +92,7 @@ function add_data(txb, repository, permission, data) {
             arguments: [(0, protocol_1.TXB_OBJECT)(txb, repository),
                 txb.pure(d.address, bcs_1.BCS.ADDRESS),
                 txb.pure(data.key),
-                txb.pure([...to_uint8Array(d.value)], 'vector<u8>'),
+                txb.pure([...d.bcsBytes], 'vector<u8>'),
                 (0, protocol_1.TXB_OBJECT)(txb, permission),
             ],
         }));
@@ -186,11 +171,9 @@ function repository_remove_policies(txb, repository, permission, policy_keys, re
             });
         }
         else {
-            (0, util_1.array_unique)(policy_keys).forEach((key) => {
-                txb.moveCall({
-                    target: protocol_1.PROTOCOL.RepositoryFn('policy_remove_with_passport'),
-                    arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, repository), txb.pure((0, util_1.array_unique)(key)), (0, protocol_1.TXB_OBJECT)(txb, permission)]
-                });
+            txb.moveCall({
+                target: protocol_1.PROTOCOL.RepositoryFn('policy_remove_with_passport'),
+                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, repository), txb.pure(util_1.BCS_CONVERT.ser_vector_string((0, util_1.array_unique)(policy_keys))), (0, protocol_1.TXB_OBJECT)(txb, permission)]
             });
         }
     }
@@ -202,11 +185,9 @@ function repository_remove_policies(txb, repository, permission, policy_keys, re
             });
         }
         else {
-            policy_keys.forEach((key) => {
-                txb.moveCall({
-                    target: protocol_1.PROTOCOL.RepositoryFn('policy_remove'),
-                    arguments: [(0, protocol_1.TXB_OBJECT)(txb, repository), txb.pure(key), (0, protocol_1.TXB_OBJECT)(txb, permission)]
-                });
+            txb.moveCall({
+                target: protocol_1.PROTOCOL.RepositoryFn('policy_remove'),
+                arguments: [(0, protocol_1.TXB_OBJECT)(txb, repository), txb.pure(util_1.BCS_CONVERT.ser_vector_string((0, util_1.array_unique)(policy_keys))), (0, protocol_1.TXB_OBJECT)(txb, permission)]
             });
         }
     }

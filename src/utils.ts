@@ -2,10 +2,7 @@ import { SuiTransactionBlockResponse, SuiObjectChange } from '@mysten/sui.js/cli
 import { bcs, BCS, toHEX, fromHEX, getSuiMoveConfig } from '@mysten/bcs';
 import { PROTOCOL, MODULES, OBJECTS_TYPE } from './protocol';
 
-export function ulebDecode(arr: number[] | Uint8Array): {
-	value: number;
-	length: number;
-} {
+export const ulebDecode = (arr: number[] | Uint8Array) : {value: number, length: number} => {
 	let total = 0;
 	let shift = 0;
 	let len = 0;
@@ -27,7 +24,7 @@ export function ulebDecode(arr: number[] | Uint8Array): {
 	};
 }
 
-export function concatenate(resultConstructor:any, ...arrays:any[]) {
+export const concatenate = (resultConstructor:any, ...arrays:any[]) => {
     let totalLength = 0;
     for (const arr of arrays) {
         totalLength += arr.length;
@@ -41,7 +38,7 @@ export function concatenate(resultConstructor:any, ...arrays:any[]) {
     return result;
 }
 
-export function array_equal(arr1: any[], arr2: any[]) {
+export const array_equal =  (arr1: any[], arr2: any[]) => {
     // Array.some(): 有一项不满足，返回false
     if (arr1.length !== arr2.length) {
       return false;
@@ -49,7 +46,7 @@ export function array_equal(arr1: any[], arr2: any[]) {
     return !arr1.some((item) => !arr2.includes(item));
 }
 
-export function array_unique(arr:any[]) : any[] {
+export const array_unique = (arr:any[]) : any[] =>  {
     var newArr = [];
     for(var i = 0; i < arr.length; i++) {
         if(newArr.indexOf(arr[i]) == -1) {

@@ -208,14 +208,14 @@ function present(earnest_type, service_type, txb, demand, service, tips, passpor
     if (passport) {
         txb.moveCall({
             target: protocol_1.PROTOCOL.DemandFn('present_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, demand), (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(tips),],
+            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, demand), (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(tips, bcs_1.BCS.STRING),],
             typeArguments: [earnest_type, service_type],
         });
     }
     else {
         txb.moveCall({
             target: protocol_1.PROTOCOL.DemandFn('present'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, demand), (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(tips),],
+            arguments: [(0, protocol_1.TXB_OBJECT)(txb, demand), (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(tips, bcs_1.BCS.STRING),],
             typeArguments: [earnest_type, service_type],
         });
     }

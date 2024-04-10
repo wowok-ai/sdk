@@ -4,7 +4,7 @@ import { FnCallType, PROTOCOL, ValueType, IsValidDesription, IsValidAddress, IsV
     RepositoryObject, RepositoryAddress, PermissionObject, TXB_OBJECT, PassportObject, IsValidObjects,
     IsValidInt} from './protocol';
 import { IsValidPermissionIndex, PermissionIndexType  } from './permission'
-import { BCS_CONVERT, array_unique } from './util';
+import { BCS_CONVERT, array_unique } from './utils';
 
 export const MAX_POLICY_COUNT = 1000;
 export const MAX_KEY_LENGTH = 128;

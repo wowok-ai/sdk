@@ -3,8 +3,8 @@ import { TransactionBlock, Inputs, type TransactionResult } from '@mysten/sui.js
 import { BCS, getSuiMoveConfig, toHEX, fromHEX, BcsReader } from '@mysten/bcs';
 import { PROTOCOL, GuardAddress, FnCallType, Data_Type, MODULES, ContextType, OBJECTS_TYPE, 
     OBJECTS_TYPE_PREFIX, Query_Param, IsValidDesription, ValueType,  OperatorType} from './protocol';
-import { concatenate, array_equal, ulebDecode, array_unique } from './util';
-import { stringToUint8Array } from './util';
+import { concatenate, array_equal, ulebDecode, array_unique } from './utils';
+import { stringToUint8Array } from './utils';
 
 
 export const MAX_SENSE_COUNT = 16;

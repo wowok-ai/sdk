@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.sense_objects_fn = exports.description_fn = exports.parse_sense_bsc = exports.SenseMaker = exports.QUERIES = exports.everyone_guard = exports.signer_guard = exports.launch = exports.Guard_Sense_Binder = exports.MAX_SENSE_COUNT = void 0;
+exports.rpc_sense_objects_fn = exports.rpc_description_fn = exports.parse_sense_bsc = exports.parse_graphql_senses = exports.SenseMaker = exports.QUERIES = exports.everyone_guard = exports.signer_guard = exports.launch = exports.Guard_Sense_Binder = exports.MAX_SENSE_COUNT = void 0;
 const bcs_1 = require("@mysten/bcs");
 const protocol_1 = require("./protocol");
 const util_1 = require("./util");
@@ -42,19 +42,17 @@ function launch(txb, creation) {
 }
 exports.launch = launch;
 function signer_guard(txb) {
-    txb.moveCall({
+    return txb.moveCall({
         target: protocol_1.PROTOCOL.GuardFn('signer_guard'),
         arguments: []
     });
-    return true;
 }
 exports.signer_guard = signer_guard;
 function everyone_guard(txb) {
-    txb.moveCall({
+    return txb.moveCall({
         target: protocol_1.PROTOCOL.GuardFn('everyone_guard'),
         arguments: []
     });
-    return true;
 }
 exports.everyone_guard = everyone_guard;
 exports.QUERIES = [
@@ -312,14 +310,24 @@ function match_u128(type) {
     }
     return false;
 }
+function parse_graphql_senses(senses) {
+    let objects = [];
+    senses.forEach((s) => {
+        let res = parse_sense_bsc(Uint8Array.from(s.input.bytes));
+        if (res) {
+            objects = objects.concat(res);
+        }
+    });
+    return (0, util_1.array_unique)(objects);
+}
+exports.parse_graphql_senses = parse_graphql_senses;
 // parse guard senses input bytes of a guard, return [objectids] for 'query_cmd' 
 function parse_sense_bsc(chain_sense_bsc) {
-    // console.log(data);
-    var array = [].slice.call(chain_sense_bsc.reverse());
+    var arr = [].slice.call(chain_sense_bsc.reverse());
     const bcs = new bcs_1.BCS((0, bcs_1.getSuiMoveConfig)());
     var result = [];
-    while (array.length > 0) {
-        var type = array.shift();
+    while (arr.length > 0) {
+        var type = arr.shift();
         // console.log(type);
         switch (type) {
             case protocol_1.ContextType.TYPE_CONTEXT_SIGNER:
@@ -332,42 +340,44 @@ function parse_sense_bsc(chain_sense_bsc) {
             case protocol_1.OperatorType.TYPE_LOGIC_OPERATOR_U128_EQUAL:
             case protocol_1.OperatorType.TYPE_LOGIC_OPERATOR_EQUAL:
             case protocol_1.OperatorType.TYPE_LOGIC_OPERATOR_HAS_SUBSTRING:
+            case protocol_1.OperatorType.TYPE_LOGIC_ALWAYS_TRUE:
                 break;
             case protocol_1.ValueType.TYPE_STATIC_address:
                 //console.log('0x' + bcs.de(BCS.ADDRESS,  Uint8Array.from(array)).toString());
-                array.splice(0, 32);
+                arr.splice(0, 32);
                 break;
             case protocol_1.ValueType.TYPE_STATIC_bool:
             case protocol_1.ValueType.TYPE_STATIC_u8:
-                array.splice(0, 1);
+                arr.splice(0, 1);
                 break;
             case protocol_1.ValueType.TYPE_STATIC_u64:
-                array.splice(0, 8);
+                arr.splice(0, 8);
                 break;
             case protocol_1.ValueType.TYPE_STATIC_u128:
-                array.splice(0, 16);
+                arr.splice(0, 16);
                 break;
             case protocol_1.ValueType.TYPE_STATIC_vec_u8:
-                let { value, length } = (0, util_1.ulebDecode)(Uint8Array.from(array));
-                array.splice(0, value + length);
+                let { value, length } = (0, util_1.ulebDecode)(Uint8Array.from(arr));
+                arr.splice(0, value + length);
                 break;
             case protocol_1.OperatorType.TYPE_DYNAMIC_QUERY:
-                result.push('0x' + bcs.de(bcs_1.BCS.ADDRESS, Uint8Array.from(array)).toString());
-                array.splice(0, 33); // address + cmd
+                result.push('0x' + bcs.de(bcs_1.BCS.ADDRESS, Uint8Array.from(arr)).toString());
+                arr.splice(0, 33); // address + cmd
                 break;
             default:
-                // console.log('parse_sense_bsc:undefined');
+                console.error('parse_sense_bsc:undefined');
+                console.log(type);
+                console.log(arr);
                 return false; // error
         }
     }
     return result;
 }
 exports.parse_sense_bsc = parse_sense_bsc;
-const MODULE_GUARD_INDEX = 7;
-const description_fn = (response, param, option) => {
+const rpc_description_fn = (response, param, option) => {
     if (!response.error) {
         let c = response?.data?.content;
-        if (c.type == protocol_1.OBJECTS_TYPE[MODULE_GUARD_INDEX] && c.fields.id.id == param.objectid) { // GUARD OBJECT
+        if ((0, protocol_1.OBJECTS_TYPE)().find((v) => (v == c.type)) && c.fields.id.id == param.objectid) { // GUARD OBJECT
             let description = c.fields.description;
             if (!param.data.includes(description)) {
                 param.data.push(description);
@@ -375,19 +385,23 @@ const description_fn = (response, param, option) => {
         }
     }
 };
-exports.description_fn = description_fn;
-const sense_objects_fn = (response, param, option) => {
+exports.rpc_description_fn = rpc_description_fn;
+const rpc_sense_objects_fn = (response, param, option) => {
     if (!response.error) {
         let c = response?.data?.content;
-        if (c.type == protocol_1.OBJECTS_TYPE[MODULE_GUARD_INDEX] && c.fields.id.id == param.objectid) { // GUARD OBJECT
+        let index = (0, protocol_1.OBJECTS_TYPE)().findIndex(v => v.includes('guard::Guard') && v == c.type);
+        if (index >= 0 && c.fields.id.id == param.objectid) { // GUARD OBJECT
             for (let i = 0; i < c.fields.senses.length; i++) {
                 let sense = c.fields.senses[i];
-                if (sense.type == (protocol_1.OBJECTS_TYPE_PREFIX[MODULE_GUARD_INDEX] + 'Sense')) { // ...::guard::Sense                    
-                    let ids = parse_sense_bsc(Uint8Array.from(sense.fields.input.fields.bytes));
-                    param.data = (0, util_1.array_unique)(param.data.concat(ids));
+                if (sense.type == ((0, protocol_1.OBJECTS_TYPE_PREFIX)()[index] + 'Sense')) { // ...::guard::Sense    
+                    let res = parse_sense_bsc(Uint8Array.from(sense.fields.input.fields.bytes));
+                    if (res) {
+                        let ids = res;
+                        param.data = param.data.concat(ids); // DONT array_unique senses                  
+                    }
                 }
             }
         }
     }
 };
-exports.sense_objects_fn = sense_objects_fn;
+exports.rpc_sense_objects_fn = rpc_sense_objects_fn;

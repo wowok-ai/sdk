@@ -3,7 +3,7 @@ import { SuiClient, SuiObjectResponse, SuiObjectDataOptions, SuiTransactionBlock
 import { Ed25519Keypair } from '@mysten/sui.js/keypairs/ed25519';
 import { BCS, getSuiMoveConfig, toHEX, fromHEX, BcsReader } from '@mysten/bcs';
 import { TransactionBlock, Inputs, type TransactionResult, type TransactionArgument } from '@mysten/sui.js/transactions';
-import { capitalize } from './util'
+import { capitalize } from './utils'
 
 export const MAX_DESCRIPTION_LENGTH = 1024;
 export const MAX_NAME_LENGTH = 64;

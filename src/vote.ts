@@ -3,7 +3,7 @@ import { BCS } from '@mysten/bcs';
 import { CLOCK_OBJECT, FnCallType, PROTOCOL, PassportObject, PermissionObject, GuardObject, VoteAddress, 
     VoteObject, IsValidObjects, IsValidDesription, IsValidUint, IsValidAddress, OptionNone, TXB_OBJECT,
     IsValidArray, IsValidName} from './protocol';
-import { BCS_CONVERT, array_unique } from './util';
+import { BCS_CONVERT, array_unique } from './utils';
 
 export const MAX_AGREES_COUNT = 200;
 export const MAX_CHOICE_COUNT = 200;

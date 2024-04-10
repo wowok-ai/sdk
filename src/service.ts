@@ -1,6 +1,6 @@
 import { TransactionBlock, type TransactionResult } from '@mysten/sui.js/transactions';
 import { BCS } from '@mysten/bcs'; 
-import { BCS_CONVERT, array_unique } from './util'
+import { BCS_CONVERT, array_unique } from './utils'
 import { CLOCK_OBJECT, FnCallType, GuardObject, PROTOCOL, PassportObject, PermissionObject,
     RepositoryObject, MachineObject, ServiceAddress, ServiceObject, IsValidObjects, IsValidArgType, IsValidDesription, 
     IsValidAddress, IsValidEndpoint, OptionNone, TXB_OBJECT, IsValidUint, IsValidInt, IsValidName, DiscountObject,
@@ -450,8 +450,8 @@ export type Service_Discount = {
     time_start?: number; // current time if undefined
     price_greater?: number;
 }
-const MAX_DISCOUNT_COUNT_ONCE = 200;
-const MAX_DISCOUNT_RECEIVER_COUNT = 200;
+export  const MAX_DISCOUNT_COUNT_ONCE = 200;
+export const MAX_DISCOUNT_RECEIVER_COUNT = 200;
 
 export type DicountDispatch = {
     receiver: string;

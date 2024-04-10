@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.hold = exports.next = exports.progress_unhold = exports.progress_set_context_repository = exports.progress_bind_task = exports.progress_set_namedOperator = exports.destroy = exports.launch_as_child = exports.launch = exports.progress = exports.MAX_NAMED_OPERATOR_COUNT = void 0;
+exports.hold = exports.next = exports.progress_parent = exports.progress_unhold = exports.progress_set_context_repository = exports.progress_bind_task = exports.progress_set_namedOperator = exports.destroy = exports.launch_as_child = exports.launch = exports.progress = exports.MAX_NAMED_OPERATOR_COUNT = void 0;
 const bcs_1 = require("@mysten/bcs");
 const protocol_1 = require("./protocol");
 const util_1 = require("./util");
@@ -132,41 +132,90 @@ function progress_set_context_repository(txb, machine, permission, progress, rep
     return true;
 }
 exports.progress_set_context_repository = progress_set_context_repository;
-function progress_unhold(txb, machine, permission, progress, next) {
+function progress_unhold(txb, machine, permission, progress, next, passport) {
     if (!(0, protocol_1.IsValidObjects)([machine, permission, progress]))
         return false;
     if (!IsValidProgressNext(next))
         return false;
-    txb.moveCall({
-        target: protocol_1.PROTOCOL.ProgressFn('unhold'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, machine), txb.pure(next.next_node_name), txb.pure(next.forward), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-    });
+    if (passport) {
+        txb.moveCall({
+            target: protocol_1.PROTOCOL.ProgressFn('unhold_with_passport'),
+            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, machine), txb.pure(next.next_node_name), txb.pure(next.forward), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+        });
+    }
+    else {
+        txb.moveCall({
+            target: protocol_1.PROTOCOL.ProgressFn('unhold'),
+            arguments: [(0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, machine), txb.pure(next.next_node_name), txb.pure(next.forward), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+        });
+    }
     return true;
 }
 exports.progress_unhold = progress_unhold;
+function progress_parent(txb, machine, permission, progress, parent_progress, passport) {
+    if (!(0, protocol_1.IsValidObjects)([machine, permission, progress]))
+        return false;
+    if (parent_progress && (!(0, protocol_1.IsValidAddress)(parent_progress.parent_progress_id) || !(0, protocol_1.IsValidInt)(parent_progress.parent_session_id)))
+        return false;
+    if (passport) {
+        if (parent_progress) {
+            txb.moveCall({
+                target: protocol_1.PROTOCOL.ProgressFn('parent_set_with_passport'),
+                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, machine), txb.pure(parent_progress.parent_progress_id, bcs_1.BCS.ADDRESS),
+                    txb.pure(parent_progress.parent_session_id, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            });
+        }
+        else {
+            txb.moveCall({
+                target: protocol_1.PROTOCOL.ProgressFn('parent_none_with_passport'),
+                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, machine), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            });
+        }
+    }
+    else {
+        if (parent_progress) {
+            txb.moveCall({
+                target: protocol_1.PROTOCOL.ProgressFn('parent_set'),
+                arguments: [(0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, machine), txb.pure(parent_progress.parent_progress_id, bcs_1.BCS.ADDRESS),
+                    txb.pure(parent_progress.parent_session_id, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            });
+        }
+        else {
+            txb.moveCall({
+                target: protocol_1.PROTOCOL.ProgressFn('parent_none'),
+                arguments: [(0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, machine), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            });
+        }
+    }
+    return true;
+}
+exports.progress_parent = progress_parent;
 function IsValidProgressNext(next) {
     return (0, protocol_1.IsValidName)(next.forward) && (0, protocol_1.IsValidName)(next.next_node_name);
 }
-function next(txb, machine, permission, progress, next, deliverables_address, passport) {
+function next(txb, machine, permission, progress, next, deliverables_address, sub_progress_id, passport) {
     if (!(0, protocol_1.IsValidObjects)([machine, permission, progress]))
         return false;
     if (!IsValidProgressNext(next))
         return false;
     if (deliverables_address && !(0, protocol_1.IsValidAddress)(deliverables_address))
         return false;
+    if (sub_progress_id && !(0, protocol_1.IsValidAddress)(sub_progress_id))
+        return false;
     let diliverable = deliverables_address ? txb.pure(util_1.BCS_CONVERT.ser_option_address(deliverables_address)) : (0, protocol_1.OptionNone)(txb);
+    let sub = sub_progress_id ? txb.pure(util_1.BCS_CONVERT.ser_option_address(sub_progress_id)) : (0, protocol_1.OptionNone)(txb);
     if (passport) {
         txb.moveCall({
-            target: protocol_1.PROTOCOL.ProgressFn('run_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, machine), txb.pure(next.next_node_name),
-                txb.pure(next.forward), diliverable, (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            target: protocol_1.PROTOCOL.ProgressFn('next_with_passport'),
+            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, machine), txb.pure(next.next_node_name, bcs_1.BCS.STRING),
+                txb.pure(next.forward, bcs_1.BCS.STRING), diliverable, sub, (0, protocol_1.TXB_OBJECT)(txb, permission)],
         });
     }
     else {
         txb.moveCall({
-            target: protocol_1.PROTOCOL.ProgressFn('run'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, machine), txb.pure(next.next_node_name),
-                txb.pure(next.forward), diliverable, (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            target: protocol_1.PROTOCOL.ProgressFn('next'),
+            arguments: [(0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, machine), txb.pure(next.next_node_name, bcs_1.BCS.STRING),
+                txb.pure(next.forward, bcs_1.BCS.STRING), diliverable, sub, (0, protocol_1.TXB_OBJECT)(txb, permission)],
         });
     }
     return true;

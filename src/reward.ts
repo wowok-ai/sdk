@@ -2,10 +2,15 @@ import { TransactionBlock, type TransactionResult } from '@mysten/sui.js/transac
 import { BCS} from '@mysten/bcs';
 import { CLOCK_OBJECT, FnCallType, GuardObject, IsValidAddress, IsValidArgType, IsValidArray, IsValidDesription, IsValidObjects, IsValidUint, PROTOCOL, PassportObject, PermissionObject,
     RewardAddress, RewardObject, TXB_OBJECT} from './protocol';
-import { array_unique } from './util';
+import { array_unique } from './utils';
 
 export type Reward = TransactionResult;
 export type CoinReward = TransactionResult;
+export type RewardGuardPortions = {
+    guard:GuardObject;
+    portions:number;
+}
+export const MAX_PORTIONS_COUNT = 255;
 
 export function reward(reward_type:string, txb:TransactionBlock, permission:PermissionObject, description:string, 
     minutes_duration:number, passport?:PassportObject) : RewardObject | boolean {
@@ -90,11 +95,6 @@ export function reward_expand_time(reward_type:string, txb:TransactionBlock, rew
     }
     return true
 }
-export type RewardGuardPortions = {
-    guard:GuardObject;
-    portions:number;
-}
-export const MAX_PORTIONS_COUNT = 255;
 
 export function reward_add_guard(reward_type:string, txb:TransactionBlock, reward:RewardObject, 
     permission:PermissionObject, gurads:RewardGuardPortions[], passport?:PassportObject) : boolean {

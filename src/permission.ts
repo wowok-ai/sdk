@@ -2,7 +2,7 @@ import { TransactionBlock, Inputs, type TransactionResult } from '@mysten/sui.js
 import { BCS } from '@mysten/bcs';
 import { FnCallType, PROTOCOL, TxbObject, PermissionObject, PermissionAddress, TXB_OBJECT, IsValidDesription, 
     IsValidObjects, IsValidAddress, IsValidArray, GuardObject, IsValidUint} from './protocol';
-import { array_unique } from './util';
+import { array_unique } from './utils';
 
 
 export const MAX_ADMIN_COUNT = 64;

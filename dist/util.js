@@ -145,11 +145,14 @@ function stringToUint8Array(str) {
 }
 exports.stringToUint8Array = stringToUint8Array;
 function numToUint8Array(num) {
-    let arr = new Uint8Array(8);
-    for (let i = 0; i < 8; i++) {
-        arr[i] = num % 256;
-        num = Math.floor(num / 256);
+    if (!num)
+        return new Uint8Array(0);
+    const a = [];
+    a.unshift(num & 255);
+    while (num >= 256) {
+        num = num >>> 8;
+        a.unshift(num & 255);
     }
-    return arr;
+    return new Uint8Array(a);
 }
 exports.numToUint8Array = numToUint8Array;

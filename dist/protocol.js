@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.OBJECTS_TYPE = exports.OBJECTS_TYPE_PREFIX = exports.PROTOCOL = exports.Protocol = exports.ENTRYPOINT = exports.ContextType = exports.OperatorType = exports.ValueType = exports.CLOCK_OBJECT = exports.TXB_OBJECT = exports.MODULES = exports.IsValidObjects = exports.IsValidArray = exports.IsValidPercent = exports.IsValidInt = exports.IsValidUint = exports.IsValidArgType = exports.IsValidAddress = exports.IsValidEndpoint = exports.IsValidName_AllowEmpty = exports.IsValidName = exports.IsValidDesription = exports.OptionNone = exports.MAX_ENDPOINT_LENGTH = exports.MAX_NAME_LENGTH = exports.MAX_DESCRIPTION_LENGTH = void 0;
+exports.OBJECTS_TYPE = exports.OBJECTS_TYPE_PREFIX = exports.WOWOK_TYPE = exports.SUI_TYPE = exports.PROTOCOL = exports.Protocol = exports.ENTRYPOINT = exports.ContextType = exports.OperatorType = exports.ValueType = exports.CLOCK_OBJECT = exports.TXB_OBJECT = exports.MODULES = exports.IsValidObjects = exports.IsValidArray = exports.IsValidPercent = exports.IsValidInt = exports.IsValidUint = exports.IsValidArgType = exports.IsValidAddress = exports.IsValidEndpoint = exports.IsValidName_AllowEmpty = exports.IsValidName = exports.IsValidDesription = exports.OptionNone = exports.MAX_ENDPOINT_LENGTH = exports.MAX_NAME_LENGTH = exports.MAX_DESCRIPTION_LENGTH = void 0;
 const client_1 = require("@mysten/sui.js/client");
 const ed25519_1 = require("@mysten/sui.js/keypairs/ed25519");
 const bcs_1 = require("@mysten/bcs");
@@ -124,6 +124,7 @@ class Protocol {
     package = '';
     signer = '';
     everyone_guard = '';
+    graphql = '';
     constructor(network = ENTRYPOINT.localnet, signer = "0xe386bb9e01b3528b75f3751ad8a1e418b207ad979fea364087deef5250a73d3f") {
         this.signer = signer;
         this.UseNetwork(network);
@@ -138,8 +139,9 @@ class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0x717b14e0fb287594ce9aed4ee5fb87323469c79d15c1f82c676cf55c338bfb76";
+                this.package = "0x877375bc3bde063e4b95f428df218af7faaeef431993f4a68f2dfa5ceb8acb2e";
                 this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
+                this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
             case ENTRYPOINT.mainnet:
                 break;
@@ -148,6 +150,7 @@ class Protocol {
     }
     Package() { return this.package; }
     EveryoneGuard() { return this.everyone_guard; }
+    GraphqlUrl() { return this.graphql; }
     NetworkUrl() {
         switch (this.network) {
             case ENTRYPOINT.localnet:
@@ -205,5 +208,10 @@ class Protocol {
 }
 exports.Protocol = Protocol;
 exports.PROTOCOL = new Protocol();
-exports.OBJECTS_TYPE_PREFIX = Object.keys(MODULES).map((key) => { return exports.PROTOCOL.Package() + '::' + key + '::'; });
-exports.OBJECTS_TYPE = Object.keys(MODULES).map((key) => { let i = exports.PROTOCOL.Package() + '::' + key + '::'; return i + (0, util_1.capitalize)(key); });
+exports.SUI_TYPE = '0x2::coin::Coin<0x2::sui::SUI>';
+const WOWOK_TYPE = () => { '0x2::coin::Coin<' + exports.PROTOCOL.Package() + '::wowok::WOWOK'; };
+exports.WOWOK_TYPE = WOWOK_TYPE;
+const OBJECTS_TYPE_PREFIX = () => Object.keys(MODULES).map((key) => { return exports.PROTOCOL.Package() + '::' + key + '::'; });
+exports.OBJECTS_TYPE_PREFIX = OBJECTS_TYPE_PREFIX;
+const OBJECTS_TYPE = () => Object.keys(MODULES).map((key) => { let i = exports.PROTOCOL.Package() + '::' + key + '::'; return i + (0, util_1.capitalize)(key); });
+exports.OBJECTS_TYPE = OBJECTS_TYPE;

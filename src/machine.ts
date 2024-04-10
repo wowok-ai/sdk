@@ -3,7 +3,7 @@ import { BCS } from '@mysten/bcs';
 import { PROTOCOL, FnCallType, PermissionObject, RepositoryObject, IsValidEndpoint, OptionNone, IsValidDesription, PassportObject,
     TXB_OBJECT, MachineObject, MachineAddress, IsValidArray, IsValidAddress, IsValidName, IsValidName_AllowEmpty, GuardObject, 
     IsValidInt, IsValidUint, IsValidObjects} from './protocol';
-import { BCS_CONVERT, array_unique } from './util'
+import { BCS_CONVERT, array_unique } from './utils'
 import { IsValidPermissionIndex, PermissionIndexType } from './permission';
 
 

@@ -1,7 +1,7 @@
 import { SuiObjectResponse, SuiObjectDataOptions } from '@mysten/sui.js/client';
 import { TransactionBlock, TransactionResult, type TransactionObjectInput, Inputs } from '@mysten/sui.js/transactions';
 import { PROTOCOL, FnCallType, CLOCK_OBJECT, Query_Param, OBJECTS_TYPE, OBJECTS_TYPE_PREFIX, PassportObject, GuardObject, TXB_OBJECT} from './protocol';
-import { parse_object_type, array_unique } from './util';
+import { parse_object_type, array_unique } from './utils';
 import { rpc_sense_objects_fn } from './guard';
 
 export const MAX_GUARD_COUNT = 8;
@@ -55,8 +55,6 @@ export function verify(txb:TransactionBlock, guards:string[], passport_queries:G
     if (!guards || passport_queries.length == 0 || passport_queries.length > MAX_GUARD_COUNT) {
         return false;
     }
-    console.log(guards)
-    console.log(passport_queries)
     
     var passport = txb.moveCall({
         target: PROTOCOL.PassportFn('new') as FnCallType,
@@ -65,7 +63,6 @@ export function verify(txb:TransactionBlock, guards:string[], passport_queries:G
 
     // add others guards, if any
     for (let i = 1; i < guards.length; i++) {
-        console.log('dfdfdf')
         txb.moveCall({
             target:PROTOCOL.PassportFn('guard_add') as FnCallType,
             arguments:[passport, TXB_OBJECT(txb, guards[i])]

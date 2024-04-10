@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.change_permission = exports.deposit = exports.claim = exports.reward_lock_guards = exports.reward_set_description = exports.allow_repeat_claim = exports.reward_remove_guard = exports.reward_add_guard = exports.reward_expand_time = exports.reward_refund = exports.destroy = exports.launch = exports.reward = void 0;
+exports.change_permission = exports.deposit = exports.claim = exports.reward_lock_guards = exports.reward_set_description = exports.allow_repeat_claim = exports.reward_remove_guard = exports.reward_add_guard = exports.MAX_PORTIONS_COUNT = exports.reward_expand_time = exports.reward_refund = exports.destroy = exports.launch = exports.reward = void 0;
 const bcs_1 = require("@mysten/bcs");
 const protocol_1 = require("./protocol");
 const util_1 = require("./util");
@@ -101,6 +101,7 @@ function reward_expand_time(reward_type, txb, reward, permission, minutes_expand
     return true;
 }
 exports.reward_expand_time = reward_expand_time;
+exports.MAX_PORTIONS_COUNT = 255;
 function reward_add_guard(reward_type, txb, reward, permission, gurads, passport) {
     if (!(0, protocol_1.IsValidObjects)([reward, permission]))
         return false;
@@ -110,7 +111,7 @@ function reward_add_guard(reward_type, txb, reward, permission, gurads, passport
         return false;
     let bValid = true;
     gurads.forEach((v) => {
-        if (!(0, protocol_1.IsValidUint)(v.portions))
+        if (!(0, protocol_1.IsValidUint)(v.portions) || v.portions > exports.MAX_PORTIONS_COUNT)
             bValid = false;
         if (!(0, protocol_1.IsValidObjects)([v.guard]))
             bValid = false;
@@ -120,14 +121,14 @@ function reward_add_guard(reward_type, txb, reward, permission, gurads, passport
     if (passport) {
         gurads.forEach((guard) => txb.moveCall({
             target: protocol_1.PROTOCOL.RewardFn('guard_add_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, reward), (0, protocol_1.TXB_OBJECT)(txb, guard.guard), txb.pure(guard.portions, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, reward), (0, protocol_1.TXB_OBJECT)(txb, guard.guard), txb.pure(guard.portions, bcs_1.BCS.U8), (0, protocol_1.TXB_OBJECT)(txb, permission)],
             typeArguments: [reward_type]
         }));
     }
     else {
         gurads.forEach((guard) => txb.moveCall({
             target: protocol_1.PROTOCOL.RewardFn('guard_add'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, reward), (0, protocol_1.TXB_OBJECT)(txb, guard.guard), txb.pure(guard.portions, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            arguments: [(0, protocol_1.TXB_OBJECT)(txb, reward), (0, protocol_1.TXB_OBJECT)(txb, guard.guard), txb.pure(guard.portions, bcs_1.BCS.U8), (0, protocol_1.TXB_OBJECT)(txb, permission)],
             typeArguments: [reward_type]
         }));
     }
@@ -192,7 +193,7 @@ function allow_repeat_claim(reward_type, txb, reward, permission, allow_repeat_c
     }
     else {
         txb.moveCall({
-            target: protocol_1.PROTOCOL.RewardFn('allow_repeat_claim_with_passport'),
+            target: protocol_1.PROTOCOL.RewardFn('allow_repeat_claim'),
             arguments: [(0, protocol_1.TXB_OBJECT)(txb, reward), (0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure(allow_repeat_claim, bcs_1.BCS.BOOL)],
             typeArguments: [reward_type]
         });

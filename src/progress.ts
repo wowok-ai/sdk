@@ -3,7 +3,7 @@ import { BCS } from '@mysten/bcs';
 import { FnCallType, PROTOCOL, PermissionObject, RepositoryObject, PassportObject, MachineObject, TXB_OBJECT, 
     ProgressObject, ProgressAddress, IsValidName, IsValidAddress, IsValidArray, OptionNone,  IsValidObjects, 
     IsValidInt} from './protocol';
-import { BCS_CONVERT, array_unique } from './util'
+import { BCS_CONVERT, array_unique } from './utils'
 
 export const MAX_NAMED_OPERATOR_COUNT = 100;
 
