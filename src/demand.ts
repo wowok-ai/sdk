@@ -191,13 +191,13 @@ export function present(earnest_type:string, service_type:string, txb:Transactio
     if (passport) {
         txb.moveCall({
             target:PROTOCOL.DemandFn('present_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, demand), TXB_OBJECT(txb, service), txb.pure(tips), ],
+            arguments:[passport, TXB_OBJECT(txb, demand), TXB_OBJECT(txb, service), txb.pure(tips, BCS.STRING), ],
             typeArguments:[earnest_type, service_type],
         })   
     } else {
         txb.moveCall({
             target:PROTOCOL.DemandFn('present') as FnCallType,
-            arguments:[TXB_OBJECT(txb, demand), TXB_OBJECT(txb, service), txb.pure(tips), ],
+            arguments:[TXB_OBJECT(txb, demand), TXB_OBJECT(txb, service), txb.pure(tips, BCS.STRING), ],
             typeArguments:[earnest_type, service_type],
         })   
     } 

@@ -9,13 +9,18 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "web3",
+    "AI",
+    "wowok",
+    "sui"
+  ],
+  "author": "wowo",
   "license": "Apache License",
   "dependencies": {
     "@mysten/bcs": "^0.11.1",
     "@mysten/sui.js": "^0.50.1",
-    "graphql": "^16.8.1"
+    "graphql-tag": "^2.12.6"
   },
   "devDependencies": {
     "tsx": "^4.7.1"

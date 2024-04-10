@@ -4,7 +4,8 @@ import { BCS, getSuiMoveConfig, toHEX, fromHEX, BcsReader } from '@mysten/bcs';
 import { PROTOCOL, GuardAddress, FnCallType, Data_Type, MODULES, ContextType, OBJECTS_TYPE, 
     OBJECTS_TYPE_PREFIX, Query_Param, IsValidDesription, ValueType,  OperatorType} from './protocol';
 import { concatenate, array_equal, ulebDecode, array_unique } from './util';
-import { TransactionBlockDataBuilder } from '@mysten/sui.js/dist/cjs/builder/TransactionBlockData';
+import { stringToUint8Array } from './util';
+
 
 export const MAX_SENSE_COUNT = 16;
 
@@ -336,15 +337,25 @@ function match_u128(type:number) : boolean {
     return false;
 }
 
+export function parse_graphql_senses(senses:any) : string[] {
+    let objects:string[] = [];
+    senses.forEach((s:any) => {
+        let res = parse_sense_bsc(Uint8Array.from(s.input.bytes));
+        if (res) {
+           objects = objects.concat(res as string[]);
+        }
+    });
+    return array_unique(objects);
+}
+
 // parse guard senses input bytes of a guard, return [objectids] for 'query_cmd' 
 export function parse_sense_bsc(chain_sense_bsc:Uint8Array)  : boolean | string[] {
-    // console.log(data);
-    var array = [].slice.call(chain_sense_bsc.reverse());
+    var arr = [].slice.call(chain_sense_bsc.reverse());
     const bcs = new BCS(getSuiMoveConfig());
     var result = [];
 
-    while (array.length > 0) {
-        var type : unknown = array.shift() ;
+    while (arr.length > 0) {
+        var type : unknown = arr.shift() ;
         // console.log(type);
         switch (type as Data_Type) { 
             case ContextType.TYPE_CONTEXT_SIGNER:
@@ -357,42 +368,45 @@ export function parse_sense_bsc(chain_sense_bsc:Uint8Array)  : boolean | string[
             case OperatorType.TYPE_LOGIC_OPERATOR_U128_EQUAL:
             case OperatorType.TYPE_LOGIC_OPERATOR_EQUAL:
             case OperatorType.TYPE_LOGIC_OPERATOR_HAS_SUBSTRING:
+            case OperatorType.TYPE_LOGIC_ALWAYS_TRUE:
             break;    
         case ValueType.TYPE_STATIC_address: 
             //console.log('0x' + bcs.de(BCS.ADDRESS,  Uint8Array.from(array)).toString());
-            array.splice(0, 32);
+            arr.splice(0, 32);
             break;
         case ValueType.TYPE_STATIC_bool:
         case ValueType.TYPE_STATIC_u8:
-            array.splice(0, 1);
+            arr.splice(0, 1);
             break;
         case ValueType.TYPE_STATIC_u64: 
-            array.splice(0, 8);
+            arr.splice(0, 8);
             break;
         case ValueType.TYPE_STATIC_u128: 
-            array.splice(0, 16);
+            arr.splice(0, 16);
             break;
         case ValueType.TYPE_STATIC_vec_u8:
-            let {value, length} = ulebDecode(Uint8Array.from(array));
-            array.splice(0, value+length);
+            let {value, length} = ulebDecode(Uint8Array.from(arr));
+            arr.splice(0, value+length);
             break;     
         case OperatorType.TYPE_DYNAMIC_QUERY:
-            result.push('0x' + bcs.de(BCS.ADDRESS,  Uint8Array.from(array)).toString());
-            array.splice(0, 33); // address + cmd
+            result.push('0x' + bcs.de(BCS.ADDRESS,  Uint8Array.from(arr)).toString());
+            arr.splice(0, 33); // address + cmd
             break;
         default:
-            // console.log('parse_sense_bsc:undefined');
+            console.error('parse_sense_bsc:undefined');
+            console.log(type as number)
+            console.log(arr)
             return false; // error
         }
     } 
     return result;
 }
 
-const MODULE_GUARD_INDEX = 7;
-export const description_fn = (response:SuiObjectResponse, param:Query_Param, option:SuiObjectDataOptions) => {
+export const rpc_description_fn = (response:SuiObjectResponse, param:Query_Param, option:SuiObjectDataOptions) => {
     if (!response.error) {
         let c = response?.data?.content as any;
-        if (c.type == OBJECTS_TYPE[MODULE_GUARD_INDEX] && c.fields.id.id == param.objectid) { // GUARD OBJECT
+
+        if (OBJECTS_TYPE().find((v) => (v == c.type)) && c.fields.id.id == param.objectid) { // GUARD OBJECT
             let description = c.fields.description;
             if (!param.data.includes(description)) {
                 param.data.push(description);
@@ -400,17 +414,24 @@ export const description_fn = (response:SuiObjectResponse, param:Query_Param, op
         }        
     }
 }
-export const sense_objects_fn = (response:SuiObjectResponse, param:Query_Param, option:SuiObjectDataOptions) => {
+
+export const rpc_sense_objects_fn = (response:SuiObjectResponse, param:Query_Param, option:SuiObjectDataOptions) => {
     if (!response.error) {
         let c = response?.data?.content as any;
-        if (c.type == OBJECTS_TYPE[MODULE_GUARD_INDEX] && c.fields.id.id == param.objectid) { // GUARD OBJECT
+        let index = OBJECTS_TYPE().findIndex(v => v.includes('guard::Guard') && v == c.type);
+        if (index >= 0 && c.fields.id.id == param.objectid) { // GUARD OBJECT
             for (let i = 0; i < c.fields.senses.length; i ++) {
                 let sense = c.fields.senses[i];
-                if (sense.type == (OBJECTS_TYPE_PREFIX[MODULE_GUARD_INDEX] + 'Sense')) { // ...::guard::Sense                    
-                    let ids = parse_sense_bsc(Uint8Array.from(sense.fields.input.fields.bytes)) as string[];
-                    param.data = array_unique(param.data.concat(ids));
+                if (sense.type == (OBJECTS_TYPE_PREFIX()[index] + 'Sense')) { // ...::guard::Sense    
+                    let res = parse_sense_bsc(Uint8Array.from(sense.fields.input.fields.bytes));      
+                    if (res)   {
+                        let ids =  res as string[];
+                        param.data = param.data.concat(ids);      // DONT array_unique senses                  
+                    }       
                 }                         
             }
         } 
     }
 }
+
+

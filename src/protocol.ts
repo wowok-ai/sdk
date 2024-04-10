@@ -143,6 +143,7 @@ export class Protocol {
     protected package = '';
     protected signer = '';
     protected everyone_guard = '';
+    protected graphql = '';
 
     constructor(network:ENTRYPOINT=ENTRYPOINT.localnet, signer="0xe386bb9e01b3528b75f3751ad8a1e418b207ad979fea364087deef5250a73d3f") {
         this.signer = signer;
@@ -158,8 +159,9 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0x1e8dfbc0e960a516dcfdb1f982e3897c8742aa1a6a53183e4fe3c88895ce8067";
+                this.package = "0x877375bc3bde063e4b95f428df218af7faaeef431993f4a68f2dfa5ceb8acb2e";
                 this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
+                this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
             case ENTRYPOINT.mainnet:
                 break;
@@ -167,6 +169,8 @@ export class Protocol {
     }
     Package(): string { return this.package }
     EveryoneGuard(): string { return this.everyone_guard }
+    GraphqlUrl() : string { return this.graphql }
+    
     NetworkUrl() : string { 
         switch(this.network) {
             case ENTRYPOINT.localnet:
@@ -179,6 +183,7 @@ export class Protocol {
                 return "https://fullnode.mainnet.sui.io:443";
         }; return "";
     };
+    
     MachineFn = (fn:any) => { return `${this.package}::${MODULES.machine}::${fn}`};
     NodeFn = (fn: any) => { return `${this.package}::${MODULES.node}::${fn}`};
     ProgressFn = (fn:any) => { return `${this.package}::${MODULES.progress}::${fn}`};
@@ -232,7 +237,7 @@ export type Query_Param = {
 };
 export const PROTOCOL = new Protocol();
 export const SUI_TYPE = '0x2::coin::Coin<0x2::sui::SUI>';
-export const WOWOK_TYPE = '0x2::coin::Coin<' + PROTOCOL.Package + '::wowok::WOWOK';
+export const WOWOK_TYPE = () => {'0x2::coin::Coin<' + PROTOCOL.Package() + '::wowok::WOWOK'};
 
-export const OBJECTS_TYPE_PREFIX = (Object.keys(MODULES) as Array<keyof typeof MODULES>).map((key) => { return PROTOCOL.Package() + '::' + key + '::'; })
-export const OBJECTS_TYPE = (Object.keys(MODULES) as Array<keyof typeof MODULES>).map((key) => { let i = PROTOCOL.Package() + '::' + key + '::'; return i + capitalize(key); })
+export const OBJECTS_TYPE_PREFIX = () => (Object.keys(MODULES) as Array<keyof typeof MODULES>).map((key) => { return PROTOCOL.Package() + '::' + key + '::'; })
+export const OBJECTS_TYPE = () => (Object.keys(MODULES) as Array<keyof typeof MODULES>).map((key) => { let i = PROTOCOL.Package() + '::' + key + '::'; return i + capitalize(key); })

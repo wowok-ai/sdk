@@ -94,6 +94,8 @@ export type RewardGuardPortions = {
     guard:GuardObject;
     portions:number;
 }
+export const MAX_PORTIONS_COUNT = 255;
+
 export function reward_add_guard(reward_type:string, txb:TransactionBlock, reward:RewardObject, 
     permission:PermissionObject, gurads:RewardGuardPortions[], passport?:PassportObject) : boolean {
     if (!IsValidObjects([reward, permission])) return false;
@@ -102,7 +104,7 @@ export function reward_add_guard(reward_type:string, txb:TransactionBlock, rewar
 
     let bValid = true;
     gurads.forEach((v) => {
-        if (!IsValidUint(v.portions)) bValid = false;
+        if (!IsValidUint(v.portions) || v.portions > MAX_PORTIONS_COUNT) bValid = false;
         if (!IsValidObjects([v.guard])) bValid = false;
     })
     if (!bValid) return false;
@@ -111,7 +113,7 @@ export function reward_add_guard(reward_type:string, txb:TransactionBlock, rewar
         gurads.forEach((guard) => 
             txb.moveCall({
                 target:PROTOCOL.RewardFn('guard_add_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, reward), TXB_OBJECT(txb, guard.guard), txb.pure(guard.portions, BCS.U64), TXB_OBJECT(txb, permission)], 
+                arguments:[passport, TXB_OBJECT(txb, reward), TXB_OBJECT(txb, guard.guard), txb.pure(guard.portions, BCS.U8), TXB_OBJECT(txb, permission)], 
                 typeArguments:[reward_type]
             })
         )
@@ -119,7 +121,7 @@ export function reward_add_guard(reward_type:string, txb:TransactionBlock, rewar
         gurads.forEach((guard) => 
             txb.moveCall({
                 target:PROTOCOL.RewardFn('guard_add') as FnCallType,
-                arguments:[TXB_OBJECT(txb, reward), TXB_OBJECT(txb, guard.guard), txb.pure(guard.portions, BCS.U64), TXB_OBJECT(txb, permission)], 
+                arguments:[TXB_OBJECT(txb, reward), TXB_OBJECT(txb, guard.guard), txb.pure(guard.portions, BCS.U8), TXB_OBJECT(txb, permission)], 
                 typeArguments:[reward_type]
             })
         )
@@ -177,7 +179,7 @@ export function allow_repeat_claim(reward_type:string, txb:TransactionBlock, rew
         })
     } else {
         txb.moveCall({
-            target:PROTOCOL.RewardFn('allow_repeat_claim_with_passport') as FnCallType,
+            target:PROTOCOL.RewardFn('allow_repeat_claim') as FnCallType,
             arguments:[TXB_OBJECT(txb, reward), TXB_OBJECT(txb, permission), txb.pure(allow_repeat_claim, BCS.BOOL)], 
             typeArguments:[reward_type]
         })
@@ -228,6 +230,7 @@ export function reward_lock_guards(reward_type:string, txb:TransactionBlock, rew
 export function claim(reward_type:string, txb:TransactionBlock, reward:RewardObject, passport?:PassportObject) : boolean {
     if (!IsValidObjects([reward])) return false;
     if (!IsValidArgType(reward_type)) return false;
+    
     if (passport) {
         txb.moveCall({
             target:PROTOCOL.RewardFn('claim_with_passport') as FnCallType,
