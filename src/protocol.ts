@@ -161,7 +161,7 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0x82b70ca54720b7e22d82b6c8c9a1601a228ccdb2a8bd70804a690ca8ea59777f";
+                this.package = "0x0e4c1b57d596cda9a26a36567c79d94dffc8419e5be7ecf659ce4a7242abaeff";
                 this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;

@@ -403,20 +403,21 @@ export function service_add_sale(pay_type:string, txb:TransactionBlock, service:
     sales.forEach((s) => {
         names.push(s.item); price.push(s.price); stock.push(s.stock);
     })
+
     if (passport) {
-        sales.forEach((sale) => txb.moveCall({
+        txb.moveCall({
             target:PROTOCOL.ServiceFn('sales_add_with_passport') as FnCallType,
             arguments:[passport, TXB_OBJECT(txb, service), txb.pure(BCS_CONVERT.ser_vector_string(names)), 
                 txb.pure(BCS_CONVERT.ser_vector_u64(price)), txb.pure(BCS_CONVERT.ser_vector_u64(stock)), TXB_OBJECT(txb, permission)],
             typeArguments:[pay_type]
-        }))
+        })
     } else {
-        sales.forEach((sale) => txb.moveCall({
+        txb.moveCall({
             target:PROTOCOL.ServiceFn('sales_add') as FnCallType,
             arguments:[TXB_OBJECT(txb, service), txb.pure(BCS_CONVERT.ser_vector_string(names)), 
                 txb.pure(BCS_CONVERT.ser_vector_u64(price)), txb.pure(BCS_CONVERT.ser_vector_u64(stock)), TXB_OBJECT(txb, permission)],
             typeArguments:[pay_type]
-        }))
+        })
     }
     return true
 }

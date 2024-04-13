@@ -27,7 +27,6 @@ export const passport_queries = async (guards:string[]) : Promise<Guard_Query_Ob
         sense_objects_result = sense_objects_result.concat(value.data);
     });
     sense_objects_result = array_unique(sense_objects_result); // objects in guards
-    // console.log(sense_objects_result);
 
     let queries = sense_objects_result.map((value) => { 
         return {objectid:value, callback:rpc_query_cmd_fn, data:[]} as Query_Param;
@@ -84,7 +83,7 @@ export function verify(txb:TransactionBlock, guards:string[], passport_queries:G
     }
     txb.moveCall({
         target: PROTOCOL.PassportFn('passport_verify') as FnCallType,
-        arguments: [ passport ]
+        arguments: [ passport,  txb.object(CLOCK_OBJECT) ]
     });     
 
     return passport;
