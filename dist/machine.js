@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.change_permission = exports.machine_publish = exports.machine_pause = exports.machine_set_endpoint = exports.machine_clone = exports.machine_remove_repository = exports.machine_add_repository = exports.machine_set_description = exports.launch = exports.destroy = exports.machine = exports.machine_remove_node = exports.machine_add_node2 = exports.machine_add_node = exports.namedOperator_ORDER_PAYER = exports.INITIAL_NODE_NAME = void 0;
 const bcs_1 = require("@mysten/bcs");
 const protocol_1 = require("./protocol");
-const util_1 = require("./util");
+const utils_1 = require("./utils");
 const permission_1 = require("./permission");
 exports.INITIAL_NODE_NAME = '';
 exports.namedOperator_ORDER_PAYER = 'order payer';
@@ -51,10 +51,10 @@ function machine_add_node(txb, machine, permission, nodes, passport) {
             arguments: [txb.pure(node.name), txb.pure(node.description)]
         });
         node.pairs.forEach((pair) => {
-            let threshold = pair?.threshold ? txb.pure(util_1.BCS_CONVERT.ser_option_u64(pair.threshold)) : (0, protocol_1.OptionNone)(txb);
+            let threshold = pair?.threshold ? txb.pure(utils_1.BCS_CONVERT.ser_option_u64(pair.threshold)) : (0, protocol_1.OptionNone)(txb);
             pair.forwards.forEach((forward) => {
                 let weight = forward?.weight ? forward.weight : 1;
-                let perm = forward?.permission ? txb.pure(util_1.BCS_CONVERT.ser_option_u64(forward.permission)) : (0, protocol_1.OptionNone)(txb);
+                let perm = forward?.permission ? txb.pure(utils_1.BCS_CONVERT.ser_option_u64(forward.permission)) : (0, protocol_1.OptionNone)(txb);
                 let namedOperator = forward?.namedOperator ? txb.pure(forward.namedOperator) : txb.pure('');
                 let f;
                 if (forward?.guard) {
@@ -87,7 +87,7 @@ function machine_add_node2(txb, machine, permission, nodes, passport) {
     if (!nodes)
         return false;
     let n = [];
-    (0, util_1.array_unique)(nodes).forEach((v) => {
+    (0, utils_1.array_unique)(nodes).forEach((v) => {
         n.push((0, protocol_1.TXB_OBJECT)(txb, v));
     });
     if (passport) {
@@ -114,14 +114,14 @@ function machine_remove_node(txb, machine, permission, nodes_name, bTransferMyse
     if (passport) {
         txb.moveCall({
             target: protocol_1.PROTOCOL.MachineFn('node_remove_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, machine), txb.pure(util_1.BCS_CONVERT.ser_vector_string(nodes_name)),
+            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, machine), txb.pure(utils_1.BCS_CONVERT.ser_vector_string(nodes_name)),
                 txb.pure(bTransferMyself, bcs_1.BCS.BOOL), (0, protocol_1.TXB_OBJECT)(txb, permission)],
         });
     }
     else {
         txb.moveCall({
             target: protocol_1.PROTOCOL.MachineFn('node_remove'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, machine), txb.pure(util_1.BCS_CONVERT.ser_vector_string(nodes_name)), txb.pure(bTransferMyself, bcs_1.BCS.BOOL), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            arguments: [(0, protocol_1.TXB_OBJECT)(txb, machine), txb.pure(utils_1.BCS_CONVERT.ser_vector_string(nodes_name)), txb.pure(bTransferMyself, bcs_1.BCS.BOOL), (0, protocol_1.TXB_OBJECT)(txb, permission)],
         });
     }
     return true;
@@ -134,7 +134,7 @@ function machine(txb, permission, description, endpoint, passport) {
         return false;
     if (endpoint && !(0, protocol_1.IsValidEndpoint)(endpoint))
         return false;
-    let ep = endpoint ? txb.pure(util_1.BCS_CONVERT.ser_option_string(endpoint)) : (0, protocol_1.OptionNone)(txb);
+    let ep = endpoint ? txb.pure(utils_1.BCS_CONVERT.ser_option_string(endpoint)) : (0, protocol_1.OptionNone)(txb);
     if (passport) {
         return txb.moveCall({
             target: protocol_1.PROTOCOL.MachineFn('new_with_passport'),
@@ -266,7 +266,7 @@ function machine_set_endpoint(txb, machine, permission, endpoint, passport) {
         return false;
     if (endpoint && !(0, protocol_1.IsValidEndpoint)(endpoint))
         return false;
-    let ep = endpoint ? txb.pure(util_1.BCS_CONVERT.ser_option_string(endpoint)) : (0, protocol_1.OptionNone)(txb);
+    let ep = endpoint ? txb.pure(utils_1.BCS_CONVERT.ser_option_string(endpoint)) : (0, protocol_1.OptionNone)(txb);
     if (passport) {
         txb.moveCall({
             target: protocol_1.PROTOCOL.MachineFn('endpoint_set_with_passport'),

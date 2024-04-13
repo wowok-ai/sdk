@@ -1,5 +1,5 @@
 import { TransactionBlock, type TransactionResult } from '@mysten/sui.js/transactions';
-import { BCS } from '@mysten/bcs'; 
+import { bcs, BCS, toHEX, fromHEX, getSuiMoveConfig } from '@mysten/bcs';
 import { BCS_CONVERT, array_unique } from './utils'
 import { CLOCK_OBJECT, FnCallType, GuardObject, PROTOCOL, PassportObject, PermissionObject,
     RepositoryObject, MachineObject, ServiceAddress, ServiceObject, IsValidObjects, IsValidArgType, IsValidDesription, 
@@ -72,7 +72,7 @@ export function service_set_description(pay_type:string, txb:TransactionBlock, s
     return true
 }
 export function service_set_price(pay_type:string, txb:TransactionBlock, service:ServiceObject, permission:PermissionObject, 
-    item:string, price:number, passport?:PassportObject) : boolean {
+    item:string, price:number, bNotFoundAssert:boolean=true, passport?:PassportObject) : boolean {
     if (!IsValidObjects([service, permission])) return false;
     if (!IsValidArgType(pay_type)) return false;
     if (!IsValidInt(price) || !IsValidName(item)) return false;
@@ -80,20 +80,22 @@ export function service_set_price(pay_type:string, txb:TransactionBlock, service
     if (passport) {
         txb.moveCall({
             target:PROTOCOL.ServiceFn('price_set_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, service), txb.pure(item), txb.pure(price, BCS.U64), TXB_OBJECT(txb, permission)],
+            arguments:[passport, TXB_OBJECT(txb, service), txb.pure(item), txb.pure(price, BCS.U64), 
+                txb.pure(bNotFoundAssert, BCS.BOOL), TXB_OBJECT(txb, permission)],
             typeArguments:[pay_type]
         })
     } else {
         txb.moveCall({
             target:PROTOCOL.ServiceFn('price_set') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), txb.pure(item), txb.pure(price, BCS.U64), TXB_OBJECT(txb, permission)],
+            arguments:[TXB_OBJECT(txb, service), txb.pure(item), txb.pure(price, BCS.U64), 
+                txb.pure(bNotFoundAssert, BCS.BOOL), TXB_OBJECT(txb, permission)],
             typeArguments:[pay_type]
         })
     }
     return true
 }
 export function service_set_stock(pay_type:string, txb:TransactionBlock, service:ServiceObject, permission:PermissionObject, 
-    item:string, stock:number, passport?:PassportObject) : boolean {
+    item:string, stock:number, bNotFoundAssert:boolean=true, passport?:PassportObject) : boolean {
     if (!IsValidObjects([service, permission])) return false;
     if (!IsValidArgType(pay_type)) return false;
     if (!IsValidName(item) || !IsValidInt(stock)) return false;
@@ -101,53 +103,59 @@ export function service_set_stock(pay_type:string, txb:TransactionBlock, service
     if (passport) {
         txb.moveCall({
             target:PROTOCOL.ServiceFn('stock_set_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, service), txb.pure(item), txb.pure(stock, BCS.U64), TXB_OBJECT(txb, permission)],
+            arguments:[passport, TXB_OBJECT(txb, service), txb.pure(item), txb.pure(stock, BCS.U64), 
+                txb.pure(bNotFoundAssert, BCS.BOOL), TXB_OBJECT(txb, permission)],
             typeArguments:[pay_type]
         })
     } else {
         txb.moveCall({
             target:PROTOCOL.ServiceFn('stock_set') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), txb.pure(item), txb.pure(stock, BCS.U64), TXB_OBJECT(txb, permission)],
+            arguments:[TXB_OBJECT(txb, service), txb.pure(item), txb.pure(stock, BCS.U64), 
+                txb.pure(bNotFoundAssert, BCS.BOOL), TXB_OBJECT(txb, permission)],
             typeArguments:[pay_type]
         })
     }
     return true
 }
 export function service_add_stock(pay_type:string, txb:TransactionBlock, service:ServiceObject, permission:PermissionObject, 
-    item:string, stock_add:number, passport?:PassportObject) : boolean {
+    item:string, stock_add:number, bNotFoundAssert:boolean=true, passport?:PassportObject) : boolean {
     if (!IsValidObjects([service, permission])) return false;
     if (!IsValidArgType(pay_type)) return false;
     if (!IsValidName(item) || !IsValidUint(stock_add)) return false;
     if (passport) {
         txb.moveCall({
             target:PROTOCOL.ServiceFn('stock_add_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, service), txb.pure(item), txb.pure(stock_add, BCS.U64), TXB_OBJECT(txb, permission)],
+            arguments:[passport, TXB_OBJECT(txb, service), txb.pure(item), txb.pure(stock_add, BCS.U64), 
+                txb.pure(bNotFoundAssert, BCS.BOOL), TXB_OBJECT(txb, permission)],
             typeArguments:[pay_type]
         })  
     } else {
         txb.moveCall({
             target:PROTOCOL.ServiceFn('stock_add') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), txb.pure(item), txb.pure(stock_add, BCS.U64), TXB_OBJECT(txb, permission)],
+            arguments:[TXB_OBJECT(txb, service), txb.pure(item), txb.pure(stock_add, BCS.U64), 
+                txb.pure(bNotFoundAssert, BCS.BOOL), TXB_OBJECT(txb, permission)],
             typeArguments:[pay_type]
         })        
     }
     return true
 }
 export function service_reduce_stock(pay_type:string, txb:TransactionBlock, service:ServiceObject, permission:PermissionObject, 
-    item:string, stock_reduce:number, passport?:PassportObject) : boolean {
+    item:string, stock_reduce:number, bNotFoundAssert:boolean=true, passport?:PassportObject) : boolean {
     if (!IsValidObjects([service, permission])) return false;
     if (!IsValidArgType(pay_type)) return false;
     if (!IsValidName(item) || !IsValidUint(stock_reduce)) return false;
     if (passport) {
         txb.moveCall({
             target:PROTOCOL.ServiceFn('stock_reduce_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, service), txb.pure(item), txb.pure(stock_reduce, BCS.U64), TXB_OBJECT(txb, permission)],
+            arguments:[passport, TXB_OBJECT(txb, service), txb.pure(item), txb.pure(stock_reduce, BCS.U64), 
+                txb.pure(bNotFoundAssert, BCS.BOOL), TXB_OBJECT(txb, permission)],
             typeArguments:[pay_type]
         })
     } else {
         txb.moveCall({
             target:PROTOCOL.ServiceFn('stock_reduce') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), txb.pure(item), txb.pure(stock_reduce, BCS.U64), TXB_OBJECT(txb, permission)],
+            arguments:[TXB_OBJECT(txb, service), txb.pure(item), txb.pure(stock_reduce, BCS.U64), 
+                txb.pure(bNotFoundAssert, BCS.BOOL), TXB_OBJECT(txb, permission)],
             typeArguments:[pay_type]
         })
     }
@@ -372,28 +380,41 @@ export type Service_Sale = {
     stock:number;
 }
 
+export function is_valid_sale(sales:Service_Sale[]) : boolean {
+    let bValid = true; let names:string[]  = [];
+    sales.forEach((v) => {
+        if (!IsValidName(v.item)) bValid = false;
+        if (!IsValidInt(v.price)) bValid = false;
+        if (!IsValidUint(v.stock)) bValid = false;
+        if (names.includes(v.item)) bValid = false;
+        names.push(v.item)
+    })
+    return bValid
+}
 export function service_add_sale(pay_type:string, txb:TransactionBlock, service:ServiceObject, 
     permission:PermissionObject, sales:Service_Sale[], passport?:PassportObject) : boolean {
     if (!IsValidObjects([service, permission])) return false;
     if (!IsValidArgType(pay_type)) return false;
-    let bValid = true;
-    sales.forEach((v) => {
-        if (!IsValidName(v.item)) bValid = false;
-        if (!IsValidInt(v.price)) bValid = false;
-        if (!IsValidInt(v.stock)) bValid = false;
-    })
+    if (!sales) return false;
+    let bValid = is_valid_sale(sales);
     if (!bValid) return false;
-
+    
+    let names: string[]  = []; let price: number[] = []; let stock: number[] = [];
+    sales.forEach((s) => {
+        names.push(s.item); price.push(s.price); stock.push(s.stock);
+    })
     if (passport) {
         sales.forEach((sale) => txb.moveCall({
             target:PROTOCOL.ServiceFn('sales_add_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, service), txb.pure(sale.item), txb.pure(sale.price, BCS.U64), txb.pure(sale.stock, BCS.U64), TXB_OBJECT(txb, permission)],
+            arguments:[passport, TXB_OBJECT(txb, service), txb.pure(BCS_CONVERT.ser_vector_string(names)), 
+                txb.pure(BCS_CONVERT.ser_vector_u64(price)), txb.pure(BCS_CONVERT.ser_vector_u64(stock)), TXB_OBJECT(txb, permission)],
             typeArguments:[pay_type]
         }))
     } else {
         sales.forEach((sale) => txb.moveCall({
             target:PROTOCOL.ServiceFn('sales_add') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), txb.pure(sale.item), txb.pure(sale.price, BCS.U64), txb.pure(sale.stock, BCS.U64), TXB_OBJECT(txb, permission)],
+            arguments:[TXB_OBJECT(txb, service), txb.pure(BCS_CONVERT.ser_vector_string(names)), 
+                txb.pure(BCS_CONVERT.ser_vector_u64(price)), txb.pure(BCS_CONVERT.ser_vector_u64(stock)), TXB_OBJECT(txb, permission)],
             typeArguments:[pay_type]
         }))
     }
@@ -803,6 +824,7 @@ export function customer_refund(pay_type:string, txb:TransactionBlock, service:S
 }
 export type Service_Buy = {
     item: string;
+    max_price: number;
     count: number;
 }
 
@@ -828,42 +850,45 @@ export function buy(pay_type:string, txb:TransactionBlock, service:ServiceObject
     if (!IsValidArgType(pay_type)) return false;
     if (!buy_items) return false;
 
-    let bValid = true;
+    let bValid = true; let names:string[]  = [];
     buy_items.forEach((v) => {
         if (!IsValidName(v.item)) bValid = false;
+        if (!IsValidInt(v.max_price)) bValid = false;
         if (!IsValidUint(v.count)) bValid = false;
+        if (names.includes(v.item)) bValid = false;
+        names.push(v.item)
     })
     if (!bValid) return false;
 
-    let i:string[] = []; let c:number[] = [];    let order;
-    buy_items.forEach((item) => { i.push(item.item); c.push(item.count); })
+    let name:string[] = []; let price:number[] = [];    let stock:number[] = []; let order;
+    buy_items.forEach((b) => { name.push(b.item); price.push(b.max_price); stock.push(b.count)})
 
     if (passport) {
         if (discount) {
             order = txb.moveCall({
                 target:PROTOCOL.ServiceFn('dicount_buy_with_passport') as FnCallType,
-                arguments: [passport, TXB_OBJECT(txb, service), txb.pure(BCS_CONVERT.ser_vector_string(i)), 
-                    txb.pure(BCS_CONVERT.ser_vector_u64(c)), TXB_OBJECT(txb, coin), TXB_OBJECT(txb, discount), txb.object(CLOCK_OBJECT)],                   
+                arguments: [passport, TXB_OBJECT(txb, service), txb.pure(BCS_CONVERT.ser_vector_string(name)), txb.pure(BCS_CONVERT.ser_vector_u64(price)), 
+                    txb.pure(BCS_CONVERT.ser_vector_u64(stock)), TXB_OBJECT(txb, coin), TXB_OBJECT(txb, discount), txb.object(CLOCK_OBJECT)],                   
                 typeArguments:[pay_type]            
         })} else {
             order = txb.moveCall({
                 target:PROTOCOL.ServiceFn('buy_with_passport') as FnCallType,
-                arguments: [passport, TXB_OBJECT(txb, service), txb.pure(BCS_CONVERT.ser_vector_string(i)), 
-                    txb.pure(BCS_CONVERT.ser_vector_u64(c)), TXB_OBJECT(txb, coin)],
+                arguments: [passport, TXB_OBJECT(txb, service), txb.pure(BCS_CONVERT.ser_vector_string(name)), txb.pure(BCS_CONVERT.ser_vector_u64(price)), 
+                    txb.pure(BCS_CONVERT.ser_vector_u64(stock)), TXB_OBJECT(txb, coin)],
                 typeArguments:[pay_type]            
         })}             
     } else {
         if (discount) {
             order = txb.moveCall({
                 target:PROTOCOL.ServiceFn('disoucnt_buy') as FnCallType,
-                arguments: [TXB_OBJECT(txb, service), txb.pure(BCS_CONVERT.ser_vector_string(i)), 
-                    txb.pure(BCS_CONVERT.ser_vector_u64(c)), TXB_OBJECT(txb, coin), TXB_OBJECT(txb, discount), txb.object(CLOCK_OBJECT)],                
+                arguments: [TXB_OBJECT(txb, service), txb.pure(BCS_CONVERT.ser_vector_string(name)), txb.pure(BCS_CONVERT.ser_vector_u64(price)), 
+                    txb.pure(BCS_CONVERT.ser_vector_u64(stock)), TXB_OBJECT(txb, coin), TXB_OBJECT(txb, discount), txb.object(CLOCK_OBJECT)],                
                 typeArguments:[pay_type]            
         })} else {
             order = txb.moveCall({
                 target:PROTOCOL.ServiceFn('buy') as FnCallType,
-                arguments: [TXB_OBJECT(txb, service), txb.pure(BCS_CONVERT.ser_vector_string(i)), 
-                    txb.pure(BCS_CONVERT.ser_vector_u64(c)), TXB_OBJECT(txb, coin)],
+                arguments: [TXB_OBJECT(txb, service), txb.pure(BCS_CONVERT.ser_vector_string(name)), txb.pure(BCS_CONVERT.ser_vector_u64(price)), 
+                    txb.pure(BCS_CONVERT.ser_vector_u64(stock)), TXB_OBJECT(txb, coin)],
                 typeArguments:[pay_type]            
         })}           
     }

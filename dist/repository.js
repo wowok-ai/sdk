@@ -4,7 +4,7 @@ exports.change_permission = exports.repository_set_policy_permission = exports.r
 const bcs_1 = require("@mysten/bcs");
 const protocol_1 = require("./protocol");
 const permission_1 = require("./permission");
-const util_1 = require("./util");
+const utils_1 = require("./utils");
 exports.MAX_POLICY_COUNT = 1000;
 exports.MAX_KEY_LENGTH = 128;
 exports.MAX_VALUE_LENGTH = 204800;
@@ -131,7 +131,7 @@ function repository_add_policies(txb, repository, permission, policies, passport
     if (!bValid)
         return false;
     policies.forEach((policy) => {
-        let permission_index = policy?.permission ? txb.pure(util_1.BCS_CONVERT.ser_option_u64(policy.permission)) : txb.pure([0], bcs_1.BCS.U8);
+        let permission_index = policy?.permission ? txb.pure(utils_1.BCS_CONVERT.ser_option_u64(policy.permission)) : txb.pure([0], bcs_1.BCS.U8);
         if (passport) {
             txb.moveCall({
                 target: protocol_1.PROTOCOL.RepositoryFn('policy_add_with_passport'),
@@ -173,7 +173,7 @@ function repository_remove_policies(txb, repository, permission, policy_keys, re
         else {
             txb.moveCall({
                 target: protocol_1.PROTOCOL.RepositoryFn('policy_remove_with_passport'),
-                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, repository), txb.pure(util_1.BCS_CONVERT.ser_vector_string((0, util_1.array_unique)(policy_keys))), (0, protocol_1.TXB_OBJECT)(txb, permission)]
+                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, repository), txb.pure(utils_1.BCS_CONVERT.ser_vector_string((0, utils_1.array_unique)(policy_keys))), (0, protocol_1.TXB_OBJECT)(txb, permission)]
             });
         }
     }
@@ -187,7 +187,7 @@ function repository_remove_policies(txb, repository, permission, policy_keys, re
         else {
             txb.moveCall({
                 target: protocol_1.PROTOCOL.RepositoryFn('policy_remove'),
-                arguments: [(0, protocol_1.TXB_OBJECT)(txb, repository), txb.pure(util_1.BCS_CONVERT.ser_vector_string((0, util_1.array_unique)(policy_keys))), (0, protocol_1.TXB_OBJECT)(txb, permission)]
+                arguments: [(0, protocol_1.TXB_OBJECT)(txb, repository), txb.pure(utils_1.BCS_CONVERT.ser_vector_string((0, utils_1.array_unique)(policy_keys))), (0, protocol_1.TXB_OBJECT)(txb, permission)]
             });
         }
     }
@@ -262,7 +262,7 @@ function repository_set_policy_permission(txb, repository, permission, policy, p
     if (permission_index) {
         if (!(0, permission_1.IsValidPermissionIndex)(permission_index))
             return false;
-        index = txb.pure(util_1.BCS_CONVERT.ser_option_u64(permission_index));
+        index = txb.pure(utils_1.BCS_CONVERT.ser_option_u64(permission_index));
     }
     if (passport) {
         txb.moveCall({

@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.rpc_sense_objects_fn = exports.rpc_description_fn = exports.parse_sense_bsc = exports.parse_graphql_senses = exports.SenseMaker = exports.QUERIES = exports.everyone_guard = exports.signer_guard = exports.launch = exports.Guard_Sense_Binder = exports.MAX_SENSE_COUNT = void 0;
 const bcs_1 = require("@mysten/bcs");
 const protocol_1 = require("./protocol");
-const util_1 = require("./util");
+const utils_1 = require("./utils");
 exports.MAX_SENSE_COUNT = 16;
 var Guard_Sense_Binder;
 (function (Guard_Sense_Binder) {
@@ -212,12 +212,13 @@ class SenseMaker {
                 this.data.push(bcs.ser(bcs_1.BCS.U8, type).toBytes());
                 this.type_validator.push(protocol_1.ValueType.TYPE_STATIC_address);
                 break;
-            case protocol_1.ContextType.TYPE_CONTEXT_CURRENT_CLOCK:
+            case protocol_1.ContextType.TYPE_CONTEXT_CLOCK:
                 this.data.push(bcs.ser(bcs_1.BCS.U8, type).toBytes());
                 this.type_validator.push(protocol_1.ValueType.TYPE_STATIC_u64);
                 break;
-            case protocol_1.ContextType.TYPE_CONTEXT_CURRENT_PROGRESS:
+            case protocol_1.ContextType.TYPE_CONTEXT_FUTURE_ID:
                 this.data.push(bcs.ser(bcs_1.BCS.U8, type).toBytes());
+                this.data.push(bcs.ser(bcs_1.BCS.ADDRESS, param).toBytes());
                 this.type_validator.push(protocol_1.ValueType.TYPE_STATIC_address);
                 break;
             default:
@@ -235,21 +236,27 @@ class SenseMaker {
         return -1;
     }
     // query_index: index(from 0) of array QUERIES 
-    add_query(object_address, module, query_name) {
+    // TYPE_FUTURE_ORDER_DYNAMIC_QUERY: object_address: service/machine id;  module:order/progress 
+    add_query(type, object_address, module, query_name) {
         let query_index = this.query_index(module, query_name);
         if (!object_address || query_index == -1) {
             return false;
         }
+        // if future type , object_address must be SERVICE OR MACHINE address
+        if (type == protocol_1.OperatorType.TYPE_FUTURE_ORDER_DYNAMIC_QUERY && module != protocol_1.MODULES.order)
+            return false;
+        if (type == protocol_1.OperatorType.TYPE_FUTURE_PROGRESS_DYNAMIC_QUERY && module != protocol_1.MODULES.progress)
+            return false;
         let offset = this.type_validator.length - exports.QUERIES[query_index][3].length;
         if (offset < 0) {
             return false;
         }
         let types = this.type_validator.slice(offset);
-        if (!(0, util_1.array_equal)(types, exports.QUERIES[query_index][3])) { // type validate 
+        if (!(0, utils_1.array_equal)(types, exports.QUERIES[query_index][3])) { // type validate 
             return false;
         }
         const bcs = new bcs_1.BCS((0, bcs_1.getSuiMoveConfig)());
-        this.data.push(bcs.ser(bcs_1.BCS.U8, protocol_1.OperatorType.TYPE_DYNAMIC_QUERY).toBytes()); // TYPE
+        this.data.push(bcs.ser(bcs_1.BCS.U8, type).toBytes()); // TYPE
         this.data.push(bcs.ser(bcs_1.BCS.ADDRESS, object_address).toBytes()); // object address
         this.data.push(bcs.ser(bcs_1.BCS.U8, exports.QUERIES[query_index][2]).toBytes()); // cmd
         this.type_validator.splice(offset, exports.QUERIES[query_index][3].length); // delete type stack
@@ -296,7 +303,7 @@ class SenseMaker {
             // console.log(this.type_validator)
             return false;
         } // ERROR
-        let input = (0, util_1.concatenate)(Uint8Array, ...this.data);
+        let input = (0, utils_1.concatenate)(Uint8Array, ...this.data);
         const sense = { input: input, notAfterSense: bNotAfterSense, binder: binder };
         return sense;
     }
@@ -318,11 +325,11 @@ function parse_graphql_senses(senses) {
             objects = objects.concat(res);
         }
     });
-    return (0, util_1.array_unique)(objects);
+    return (0, utils_1.array_unique)(objects);
 }
 exports.parse_graphql_senses = parse_graphql_senses;
 // parse guard senses input bytes of a guard, return [objectids] for 'query_cmd' 
-function parse_sense_bsc(chain_sense_bsc) {
+function parse_sense_bsc(chain_sense_bsc, future_order, future_progress) {
     var arr = [].slice.call(chain_sense_bsc.reverse());
     const bcs = new bcs_1.BCS((0, bcs_1.getSuiMoveConfig)());
     var result = [];
@@ -331,8 +338,7 @@ function parse_sense_bsc(chain_sense_bsc) {
         // console.log(type);
         switch (type) {
             case protocol_1.ContextType.TYPE_CONTEXT_SIGNER:
-            case protocol_1.ContextType.TYPE_CONTEXT_CURRENT_CLOCK:
-            case protocol_1.ContextType.TYPE_CONTEXT_CURRENT_PROGRESS:
+            case protocol_1.ContextType.TYPE_CONTEXT_CLOCK:
             case protocol_1.OperatorType.TYPE_LOGIC_OPERATOR_U128_GREATER:
             case protocol_1.OperatorType.TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL:
             case protocol_1.OperatorType.TYPE_LOGIC_OPERATOR_U128_LESSER:
@@ -341,6 +347,9 @@ function parse_sense_bsc(chain_sense_bsc) {
             case protocol_1.OperatorType.TYPE_LOGIC_OPERATOR_EQUAL:
             case protocol_1.OperatorType.TYPE_LOGIC_OPERATOR_HAS_SUBSTRING:
             case protocol_1.OperatorType.TYPE_LOGIC_ALWAYS_TRUE:
+                break;
+            case protocol_1.ContextType.TYPE_CONTEXT_FUTURE_ID: // MACHINE-ID
+                arr.splice(0, 32);
                 break;
             case protocol_1.ValueType.TYPE_STATIC_address:
                 //console.log('0x' + bcs.de(BCS.ADDRESS,  Uint8Array.from(array)).toString());
@@ -357,12 +366,30 @@ function parse_sense_bsc(chain_sense_bsc) {
                 arr.splice(0, 16);
                 break;
             case protocol_1.ValueType.TYPE_STATIC_vec_u8:
-                let { value, length } = (0, util_1.ulebDecode)(Uint8Array.from(arr));
+                let { value, length } = (0, utils_1.ulebDecode)(Uint8Array.from(arr));
                 arr.splice(0, value + length);
                 break;
             case protocol_1.OperatorType.TYPE_DYNAMIC_QUERY:
                 result.push('0x' + bcs.de(bcs_1.BCS.ADDRESS, Uint8Array.from(arr)).toString());
                 arr.splice(0, 33); // address + cmd
+                break;
+            case protocol_1.OperatorType.TYPE_FUTURE_PROGRESS_DYNAMIC_QUERY: // SERVICE-ID
+                if (!future_progress) {
+                    console.error('OperatorType.TYPE_FUTURE_PROGRESS_DYNAMIC_QUERY need object');
+                    console.log(arr);
+                    return false; // error                
+                }
+                result.push(future_progress.shift()); // real query object
+                arr.splice(0, 33);
+                break;
+            case protocol_1.OperatorType.TYPE_FUTURE_ORDER_DYNAMIC_QUERY: // 
+                if (!future_order) {
+                    console.error('OperatorType.TYPE_FUTURE_ORDER_DYNAMIC_QUERY need object');
+                    console.log(arr);
+                    return false; // error                
+                }
+                result.push(future_order.shift());
+                arr.splice(0, 33);
                 break;
             default:
                 console.error('parse_sense_bsc:undefined');

@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.change_owner = exports.remove_admin = exports.add_admin = exports.set_description = exports.remove_entity = exports.remove_index = exports.set_guard = exports.add_entity = exports.destroy = exports.launch = exports.permission = exports.IsValidPermissionIndex = exports.IsValidUserDefinedIndex = exports.PermissionIndex = exports.MAX_PERMISSION_INDEX_COUNT = exports.MAX_ENTITY_COUNT = exports.MAX_ADMIN_COUNT = void 0;
 const bcs_1 = require("@mysten/bcs");
 const protocol_1 = require("./protocol");
-const util_1 = require("./util");
+const utils_1 = require("./utils");
 exports.MAX_ADMIN_COUNT = 64;
 exports.MAX_ENTITY_COUNT = 2000;
 exports.MAX_PERMISSION_INDEX_COUNT = 200;
@@ -208,7 +208,7 @@ function remove_index(txb, permission, entity_address, index) {
         return false;
     txb.moveCall({
         target: protocol_1.PROTOCOL.PermissionFn('remove_index'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure(entity_address, bcs_1.BCS.ADDRESS), txb.pure((0, util_1.array_unique)(index), 'vector<u64>')]
+        arguments: [(0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure(entity_address, bcs_1.BCS.ADDRESS), txb.pure((0, utils_1.array_unique)(index), 'vector<u64>')]
     });
     return true;
 }
@@ -220,7 +220,7 @@ function remove_entity(txb, permission, entity_address) {
         return false;
     txb.moveCall({
         target: protocol_1.PROTOCOL.PermissionFn('remove'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure((0, util_1.array_unique)(entity_address), 'vector<address>')]
+        arguments: [(0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure((0, utils_1.array_unique)(entity_address), 'vector<address>')]
     });
     return true;
 }
@@ -244,7 +244,7 @@ function add_admin(txb, permission, admin) {
         return false;
     txb.moveCall({
         target: protocol_1.PROTOCOL.PermissionFn('admin_add_batch'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure((0, util_1.array_unique)(admin), 'vector<address>')]
+        arguments: [(0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure((0, utils_1.array_unique)(admin), 'vector<address>')]
     });
     return true;
 }
@@ -265,7 +265,7 @@ function remove_admin(txb, permission, admin, removeall) {
     else if (admin) {
         txb.moveCall({
             target: protocol_1.PROTOCOL.PermissionFn('admin_remove_batch'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure((0, util_1.array_unique)(admin), 'vector<address>')]
+            arguments: [(0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure((0, utils_1.array_unique)(admin), 'vector<address>')]
         });
     }
     return true;

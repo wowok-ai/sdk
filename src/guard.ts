@@ -242,12 +242,13 @@ export class SenseMaker {
             this.data.push(bcs.ser(BCS.U8, type).toBytes());
             this.type_validator.push(ValueType.TYPE_STATIC_address);
             break;
-        case ContextType.TYPE_CONTEXT_CURRENT_CLOCK:
+        case ContextType.TYPE_CONTEXT_CLOCK:
             this.data.push(bcs.ser(BCS.U8, type).toBytes());
             this.type_validator.push(ValueType.TYPE_STATIC_u64);
             break;
-        case ContextType.TYPE_CONTEXT_CURRENT_PROGRESS:
+        case ContextType.TYPE_CONTEXT_FUTURE_ID:
             this.data.push(bcs.ser(BCS.U8, type).toBytes());
+            this.data.push(bcs.ser(BCS.ADDRESS, param).toBytes());
             this.type_validator.push(ValueType.TYPE_STATIC_address);
             break;
         default:
@@ -265,9 +266,13 @@ export class SenseMaker {
         return -1;
     }
     // query_index: index(from 0) of array QUERIES 
-    add_query(object_address:string, module:MODULES, query_name:string) : boolean {
+    // TYPE_FUTURE_ORDER_DYNAMIC_QUERY: object_address: service/machine id;  module:order/progress 
+    add_query(type:OperatorType, object_address:string, module:MODULES, query_name:string) : boolean {
         let query_index = this.query_index(module, query_name);
         if (!object_address || query_index == -1) { return false; }
+        // if future type , object_address must be SERVICE OR MACHINE address
+        if (type == OperatorType.TYPE_FUTURE_ORDER_DYNAMIC_QUERY && module != MODULES.order) return false;
+        if (type == OperatorType.TYPE_FUTURE_PROGRESS_DYNAMIC_QUERY && module != MODULES.progress) return false;
 
         let offset = this.type_validator.length - QUERIES[query_index][3].length;
         if (offset < 0) { 
@@ -280,7 +285,7 @@ export class SenseMaker {
         }
         
         const bcs = new BCS(getSuiMoveConfig());
-        this.data.push(bcs.ser(BCS.U8, OperatorType.TYPE_DYNAMIC_QUERY).toBytes()); // TYPE
+        this.data.push(bcs.ser(BCS.U8, type).toBytes()); // TYPE
         this.data.push(bcs.ser(BCS.ADDRESS, object_address).toBytes()); // object address
         this.data.push(bcs.ser(BCS.U8, QUERIES[query_index][2]).toBytes()); // cmd
 
@@ -349,7 +354,7 @@ export function parse_graphql_senses(senses:any) : string[] {
 }
 
 // parse guard senses input bytes of a guard, return [objectids] for 'query_cmd' 
-export function parse_sense_bsc(chain_sense_bsc:Uint8Array)  : boolean | string[] {
+export function parse_sense_bsc(chain_sense_bsc:Uint8Array, future_order?:string[], future_progress?:string[])  : boolean | string[] {
     var arr = [].slice.call(chain_sense_bsc.reverse());
     const bcs = new BCS(getSuiMoveConfig());
     var result = [];
@@ -359,8 +364,7 @@ export function parse_sense_bsc(chain_sense_bsc:Uint8Array)  : boolean | string[
         // console.log(type);
         switch (type as Data_Type) { 
             case ContextType.TYPE_CONTEXT_SIGNER:
-            case ContextType.TYPE_CONTEXT_CURRENT_CLOCK:
-            case ContextType.TYPE_CONTEXT_CURRENT_PROGRESS:
+            case ContextType.TYPE_CONTEXT_CLOCK:
             case OperatorType.TYPE_LOGIC_OPERATOR_U128_GREATER:
             case OperatorType.TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL:
             case OperatorType.TYPE_LOGIC_OPERATOR_U128_LESSER:
@@ -370,6 +374,9 @@ export function parse_sense_bsc(chain_sense_bsc:Uint8Array)  : boolean | string[
             case OperatorType.TYPE_LOGIC_OPERATOR_HAS_SUBSTRING:
             case OperatorType.TYPE_LOGIC_ALWAYS_TRUE:
             break;    
+        case ContextType.TYPE_CONTEXT_FUTURE_ID: // MACHINE-ID
+            arr.splice(0, 32);
+            break;
         case ValueType.TYPE_STATIC_address: 
             //console.log('0x' + bcs.de(BCS.ADDRESS,  Uint8Array.from(array)).toString());
             arr.splice(0, 32);
@@ -391,6 +398,24 @@ export function parse_sense_bsc(chain_sense_bsc:Uint8Array)  : boolean | string[
         case OperatorType.TYPE_DYNAMIC_QUERY:
             result.push('0x' + bcs.de(BCS.ADDRESS,  Uint8Array.from(arr)).toString());
             arr.splice(0, 33); // address + cmd
+            break;
+        case OperatorType.TYPE_FUTURE_PROGRESS_DYNAMIC_QUERY: // SERVICE-ID
+            if (!future_progress) {
+                console.error('OperatorType.TYPE_FUTURE_PROGRESS_DYNAMIC_QUERY need object');
+                console.log(arr)
+                return false; // error                
+            }
+            result.push(future_progress!.shift() as string) // real query object
+            arr.splice(0, 33)
+            break;
+        case OperatorType.TYPE_FUTURE_ORDER_DYNAMIC_QUERY: // 
+            if (!future_order) {
+                console.error('OperatorType.TYPE_FUTURE_ORDER_DYNAMIC_QUERY need object');
+                console.log(arr)
+                return false; // error                
+            }
+            result.push(future_order!.shift() as string)
+            arr.splice(0, 33)
             break;
         default:
             console.error('parse_sense_bsc:undefined');

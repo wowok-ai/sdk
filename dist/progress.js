@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.hold = exports.next = exports.progress_parent = exports.progress_unhold = exports.progress_set_context_repository = exports.progress_bind_task = exports.progress_set_namedOperator = exports.destroy = exports.launch_as_child = exports.launch = exports.progress = exports.MAX_NAMED_OPERATOR_COUNT = void 0;
 const bcs_1 = require("@mysten/bcs");
 const protocol_1 = require("./protocol");
-const util_1 = require("./util");
+const utils_1 = require("./utils");
 exports.MAX_NAMED_OPERATOR_COUNT = 100;
 function progress(txb, machine, permission, passport) {
     if (!(0, protocol_1.IsValidObjects)([machine, permission]))
@@ -64,14 +64,14 @@ function progress_set_namedOperator(txb, machine, permission, progress, name, ad
     if (passport) {
         txb.moveCall({
             target: protocol_1.PROTOCOL.ProgressFn('namedOperator_set_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, progress), txb.pure(name), txb.pure((0, util_1.array_unique)(addresses), 'vector<address>'),
+            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, progress), txb.pure(name), txb.pure((0, utils_1.array_unique)(addresses), 'vector<address>'),
                 (0, protocol_1.TXB_OBJECT)(txb, machine), (0, protocol_1.TXB_OBJECT)(txb, permission)],
         });
     }
     else {
         txb.moveCall({
             target: protocol_1.PROTOCOL.ProgressFn('namedOperator_set'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, progress), txb.pure(name), txb.pure((0, util_1.array_unique)(addresses), 'vector<address>'),
+            arguments: [(0, protocol_1.TXB_OBJECT)(txb, progress), txb.pure(name), txb.pure((0, utils_1.array_unique)(addresses), 'vector<address>'),
                 (0, protocol_1.TXB_OBJECT)(txb, machine), (0, protocol_1.TXB_OBJECT)(txb, permission)],
         });
     }
@@ -202,8 +202,8 @@ function next(txb, machine, permission, progress, next, deliverables_address, su
         return false;
     if (sub_progress_id && !(0, protocol_1.IsValidAddress)(sub_progress_id))
         return false;
-    let diliverable = deliverables_address ? txb.pure(util_1.BCS_CONVERT.ser_option_address(deliverables_address)) : (0, protocol_1.OptionNone)(txb);
-    let sub = sub_progress_id ? txb.pure(util_1.BCS_CONVERT.ser_option_address(sub_progress_id)) : (0, protocol_1.OptionNone)(txb);
+    let diliverable = deliverables_address ? txb.pure(utils_1.BCS_CONVERT.ser_option_address(deliverables_address)) : (0, protocol_1.OptionNone)(txb);
+    let sub = sub_progress_id ? txb.pure(utils_1.BCS_CONVERT.ser_option_address(sub_progress_id)) : (0, protocol_1.OptionNone)(txb);
     if (passport) {
         txb.moveCall({
             target: protocol_1.PROTOCOL.ProgressFn('next_with_passport'),

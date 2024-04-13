@@ -1,8 +1,9 @@
 import { SuiObjectResponse, SuiObjectDataOptions } from '@mysten/sui.js/client';
 import { TransactionBlock, TransactionResult, type TransactionObjectInput, Inputs } from '@mysten/sui.js/transactions';
-import { PROTOCOL, FnCallType, CLOCK_OBJECT, Query_Param, OBJECTS_TYPE, OBJECTS_TYPE_PREFIX, PassportObject, GuardObject, TXB_OBJECT} from './protocol';
+import { PROTOCOL, FnCallType, CLOCK_OBJECT, Query_Param, OBJECTS_TYPE, OBJECTS_TYPE_PREFIX, PassportObject, GuardObject, TXB_OBJECT, ContextType, IsValidAddress} from './protocol';
 import { parse_object_type, array_unique } from './utils';
 import { rpc_sense_objects_fn } from './guard';
+import { BCS } from '@mysten/bcs';
 
 export const MAX_GUARD_COUNT = 8;
 
@@ -58,7 +59,7 @@ export function verify(txb:TransactionBlock, guards:string[], passport_queries:G
     
     var passport = txb.moveCall({
         target: PROTOCOL.PassportFn('new') as FnCallType,
-        arguments: [ TXB_OBJECT(txb, guards[0]), txb.object(CLOCK_OBJECT)]
+        arguments: [ TXB_OBJECT(txb, guards[0])]
     });
 
     // add others guards, if any
@@ -71,13 +72,13 @@ export function verify(txb:TransactionBlock, guards:string[], passport_queries:G
 
     // rules: 'verify' & 'query' in turns；'verify' at final end.
     for (let i = 0; i < passport_queries.length; i++) {
-        txb.moveCall({
+        let res = txb.moveCall({
             target: PROTOCOL.PassportFn('passport_verify') as FnCallType,
-            arguments: [ passport ]
+            arguments: [ passport, txb.object(CLOCK_OBJECT),  ]
         }); 
         txb.moveCall({
             target: passport_queries[i].target as FnCallType,
-            arguments: [ txb.object(passport_queries[i].object), passport ],
+            arguments: [ txb.object(passport_queries[i].object), passport, res ],
             typeArguments: passport_queries[i].types,
         })
     }
@@ -87,6 +88,16 @@ export function verify(txb:TransactionBlock, guards:string[], passport_queries:G
     });     
 
     return passport;
+}
+
+export function add_context_address(txb:TransactionBlock, passport:PassportObject, type:ContextType, value:string, witness:string) : Boolean {
+    if (!IsValidAddress(value) || !IsValidAddress(witness)) return false;
+
+    txb.moveCall({
+        target: PROTOCOL.PassportFn('context_add_address') as FnCallType,
+        arguments: [ passport, txb.pure(type, BCS.U8), txb.pure(value, BCS.ADDRESS), txb.pure(witness, BCS.ADDRESS)]   
+    });
+    return true
 }
 
 export function destroy(txb:TransactionBlock, passport:PassportObject) : boolean {

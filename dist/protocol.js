@@ -5,7 +5,7 @@ const client_1 = require("@mysten/sui.js/client");
 const ed25519_1 = require("@mysten/sui.js/keypairs/ed25519");
 const bcs_1 = require("@mysten/bcs");
 const transactions_1 = require("@mysten/sui.js/transactions");
-const util_1 = require("./util");
+const utils_1 = require("./utils");
 exports.MAX_DESCRIPTION_LENGTH = 1024;
 exports.MAX_NAME_LENGTH = 64;
 exports.MAX_ENDPOINT_LENGTH = 1024;
@@ -97,6 +97,8 @@ var ValueType;
 var OperatorType;
 (function (OperatorType) {
     OperatorType[OperatorType["TYPE_DYNAMIC_QUERY"] = 1] = "TYPE_DYNAMIC_QUERY";
+    OperatorType[OperatorType["TYPE_FUTURE_ORDER_DYNAMIC_QUERY"] = 2] = "TYPE_FUTURE_ORDER_DYNAMIC_QUERY";
+    OperatorType[OperatorType["TYPE_FUTURE_PROGRESS_DYNAMIC_QUERY"] = 3] = "TYPE_FUTURE_PROGRESS_DYNAMIC_QUERY";
     OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_GREATER"] = 11] = "TYPE_LOGIC_OPERATOR_U128_GREATER";
     OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL"] = 12] = "TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL";
     OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_LESSER"] = 13] = "TYPE_LOGIC_OPERATOR_U128_LESSER";
@@ -109,8 +111,8 @@ var OperatorType;
 var ContextType;
 (function (ContextType) {
     ContextType[ContextType["TYPE_CONTEXT_SIGNER"] = 60] = "TYPE_CONTEXT_SIGNER";
-    ContextType[ContextType["TYPE_CONTEXT_CURRENT_PROGRESS"] = 61] = "TYPE_CONTEXT_CURRENT_PROGRESS";
-    ContextType[ContextType["TYPE_CONTEXT_CURRENT_CLOCK"] = 62] = "TYPE_CONTEXT_CURRENT_CLOCK";
+    ContextType[ContextType["TYPE_CONTEXT_CLOCK"] = 61] = "TYPE_CONTEXT_CLOCK";
+    ContextType[ContextType["TYPE_CONTEXT_FUTURE_ID"] = 62] = "TYPE_CONTEXT_FUTURE_ID";
 })(ContextType || (exports.ContextType = ContextType = {}));
 var ENTRYPOINT;
 (function (ENTRYPOINT) {
@@ -139,7 +141,7 @@ class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0x877375bc3bde063e4b95f428df218af7faaeef431993f4a68f2dfa5ceb8acb2e";
+                this.package = "0x82b70ca54720b7e22d82b6c8c9a1601a228ccdb2a8bd70804a690ca8ea59777f";
                 this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
@@ -213,5 +215,5 @@ const WOWOK_TYPE = () => { '0x2::coin::Coin<' + exports.PROTOCOL.Package() + '::
 exports.WOWOK_TYPE = WOWOK_TYPE;
 const OBJECTS_TYPE_PREFIX = () => Object.keys(MODULES).map((key) => { return exports.PROTOCOL.Package() + '::' + key + '::'; });
 exports.OBJECTS_TYPE_PREFIX = OBJECTS_TYPE_PREFIX;
-const OBJECTS_TYPE = () => Object.keys(MODULES).map((key) => { let i = exports.PROTOCOL.Package() + '::' + key + '::'; return i + (0, util_1.capitalize)(key); });
+const OBJECTS_TYPE = () => Object.keys(MODULES).map((key) => { let i = exports.PROTOCOL.Package() + '::' + key + '::'; return i + (0, utils_1.capitalize)(key); });
 exports.OBJECTS_TYPE = OBJECTS_TYPE;

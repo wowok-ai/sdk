@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.change_permission = exports.agree = exports.vote_lock_guard = exports.vote_expand_deadline = exports.vote_lock_deadline = exports.vote_open_voting = exports.vote_set_max_choice_count = exports.vote_remove_option = exports.vote_add_option = exports.vote_remove_guard = exports.vote_add_guard = exports.vote_set_reference = exports.vote_set_description = exports.destroy = exports.launch = exports.vote = exports.MAX_CHOICE_COUNT = exports.MAX_AGREES_COUNT = void 0;
 const bcs_1 = require("@mysten/bcs");
 const protocol_1 = require("./protocol");
-const util_1 = require("./util");
+const utils_1 = require("./utils");
 exports.MAX_AGREES_COUNT = 200;
 exports.MAX_CHOICE_COUNT = 200;
 function vote(txb, permission, description, minutes_duration, max_choice_count, reference_address, passport) {
@@ -19,7 +19,7 @@ function vote(txb, permission, description, minutes_duration, max_choice_count, 
         return false;
     if (reference_address && !(0, protocol_1.IsValidAddress)(reference_address))
         return false;
-    let reference = reference_address ? txb.pure(util_1.BCS_CONVERT.ser_option_address(reference_address)) : (0, protocol_1.OptionNone)(txb);
+    let reference = reference_address ? txb.pure(utils_1.BCS_CONVERT.ser_option_address(reference_address)) : (0, protocol_1.OptionNone)(txb);
     let choice_count = max_choice_count ? max_choice_count : 1;
     if (passport) {
         return txb.moveCall({
@@ -81,7 +81,7 @@ function vote_set_reference(txb, vote, permission, reference_address, passport) 
         return false;
     if (reference_address && !(0, protocol_1.IsValidAddress)(reference_address))
         return false;
-    let reference = reference_address ? txb.pure(util_1.BCS_CONVERT.ser_option_address(reference_address)) : (0, protocol_1.OptionNone)(txb);
+    let reference = reference_address ? txb.pure(utils_1.BCS_CONVERT.ser_option_address(reference_address)) : (0, protocol_1.OptionNone)(txb);
     if (passport) {
         txb.moveCall({
             target: protocol_1.PROTOCOL.VoteFn('reference_set_with_passport'),
@@ -134,7 +134,7 @@ function vote_remove_guard(txb, vote, permission, guard_address, removeall, pass
         else {
             txb.moveCall({
                 target: protocol_1.PROTOCOL.VoteFn('guard_remove_with_passport'),
-                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure((0, util_1.array_unique)(guard_address), 'vector<address>'), (0, protocol_1.TXB_OBJECT)(txb, permission)]
+                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure((0, utils_1.array_unique)(guard_address), 'vector<address>'), (0, protocol_1.TXB_OBJECT)(txb, permission)]
             });
         }
     }
@@ -148,7 +148,7 @@ function vote_remove_guard(txb, vote, permission, guard_address, removeall, pass
         else {
             txb.moveCall({
                 target: protocol_1.PROTOCOL.VoteFn('guard_remove'),
-                arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure((0, util_1.array_unique)(guard_address), 'vector<address>'), (0, protocol_1.TXB_OBJECT)(txb, permission)]
+                arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure((0, utils_1.array_unique)(guard_address), 'vector<address>'), (0, protocol_1.TXB_OBJECT)(txb, permission)]
             });
         }
     }
@@ -170,7 +170,7 @@ function vote_add_option(txb, vote, permission, options, passport) {
     if (!bValid)
         return false;
     options.forEach((option) => {
-        let reference = option?.reference_address ? txb.pure(util_1.BCS_CONVERT.ser_option_address(option.reference_address)) : (0, protocol_1.OptionNone)(txb);
+        let reference = option?.reference_address ? txb.pure(utils_1.BCS_CONVERT.ser_option_address(option.reference_address)) : (0, protocol_1.OptionNone)(txb);
         if (passport) {
             txb.moveCall({
                 target: protocol_1.PROTOCOL.VoteFn('agrees_add_with_passport'),
@@ -204,7 +204,7 @@ function vote_remove_option(txb, vote, permission, options, removeall, passport)
         else {
             txb.moveCall({
                 target: protocol_1.PROTOCOL.VoteFn('agrees_remove_with_passport'),
-                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure(util_1.BCS_CONVERT.ser_vector_string((0, util_1.array_unique)(options))), (0, protocol_1.TXB_OBJECT)(txb, permission)]
+                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure(utils_1.BCS_CONVERT.ser_vector_string((0, utils_1.array_unique)(options))), (0, protocol_1.TXB_OBJECT)(txb, permission)]
             });
         }
     }
@@ -218,7 +218,7 @@ function vote_remove_option(txb, vote, permission, options, removeall, passport)
         else {
             txb.moveCall({
                 target: protocol_1.PROTOCOL.VoteFn('agrees_remove'),
-                arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure(util_1.BCS_CONVERT.ser_vector_string((0, util_1.array_unique)(options))), (0, protocol_1.TXB_OBJECT)(txb, permission)]
+                arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure(utils_1.BCS_CONVERT.ser_vector_string((0, utils_1.array_unique)(options))), (0, protocol_1.TXB_OBJECT)(txb, permission)]
             });
         }
     }
@@ -327,13 +327,13 @@ function agree(txb, vote, options, passport) {
     if (passport) {
         txb.moveCall({
             target: protocol_1.PROTOCOL.VoteFn('vote_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure(util_1.BCS_CONVERT.ser_vector_string((0, util_1.array_unique)(options)))]
+            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure(utils_1.BCS_CONVERT.ser_vector_string((0, utils_1.array_unique)(options)))]
         });
     }
     else {
         txb.moveCall({
             target: protocol_1.PROTOCOL.VoteFn('vote'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure(util_1.BCS_CONVERT.ser_vector_string((0, util_1.array_unique)(options)))]
+            arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure(utils_1.BCS_CONVERT.ser_vector_string((0, utils_1.array_unique)(options)))]
         });
     }
     return true;

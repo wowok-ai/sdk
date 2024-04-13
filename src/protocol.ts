@@ -113,6 +113,8 @@ export enum ValueType {
 
 export enum OperatorType {
     TYPE_DYNAMIC_QUERY = 1, // query wowok object
+    TYPE_FUTURE_ORDER_DYNAMIC_QUERY = 2,
+    TYPE_FUTURE_PROGRESS_DYNAMIC_QUERY = 3,
     TYPE_LOGIC_OPERATOR_U128_GREATER = 11,
     TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL = 12,
     TYPE_LOGIC_OPERATOR_U128_LESSER = 13,
@@ -125,8 +127,8 @@ export enum OperatorType {
 
 export enum ContextType {
     TYPE_CONTEXT_SIGNER  = 60,
-    TYPE_CONTEXT_CURRENT_PROGRESS = 61,
-    TYPE_CONTEXT_CURRENT_CLOCK = 62,
+    TYPE_CONTEXT_CLOCK = 61,
+    TYPE_CONTEXT_FUTURE_ID = 62, // TYPE + MACHINE-ID or SERVICE-ID
 }
 
 export type Data_Type = ValueType | OperatorType | ContextType;
@@ -159,7 +161,7 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0x877375bc3bde063e4b95f428df218af7faaeef431993f4a68f2dfa5ceb8acb2e";
+                this.package = "0x82b70ca54720b7e22d82b6c8c9a1601a228ccdb2a8bd70804a690ca8ea59777f";
                 this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;

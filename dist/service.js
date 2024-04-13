@@ -1,8 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.change_permission = exports.order_bind_service_machine = exports.buy = exports.update_order_required_info = exports.customer_refund = exports.service_pause = exports.service_change_order_required_pubkey = exports.service_change_required_pubkey = exports.service_remove_customer_required = exports.service_set_customer_required = exports.BuyRequiredEnum = exports.service_clone = exports.service_publish = exports.service_set_endpoint = exports.service_set_machine = exports.service_set_buy_guard = exports.service_withdraw = exports.service_discount_transfer = exports.Service_Discount_Type = exports.service_remove_sales = exports.service_add_sale = exports.service_remove_refund_guards = exports.service_add_refund_guards = exports.service_remove_withdraw_guards = exports.service_add_withdraw_guards = exports.service_repository_remove = exports.service_repository_add = exports.service_set_payee = exports.service_reduce_stock = exports.service_add_stock = exports.service_set_stock = exports.service_set_price = exports.service_set_description = exports.destroy = exports.launch = exports.service = void 0;
+exports.change_permission = exports.order_bind_service_machine = exports.buy = exports.update_order_required_info = exports.customer_refund = exports.service_pause = exports.service_change_order_required_pubkey = exports.service_change_required_pubkey = exports.service_remove_customer_required = exports.service_set_customer_required = exports.BuyRequiredEnum = exports.service_clone = exports.service_publish = exports.service_set_endpoint = exports.service_set_machine = exports.service_set_buy_guard = exports.service_withdraw = exports.service_discount_transfer = exports.MAX_DISCOUNT_RECEIVER_COUNT = exports.MAX_DISCOUNT_COUNT_ONCE = exports.Service_Discount_Type = exports.service_remove_sales = exports.service_add_sale = exports.is_valid_sale = exports.service_remove_refund_guards = exports.service_add_refund_guards = exports.service_remove_withdraw_guards = exports.service_add_withdraw_guards = exports.service_repository_remove = exports.service_repository_add = exports.service_set_payee = exports.service_reduce_stock = exports.service_add_stock = exports.service_set_stock = exports.service_set_price = exports.service_set_description = exports.destroy = exports.launch = exports.service = void 0;
 const bcs_1 = require("@mysten/bcs");
-const util_1 = require("./util");
+const utils_1 = require("./utils");
 const protocol_1 = require("./protocol");
 function service(pay_type, txb, permission, description, payee_address, endpoint, passport) {
     if (!(0, protocol_1.IsValidObjects)([permission]))
@@ -15,7 +15,7 @@ function service(pay_type, txb, permission, description, payee_address, endpoint
         return false;
     if (endpoint && !(0, protocol_1.IsValidEndpoint)(endpoint))
         return false;
-    let ep = endpoint ? txb.pure(util_1.BCS_CONVERT.ser_option_string(endpoint)) : (0, protocol_1.OptionNone)(txb);
+    let ep = endpoint ? txb.pure(utils_1.BCS_CONVERT.ser_option_string(endpoint)) : (0, protocol_1.OptionNone)(txb);
     if (passport) {
         return txb.moveCall({
             target: protocol_1.PROTOCOL.ServiceFn('new_with_passport'),
@@ -81,7 +81,7 @@ function service_set_description(pay_type, txb, service, permission, description
     return true;
 }
 exports.service_set_description = service_set_description;
-function service_set_price(pay_type, txb, service, permission, item, price, passport) {
+function service_set_price(pay_type, txb, service, permission, item, price, bNotFoundAssert = true, passport) {
     if (!(0, protocol_1.IsValidObjects)([service, permission]))
         return false;
     if (!(0, protocol_1.IsValidArgType)(pay_type))
@@ -91,21 +91,23 @@ function service_set_price(pay_type, txb, service, permission, item, price, pass
     if (passport) {
         txb.moveCall({
             target: protocol_1.PROTOCOL.ServiceFn('price_set_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(item), txb.pure(price, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(item), txb.pure(price, bcs_1.BCS.U64),
+                txb.pure(bNotFoundAssert, bcs_1.BCS.BOOL), (0, protocol_1.TXB_OBJECT)(txb, permission)],
             typeArguments: [pay_type]
         });
     }
     else {
         txb.moveCall({
             target: protocol_1.PROTOCOL.ServiceFn('price_set'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(item), txb.pure(price, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(item), txb.pure(price, bcs_1.BCS.U64),
+                txb.pure(bNotFoundAssert, bcs_1.BCS.BOOL), (0, protocol_1.TXB_OBJECT)(txb, permission)],
             typeArguments: [pay_type]
         });
     }
     return true;
 }
 exports.service_set_price = service_set_price;
-function service_set_stock(pay_type, txb, service, permission, item, stock, passport) {
+function service_set_stock(pay_type, txb, service, permission, item, stock, bNotFoundAssert = true, passport) {
     if (!(0, protocol_1.IsValidObjects)([service, permission]))
         return false;
     if (!(0, protocol_1.IsValidArgType)(pay_type))
@@ -115,21 +117,23 @@ function service_set_stock(pay_type, txb, service, permission, item, stock, pass
     if (passport) {
         txb.moveCall({
             target: protocol_1.PROTOCOL.ServiceFn('stock_set_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(item), txb.pure(stock, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(item), txb.pure(stock, bcs_1.BCS.U64),
+                txb.pure(bNotFoundAssert, bcs_1.BCS.BOOL), (0, protocol_1.TXB_OBJECT)(txb, permission)],
             typeArguments: [pay_type]
         });
     }
     else {
         txb.moveCall({
             target: protocol_1.PROTOCOL.ServiceFn('stock_set'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(item), txb.pure(stock, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(item), txb.pure(stock, bcs_1.BCS.U64),
+                txb.pure(bNotFoundAssert, bcs_1.BCS.BOOL), (0, protocol_1.TXB_OBJECT)(txb, permission)],
             typeArguments: [pay_type]
         });
     }
     return true;
 }
 exports.service_set_stock = service_set_stock;
-function service_add_stock(pay_type, txb, service, permission, item, stock_add, passport) {
+function service_add_stock(pay_type, txb, service, permission, item, stock_add, bNotFoundAssert = true, passport) {
     if (!(0, protocol_1.IsValidObjects)([service, permission]))
         return false;
     if (!(0, protocol_1.IsValidArgType)(pay_type))
@@ -139,21 +143,23 @@ function service_add_stock(pay_type, txb, service, permission, item, stock_add, 
     if (passport) {
         txb.moveCall({
             target: protocol_1.PROTOCOL.ServiceFn('stock_add_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(item), txb.pure(stock_add, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(item), txb.pure(stock_add, bcs_1.BCS.U64),
+                txb.pure(bNotFoundAssert, bcs_1.BCS.BOOL), (0, protocol_1.TXB_OBJECT)(txb, permission)],
             typeArguments: [pay_type]
         });
     }
     else {
         txb.moveCall({
             target: protocol_1.PROTOCOL.ServiceFn('stock_add'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(item), txb.pure(stock_add, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(item), txb.pure(stock_add, bcs_1.BCS.U64),
+                txb.pure(bNotFoundAssert, bcs_1.BCS.BOOL), (0, protocol_1.TXB_OBJECT)(txb, permission)],
             typeArguments: [pay_type]
         });
     }
     return true;
 }
 exports.service_add_stock = service_add_stock;
-function service_reduce_stock(pay_type, txb, service, permission, item, stock_reduce, passport) {
+function service_reduce_stock(pay_type, txb, service, permission, item, stock_reduce, bNotFoundAssert = true, passport) {
     if (!(0, protocol_1.IsValidObjects)([service, permission]))
         return false;
     if (!(0, protocol_1.IsValidArgType)(pay_type))
@@ -163,14 +169,16 @@ function service_reduce_stock(pay_type, txb, service, permission, item, stock_re
     if (passport) {
         txb.moveCall({
             target: protocol_1.PROTOCOL.ServiceFn('stock_reduce_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(item), txb.pure(stock_reduce, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(item), txb.pure(stock_reduce, bcs_1.BCS.U64),
+                txb.pure(bNotFoundAssert, bcs_1.BCS.BOOL), (0, protocol_1.TXB_OBJECT)(txb, permission)],
             typeArguments: [pay_type]
         });
     }
     else {
         txb.moveCall({
             target: protocol_1.PROTOCOL.ServiceFn('stock_reduce'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(item), txb.pure(stock_reduce, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(item), txb.pure(stock_reduce, bcs_1.BCS.U64),
+                txb.pure(bNotFoundAssert, bcs_1.BCS.BOOL), (0, protocol_1.TXB_OBJECT)(txb, permission)],
             typeArguments: [pay_type]
         });
     }
@@ -243,7 +251,7 @@ function service_repository_remove(pay_type, txb, service, permission, repositor
         else {
             txb.moveCall({
                 target: protocol_1.PROTOCOL.ServiceFn('repository_remove_with_passport'),
-                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure((0, util_1.array_unique)(repository_address), 'vector<address>'), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure((0, utils_1.array_unique)(repository_address), 'vector<address>'), (0, protocol_1.TXB_OBJECT)(txb, permission)],
                 typeArguments: [pay_type]
             });
         }
@@ -259,7 +267,7 @@ function service_repository_remove(pay_type, txb, service, permission, repositor
         else {
             txb.moveCall({
                 target: protocol_1.PROTOCOL.ServiceFn('repository_remove'),
-                arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure((0, util_1.array_unique)(repository_address), 'vector<address>'), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+                arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure((0, utils_1.array_unique)(repository_address), 'vector<address>'), (0, protocol_1.TXB_OBJECT)(txb, permission)],
                 typeArguments: [pay_type]
             });
         }
@@ -320,7 +328,7 @@ function service_remove_withdraw_guards(pay_type, txb, service, permission, guar
         else {
             txb.moveCall({
                 target: protocol_1.PROTOCOL.ServiceFn('withdraw_guard_remove_with_passport'),
-                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure((0, util_1.array_unique)(guard_address), 'vector<address>'), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure((0, utils_1.array_unique)(guard_address), 'vector<address>'), (0, protocol_1.TXB_OBJECT)(txb, permission)],
                 typeArguments: [pay_type]
             });
         }
@@ -336,7 +344,7 @@ function service_remove_withdraw_guards(pay_type, txb, service, permission, guar
         else {
             txb.moveCall({
                 target: protocol_1.PROTOCOL.ServiceFn('withdraw_guard_remove'),
-                arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure((0, util_1.array_unique)(guard_address), 'vector<address>'), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+                arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure((0, utils_1.array_unique)(guard_address), 'vector<address>'), (0, protocol_1.TXB_OBJECT)(txb, permission)],
                 typeArguments: [pay_type]
             });
         }
@@ -397,7 +405,7 @@ function service_remove_refund_guards(pay_type, txb, service, permission, guard_
         else {
             txb.moveCall({
                 target: protocol_1.PROTOCOL.ServiceFn('refund_guard_remove_with_passport'),
-                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure((0, util_1.array_unique)(guard_address), 'vector<address>'), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure((0, utils_1.array_unique)(guard_address), 'vector<address>'), (0, protocol_1.TXB_OBJECT)(txb, permission)],
                 typeArguments: [pay_type]
             });
         }
@@ -413,7 +421,7 @@ function service_remove_refund_guards(pay_type, txb, service, permission, guard_
         else {
             txb.moveCall({
                 target: protocol_1.PROTOCOL.ServiceFn('refund_guard_remove'),
-                arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure((0, util_1.array_unique)(guard_address), 'vector<address>'), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+                arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure((0, utils_1.array_unique)(guard_address), 'vector<address>'), (0, protocol_1.TXB_OBJECT)(txb, permission)],
                 typeArguments: [pay_type]
             });
         }
@@ -421,33 +429,54 @@ function service_remove_refund_guards(pay_type, txb, service, permission, guard_
     return true;
 }
 exports.service_remove_refund_guards = service_remove_refund_guards;
-function service_add_sale(pay_type, txb, service, permission, sales, passport) {
-    if (!(0, protocol_1.IsValidObjects)([service, permission]))
-        return false;
-    if (!(0, protocol_1.IsValidArgType)(pay_type))
-        return false;
+function is_valid_sale(sales) {
     let bValid = true;
+    let names = [];
     sales.forEach((v) => {
         if (!(0, protocol_1.IsValidName)(v.item))
             bValid = false;
         if (!(0, protocol_1.IsValidInt)(v.price))
             bValid = false;
-        if (!(0, protocol_1.IsValidInt)(v.stock))
+        if (!(0, protocol_1.IsValidUint)(v.stock))
             bValid = false;
+        if (names.includes(v.item))
+            bValid = false;
+        names.push(v.item);
     });
+    return bValid;
+}
+exports.is_valid_sale = is_valid_sale;
+function service_add_sale(pay_type, txb, service, permission, sales, passport) {
+    if (!(0, protocol_1.IsValidObjects)([service, permission]))
+        return false;
+    if (!(0, protocol_1.IsValidArgType)(pay_type))
+        return false;
+    if (!sales)
+        return false;
+    let bValid = is_valid_sale(sales);
     if (!bValid)
         return false;
+    let names = [];
+    let price = [];
+    let stock = [];
+    sales.forEach((s) => {
+        names.push(s.item);
+        price.push(s.price);
+        stock.push(s.stock);
+    });
     if (passport) {
         sales.forEach((sale) => txb.moveCall({
             target: protocol_1.PROTOCOL.ServiceFn('sales_add_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(sale.item), txb.pure(sale.price, bcs_1.BCS.U64), txb.pure(sale.stock, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(utils_1.BCS_CONVERT.ser_vector_string(names)),
+                txb.pure(utils_1.BCS_CONVERT.ser_vector_u64(price)), txb.pure(utils_1.BCS_CONVERT.ser_vector_u64(stock)), (0, protocol_1.TXB_OBJECT)(txb, permission)],
             typeArguments: [pay_type]
         }));
     }
     else {
         sales.forEach((sale) => txb.moveCall({
             target: protocol_1.PROTOCOL.ServiceFn('sales_add'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(sale.item), txb.pure(sale.price, bcs_1.BCS.U64), txb.pure(sale.stock, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(utils_1.BCS_CONVERT.ser_vector_string(names)),
+                txb.pure(utils_1.BCS_CONVERT.ser_vector_u64(price)), txb.pure(utils_1.BCS_CONVERT.ser_vector_u64(stock)), (0, protocol_1.TXB_OBJECT)(txb, permission)],
             typeArguments: [pay_type]
         }));
     }
@@ -474,7 +503,7 @@ function service_remove_sales(pay_type, txb, service, permission, sales, removea
         else {
             txb.moveCall({
                 target: protocol_1.PROTOCOL.ServiceFn('sales_remove_with_passport'),
-                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(util_1.BCS_CONVERT.ser_vector_string((0, util_1.array_unique)(sales))), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(utils_1.BCS_CONVERT.ser_vector_string((0, utils_1.array_unique)(sales))), (0, protocol_1.TXB_OBJECT)(txb, permission)],
                 typeArguments: [pay_type]
             });
         }
@@ -490,7 +519,7 @@ function service_remove_sales(pay_type, txb, service, permission, sales, removea
         else {
             txb.moveCall({
                 target: protocol_1.PROTOCOL.ServiceFn('sales_remove'),
-                arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(util_1.BCS_CONVERT.ser_vector_string((0, util_1.array_unique)(sales))), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+                arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(utils_1.BCS_CONVERT.ser_vector_string((0, utils_1.array_unique)(sales))), (0, protocol_1.TXB_OBJECT)(txb, permission)],
                 typeArguments: [pay_type]
             });
         }
@@ -503,20 +532,20 @@ var Service_Discount_Type;
     Service_Discount_Type[Service_Discount_Type["ratio"] = 0] = "ratio";
     Service_Discount_Type[Service_Discount_Type["minus"] = 1] = "minus";
 })(Service_Discount_Type || (exports.Service_Discount_Type = Service_Discount_Type = {}));
-const MAX_DISCOUNT_COUNT_ONCE = 200;
-const MAX_DISCOUNT_RECEIVER_COUNT = 200;
+exports.MAX_DISCOUNT_COUNT_ONCE = 200;
+exports.MAX_DISCOUNT_RECEIVER_COUNT = 200;
 function service_discount_transfer(pay_type, txb, service, permission, discount_dispatch, passport) {
     if (!(0, protocol_1.IsValidObjects)([service, permission]))
         return false;
     if (!(0, protocol_1.IsValidArgType)(pay_type))
         return false;
-    if (!discount_dispatch || discount_dispatch.length > MAX_DISCOUNT_RECEIVER_COUNT)
+    if (!discount_dispatch || discount_dispatch.length > exports.MAX_DISCOUNT_RECEIVER_COUNT)
         return false;
     let bValid = true;
     discount_dispatch.forEach((v) => {
         if (!(0, protocol_1.IsValidAddress)(v.receiver))
             bValid = false;
-        if (!(0, protocol_1.IsValidUint)(v.count) || v.count > MAX_DISCOUNT_COUNT_ONCE)
+        if (!(0, protocol_1.IsValidUint)(v.count) || v.count > exports.MAX_DISCOUNT_COUNT_ONCE)
             return false;
         if (!(0, protocol_1.IsValidName_AllowEmpty)(v.discount.name))
             return false;
@@ -533,9 +562,9 @@ function service_discount_transfer(pay_type, txb, service, permission, discount_
         return false;
     discount_dispatch.forEach((discount) => {
         let price_greater = discount.discount?.price_greater ?
-            txb.pure(util_1.BCS_CONVERT.ser_option_u64(discount.discount.price_greater)) : (0, protocol_1.OptionNone)(txb);
+            txb.pure(utils_1.BCS_CONVERT.ser_option_u64(discount.discount.price_greater)) : (0, protocol_1.OptionNone)(txb);
         let time_start = discount.discount?.time_start ?
-            txb.pure(util_1.BCS_CONVERT.ser_option_u64(discount.discount.time_start)) : (0, protocol_1.OptionNone)(txb);
+            txb.pure(utils_1.BCS_CONVERT.ser_option_u64(discount.discount.time_start)) : (0, protocol_1.OptionNone)(txb);
         if (passport) {
             txb.moveCall({
                 target: protocol_1.PROTOCOL.ServiceFn('dicscount_create_with_passport'),
@@ -670,7 +699,7 @@ function service_set_endpoint(pay_type, txb, service, permission, endpoint, pass
         return false;
     if (endpoint && !(0, protocol_1.IsValidEndpoint)(endpoint))
         return false;
-    let ep = endpoint ? txb.pure(util_1.BCS_CONVERT.ser_option_string(endpoint)) : (0, protocol_1.OptionNone)(txb);
+    let ep = endpoint ? txb.pure(utils_1.BCS_CONVERT.ser_option_string(endpoint)) : (0, protocol_1.OptionNone)(txb);
     if (passport) {
         txb.moveCall({
             target: protocol_1.PROTOCOL.ServiceFn('endpoint_set_with_passport'),
@@ -749,14 +778,14 @@ function service_set_customer_required(pay_type, txb, service, permission, servi
     if (passport) {
         txb.moveCall({
             target: protocol_1.PROTOCOL.ServiceFn('required_set_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(util_1.BCS_CONVERT.ser_vector_vector_u8((0, util_1.array_unique)(customer_required))), txb.pure(service_pubkey, 'vector<u8>'), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(utils_1.BCS_CONVERT.ser_vector_vector_u8((0, utils_1.array_unique)(customer_required))), txb.pure(service_pubkey, 'vector<u8>'), (0, protocol_1.TXB_OBJECT)(txb, permission)],
             typeArguments: [pay_type]
         });
     }
     else {
         txb.moveCall({
             target: protocol_1.PROTOCOL.ServiceFn('required_set'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(util_1.BCS_CONVERT.ser_vector_vector_u8((0, util_1.array_unique)(customer_required))), txb.pure(service_pubkey, 'vector<u8>'), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(utils_1.BCS_CONVERT.ser_vector_vector_u8((0, utils_1.array_unique)(customer_required))), txb.pure(service_pubkey, 'vector<u8>'), (0, protocol_1.TXB_OBJECT)(txb, permission)],
             typeArguments: [pay_type]
         });
     }
@@ -889,7 +918,7 @@ function update_order_required_info(pay_type, txb, service, order, customer_info
         arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), (0, protocol_1.TXB_OBJECT)(txb, order),
             txb.pure(customer_info_crypto.service_pubkey, 'vector<u8>'),
             txb.pure(customer_info_crypto.customer_pubkey, 'vector<u8>'),
-            txb.pure(util_1.BCS_CONVERT.ser_vector_vector_u8((0, util_1.array_unique)(customer_info_crypto.customer_info_crypt)))],
+            txb.pure(utils_1.BCS_CONVERT.ser_vector_vector_u8((0, utils_1.array_unique)(customer_info_crypto.customer_info_crypt)))],
         typeArguments: [pay_type]
     });
     return true;
@@ -903,32 +932,39 @@ function buy(pay_type, txb, service, buy_items, coin, discount, service_machine,
     if (!buy_items)
         return false;
     let bValid = true;
+    let names = [];
     buy_items.forEach((v) => {
         if (!(0, protocol_1.IsValidName)(v.item))
             bValid = false;
+        if (!(0, protocol_1.IsValidInt)(v.max_price))
+            bValid = false;
         if (!(0, protocol_1.IsValidUint)(v.count))
             bValid = false;
+        if (names.includes(v.item))
+            bValid = false;
+        names.push(v.item);
     });
     if (!bValid)
         return false;
-    let i = [];
-    let c = [];
+    let name = [];
+    let price = [];
+    let stock = [];
     let order;
-    buy_items.forEach((item) => { i.push(item.item); c.push(item.count); });
+    buy_items.forEach((b) => { name.push(b.item); price.push(b.max_price); stock.push(b.count); });
     if (passport) {
         if (discount) {
             order = txb.moveCall({
                 target: protocol_1.PROTOCOL.ServiceFn('dicount_buy_with_passport'),
-                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(util_1.BCS_CONVERT.ser_vector_string(i)),
-                    txb.pure(util_1.BCS_CONVERT.ser_vector_u64(c)), (0, protocol_1.TXB_OBJECT)(txb, coin), (0, protocol_1.TXB_OBJECT)(txb, discount), txb.object(protocol_1.CLOCK_OBJECT)],
+                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(utils_1.BCS_CONVERT.ser_vector_string(name)), txb.pure(utils_1.BCS_CONVERT.ser_vector_u64(price)),
+                    txb.pure(utils_1.BCS_CONVERT.ser_vector_u64(stock)), (0, protocol_1.TXB_OBJECT)(txb, coin), (0, protocol_1.TXB_OBJECT)(txb, discount), txb.object(protocol_1.CLOCK_OBJECT)],
                 typeArguments: [pay_type]
             });
         }
         else {
             order = txb.moveCall({
                 target: protocol_1.PROTOCOL.ServiceFn('buy_with_passport'),
-                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(util_1.BCS_CONVERT.ser_vector_string(i)),
-                    txb.pure(util_1.BCS_CONVERT.ser_vector_u64(c)), (0, protocol_1.TXB_OBJECT)(txb, coin)],
+                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(utils_1.BCS_CONVERT.ser_vector_string(name)), txb.pure(utils_1.BCS_CONVERT.ser_vector_u64(price)),
+                    txb.pure(utils_1.BCS_CONVERT.ser_vector_u64(stock)), (0, protocol_1.TXB_OBJECT)(txb, coin)],
                 typeArguments: [pay_type]
             });
         }
@@ -937,16 +973,16 @@ function buy(pay_type, txb, service, buy_items, coin, discount, service_machine,
         if (discount) {
             order = txb.moveCall({
                 target: protocol_1.PROTOCOL.ServiceFn('disoucnt_buy'),
-                arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(util_1.BCS_CONVERT.ser_vector_string(i)),
-                    txb.pure(util_1.BCS_CONVERT.ser_vector_u64(c)), (0, protocol_1.TXB_OBJECT)(txb, coin), (0, protocol_1.TXB_OBJECT)(txb, discount), txb.object(protocol_1.CLOCK_OBJECT)],
+                arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(utils_1.BCS_CONVERT.ser_vector_string(name)), txb.pure(utils_1.BCS_CONVERT.ser_vector_u64(price)),
+                    txb.pure(utils_1.BCS_CONVERT.ser_vector_u64(stock)), (0, protocol_1.TXB_OBJECT)(txb, coin), (0, protocol_1.TXB_OBJECT)(txb, discount), txb.object(protocol_1.CLOCK_OBJECT)],
                 typeArguments: [pay_type]
             });
         }
         else {
             order = txb.moveCall({
                 target: protocol_1.PROTOCOL.ServiceFn('buy'),
-                arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(util_1.BCS_CONVERT.ser_vector_string(i)),
-                    txb.pure(util_1.BCS_CONVERT.ser_vector_u64(c)), (0, protocol_1.TXB_OBJECT)(txb, coin)],
+                arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(utils_1.BCS_CONVERT.ser_vector_string(name)), txb.pure(utils_1.BCS_CONVERT.ser_vector_u64(price)),
+                    txb.pure(utils_1.BCS_CONVERT.ser_vector_u64(stock)), (0, protocol_1.TXB_OBJECT)(txb, coin)],
                 typeArguments: [pay_type]
             });
         }

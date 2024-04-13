@@ -1,6 +1,6 @@
 {
   "name": "wowok",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "AI-oriented web3 collaboration protocol, driving innovaion and making it more likely to happen.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -13,9 +13,11 @@
     "web3",
     "AI",
     "wowok",
-    "sui"
+    "sui",
+    "collaboration",
+    "protocol"
   ],
-  "author": "wowo",
+  "author": "wowok",
   "license": "Apache License",
   "dependencies": {
     "@mysten/bcs": "^0.11.1",

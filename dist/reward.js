@@ -1,9 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.change_permission = exports.deposit = exports.claim = exports.reward_lock_guards = exports.reward_set_description = exports.allow_repeat_claim = exports.reward_remove_guard = exports.reward_add_guard = exports.MAX_PORTIONS_COUNT = exports.reward_expand_time = exports.reward_refund = exports.destroy = exports.launch = exports.reward = void 0;
+exports.change_permission = exports.deposit = exports.claim = exports.reward_lock_guards = exports.reward_set_description = exports.allow_repeat_claim = exports.reward_remove_guard = exports.reward_add_guard = exports.reward_expand_time = exports.reward_refund = exports.destroy = exports.launch = exports.reward = exports.MAX_PORTIONS_COUNT = void 0;
 const bcs_1 = require("@mysten/bcs");
 const protocol_1 = require("./protocol");
-const util_1 = require("./util");
+const utils_1 = require("./utils");
+exports.MAX_PORTIONS_COUNT = 255;
 function reward(reward_type, txb, permission, description, minutes_duration, passport) {
     if (!(0, protocol_1.IsValidObjects)([permission]))
         return false;
@@ -101,7 +102,6 @@ function reward_expand_time(reward_type, txb, reward, permission, minutes_expand
     return true;
 }
 exports.reward_expand_time = reward_expand_time;
-exports.MAX_PORTIONS_COUNT = 255;
 function reward_add_guard(reward_type, txb, reward, permission, gurads, passport) {
     if (!(0, protocol_1.IsValidObjects)([reward, permission]))
         return false;
@@ -155,7 +155,7 @@ function reward_remove_guard(reward_type, txb, reward, permission, guards, remov
         else {
             txb.moveCall({
                 target: protocol_1.PROTOCOL.RewardFn('guard_remove_with_passport'),
-                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, reward), txb.pure((0, util_1.array_unique)(guards), 'vector<address>'), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, reward), txb.pure((0, utils_1.array_unique)(guards), 'vector<address>'), (0, protocol_1.TXB_OBJECT)(txb, permission)],
                 typeArguments: [reward_type]
             });
         }
@@ -278,7 +278,7 @@ function deposit(reward_type, txb, reward, rewards) {
         return false;
     txb.moveCall({
         target: protocol_1.PROTOCOL.RewardFn('deposit'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, reward), txb.makeMoveVec({ objects: (0, util_1.array_unique)(rewards) })],
+        arguments: [(0, protocol_1.TXB_OBJECT)(txb, reward), txb.makeMoveVec({ objects: (0, utils_1.array_unique)(rewards) })],
         typeArguments: [reward_type]
     });
     return true;
