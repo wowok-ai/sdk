@@ -80,7 +80,6 @@ export function verify(txb:TransactionBlock, guards:string[], guard_queries:Guar
    
     // add others guards, if any
     for (let i = 0; i < guards.length; i++) {
-        console.log(guards[i])
         txb.moveCall({
             target:PROTOCOL.PassportFn('guard_add') as FnCallType,
             arguments:[passport, TXB_OBJECT(txb, guards[i])]

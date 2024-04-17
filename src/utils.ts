@@ -131,7 +131,6 @@ export const Object_Type_Extra = () => {
 
 export const objectids_from_response = (response:SuiTransactionBlockResponse, concat_result?:Map<string, string[]>): Map<string, string[]> => {
     let ret = new Map<string, string[]>();
-    console.log(0)
     if (response?.objectChanges) {
         response.objectChanges.forEach((change) => {
             Object_Type_Extra().forEach((name) => {
@@ -146,7 +145,6 @@ export const objectids_from_response = (response:SuiTransactionBlockResponse, co
             })
         });    
     }
-    console.log(1)
     if (concat_result) {
         ret.forEach((value, key) => {
             if (concat_result.has(key)) {
@@ -156,7 +154,6 @@ export const objectids_from_response = (response:SuiTransactionBlockResponse, co
             }
         })
     }
-    console.log(2)
     return ret;
 }
 
