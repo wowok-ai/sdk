@@ -150,21 +150,22 @@ export function demand_set_description(earnest_type:string, txb:TransactionBlock
 }
 
 export function demand_yes(earnest_type:string, txb:TransactionBlock, demand:DemandObject, permission:PermissionObject, 
-    service:string, passport?:PassportObject) : boolean {
+    service_id:string, passport?:PassportObject) : boolean {
+    console.log(service_id)
     if (!IsValidObjects([demand, permission])) return false;
     if (!IsValidArgType(earnest_type)) return false;
-    if (!IsValidAddress(service)) return false;
+    if (!IsValidAddress(service_id)) return false;
 
     if (passport) {
         txb.moveCall({
             target:PROTOCOL.DemandFn('yes_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, demand), txb.pure(service, BCS.ADDRESS), TXB_OBJECT(txb, permission)],
+            arguments:[passport, TXB_OBJECT(txb, demand), txb.pure(service_id, BCS.ADDRESS), TXB_OBJECT(txb, permission)],
             typeArguments:[earnest_type],
         })    
     } else {
         txb.moveCall({
             target:PROTOCOL.DemandFn('yes') as FnCallType,
-            arguments:[TXB_OBJECT(txb, demand), txb.pure(service, BCS.ADDRESS), TXB_OBJECT(txb, permission)],
+            arguments:[TXB_OBJECT(txb, demand), txb.pure(service_id, BCS.ADDRESS), TXB_OBJECT(txb, permission)],
             typeArguments:[earnest_type],
         })    
     }

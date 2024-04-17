@@ -4,18 +4,19 @@ import { Ed25519Keypair } from '@mysten/sui.js/keypairs/ed25519';
 import { BCS, getSuiMoveConfig, toHEX, fromHEX, BcsReader } from '@mysten/bcs';
 import { TransactionBlock, Inputs, type TransactionResult, type TransactionArgument } from '@mysten/sui.js/transactions';
 import { capitalize } from './utils'
+import { VariableType } from './guard';
 
 export const MAX_DESCRIPTION_LENGTH = 1024;
 export const MAX_NAME_LENGTH = 64;
 export const MAX_ENDPOINT_LENGTH = 1024;
 export const OptionNone = (txb:TransactionBlock) : TransactionArgument => { return txb.pure([], BCS.U8) };
 
-export const IsValidDesription = (description:string) : boolean => { return description.length <= MAX_DESCRIPTION_LENGTH }
-export const IsValidName = (name:string) : boolean => { return name.length <= MAX_NAME_LENGTH && name.length != 0 }
+export const IsValidDesription = (description:string) : boolean => { if (!description) return false; return description.length <= MAX_DESCRIPTION_LENGTH }
+export const IsValidName = (name:string) : boolean => { if(!name) return false; return name.length <= MAX_NAME_LENGTH && name.length != 0 }
 export const IsValidName_AllowEmpty = (name:string) : boolean => { return name.length <= MAX_NAME_LENGTH }
-export const IsValidEndpoint = (endpoint:string) : boolean => { return endpoint.length <= MAX_ENDPOINT_LENGTH }
-export const IsValidAddress = (address:string) : boolean => { return address.length != 0 }
-export const IsValidArgType = (argType: string) : boolean => { return argType.length != 0 }
+export const IsValidEndpoint = (endpoint:string) : boolean => { if (!endpoint) return false; return endpoint.length <= MAX_ENDPOINT_LENGTH }
+export const IsValidAddress = (addr:string) : boolean => { if (!addr) return false; return true}
+export const IsValidArgType = (argType: string) : boolean => { if (!argType) return false; return argType.length != 0 }
 export const IsValidUint = (value: number) : boolean => { return Number.isSafeInteger(value) && value != 0 }
 export const IsValidInt = (value: number) : boolean => { return Number.isSafeInteger(value) }
 export const IsValidPercent = (value: number) : boolean => { return Number.isSafeInteger(value) && value > 0 && value <= 100 }
@@ -92,29 +93,11 @@ export const CLOCK_OBJECT = Inputs.SharedObjectRef({
     initialSharedVersion: 1,
 });
 
-export enum ValueType {
-    TYPE_STATIC_bool = 100,
-    TYPE_STATIC_address = 101,
-    TYPE_STATIC_u64 = 102,
-    TYPE_STATIC_u8 = 103,
-    TYPE_STATIC_u128 = 104,
-    TYPE_STATIC_vec_u8 = 105,
-    TYPE_STATIC_vec_address = 106,
-    TYPE_STATIC_vec_bool = 107,
-    TYPE_STATIC_vec_vec_u8 = 108,
-    TYPE_STATIC_vec_u64 = 109,
-    TYPE_STATIC_vec_u128 = 110,
-    TYPE_STATIC_option_address = 111,
-    TYPE_STATIC_option_bool = 112,
-    TYPE_STATIC_option_u8 = 113,
-    TYPE_STATIC_option_u64 = 114,
-    TYPE_STATIC_option_u128 = 115,
-}
-
 export enum OperatorType {
-    TYPE_DYNAMIC_QUERY = 1, // query wowok object
-    TYPE_FUTURE_ORDER_DYNAMIC_QUERY = 2,
-    TYPE_FUTURE_PROGRESS_DYNAMIC_QUERY = 3,
+    TYPE_QUERY = 1, // query wowok object
+    TYPE_FUTURE_QUERY = 2,
+    TYPE_QUERY_FROM_CONTEXT = 3, 
+
     TYPE_LOGIC_OPERATOR_U128_GREATER = 11,
     TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL = 12,
     TYPE_LOGIC_OPERATOR_U128_LESSER = 13,
@@ -128,7 +111,43 @@ export enum OperatorType {
 export enum ContextType {
     TYPE_CONTEXT_SIGNER  = 60,
     TYPE_CONTEXT_CLOCK = 61,
-    TYPE_CONTEXT_FUTURE_ID = 62, // TYPE + MACHINE-ID or SERVICE-ID
+    TYPE_CONTEXT_FUTURE_ID = 62, 
+    
+    TYPE_CONTEXT_bool = 70,
+    TYPE_CONTEXT_address = 71,
+    TYPE_CONTEXT_u64 = 72,
+    TYPE_CONTEXT_u8 = 73,
+    TYPE_CONTEXT_vec_u8 = 74,
+ /*   TYPE_CONTEXT_u128 = 75,
+    TYPE_CONTEXT_vec_address = 76,
+    TYPE_CONTEXT_vec_bool = 77,
+    TYPE_CONTEXT_vec_vec_u8 = 78,
+    TYPE_CONTEXT_vec_u64 = 79,
+    TYPE_CONTEXT_vec_u128 = 80,
+    TYPE_CONTEXT_option_address = 81,
+    TYPE_CONTEXT_option_bool = 82,
+    TYPE_CONTEXT_option_u8 = 83,
+    TYPE_CONTEXT_option_u64 = 84,
+    TYPE_CONTEXT_option_u128 = 85,*/
+}
+
+export enum ValueType {
+    TYPE_STATIC_bool = 100,
+    TYPE_STATIC_address = 101,
+    TYPE_STATIC_u64 = 102,
+    TYPE_STATIC_u8 = 103,
+    TYPE_STATIC_vec_u8 = 104,
+    TYPE_STATIC_u128 = 105,
+    TYPE_STATIC_vec_address = 106,
+    TYPE_STATIC_vec_bool = 107,
+    TYPE_STATIC_vec_vec_u8 = 108,
+    TYPE_STATIC_vec_u64 = 109,
+    TYPE_STATIC_vec_u128 = 110,
+    TYPE_STATIC_option_address = 111,
+    TYPE_STATIC_option_bool = 112,
+    TYPE_STATIC_option_u8 = 113,
+    TYPE_STATIC_option_u64 = 114,
+    TYPE_STATIC_option_u128 = 115,
 }
 
 export type Data_Type = ValueType | OperatorType | ContextType;
@@ -161,7 +180,7 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0x0e4c1b57d596cda9a26a36567c79d94dffc8419e5be7ecf659ce4a7242abaeff";
+                this.package = "0x5ac838d4ec9f997f71a30f18cdab7ca427b6b039db84de0f592343a3f7f3bc5c";
                 this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
@@ -235,7 +254,9 @@ export class Protocol {
 export type Query_Param = {
     objectid: string;
     callback: (response:SuiObjectResponse, param:Query_Param, option:SuiObjectDataOptions)=>void;
+    parser?: (result:any[], guardid: string, chain_sense_bsc:Uint8Array, variable?:VariableType)  => boolean;
     data?: any; // response data filted by callback
+    variables?: VariableType;
 };
 export const PROTOCOL = new Protocol();
 export const SUI_TYPE = '0x2::coin::Coin<0x2::sui::SUI>';

@@ -7,7 +7,7 @@ export { demand, demand_expand_time, demand_refund, demand_set_description, dema
 export { machine, machine_add_node, machine_add_node2, machine_add_repository,  machine_clone, machine_pause, machine_publish,
     machine_remove_node, machine_remove_repository, machine_set_description,  machine_set_endpoint, MachineNodeObject, Machine_Forward, 
     Machine_Node,  Machine_Node_Pair, launch as machine_launch,  destroy as  machine_destroy, change_permission as machine_change_permission,
-    INITIAL_NODE_NAME, namedOperator_ORDER_PAYER } from  './machine'
+    INITIAL_NODE_NAME, OPERATOR_ORDER_PAYER } from  './machine'
 export { progress, ProgressNext, ParentProgress, progress_bind_task, progress_parent, progress_set_context_repository, progress_unhold,
     hold, progress_set_namedOperator, MAX_NAMED_OPERATOR_COUNT, next } from  './progress'
 export { service, service_add_refund_guards, service_add_sale, service_add_stock, service_add_withdraw_guards, service_clone,

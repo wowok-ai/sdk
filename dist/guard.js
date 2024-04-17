@@ -179,32 +179,42 @@ class SenseMaker {
     type_validator = [];
     constructor() { }
     // serialize const & data
-    add_param(type, param) {
+    add_param(type, param, variable) {
         const bcs = new bcs_1.BCS((0, bcs_1.getSuiMoveConfig)());
         switch (type) {
             case protocol_1.ValueType.TYPE_STATIC_address:
+                if (!param)
+                    return false;
                 this.data.push(bcs.ser(bcs_1.BCS.U8, type).toBytes());
                 this.data.push(bcs.ser(bcs_1.BCS.ADDRESS, param).toBytes());
                 this.type_validator.push(type);
                 break;
             case protocol_1.ValueType.TYPE_STATIC_bool:
+                if (!param)
+                    return false;
                 this.data.push(bcs.ser(bcs_1.BCS.U8, type).toBytes());
                 this.data.push(bcs.ser(bcs_1.BCS.BOOL, param).toBytes());
                 this.type_validator.push(type);
                 break;
             case protocol_1.ValueType.TYPE_STATIC_u8:
+                if (!param)
+                    return false;
                 this.data.push(bcs.ser(bcs_1.BCS.U8, type).toBytes());
                 this.data.push(bcs.ser(bcs_1.BCS.U8, param).toBytes());
                 this.type_validator.push(type);
                 break;
             case protocol_1.ValueType.TYPE_STATIC_u64:
+                if (!param)
+                    return false;
                 this.data.push(bcs.ser(bcs_1.BCS.U8, type).toBytes());
                 this.data.push(bcs.ser(bcs_1.BCS.U64, param).toBytes());
                 this.type_validator.push(type);
                 break;
             case protocol_1.ValueType.TYPE_STATIC_vec_u8:
+                if (!param)
+                    return false;
                 this.data.push(bcs.ser(bcs_1.BCS.U8, type).toBytes());
-                this.data.push(bcs.ser(bcs_1.BCS.STRING, param).toBytes());
+                this.data.push(bcs.ser('vector<u8>', param).toBytes());
                 this.type_validator.push(type);
                 // this.data[this.data.length-1].forEach((item : number) => console.log(item))
                 break;
@@ -216,11 +226,44 @@ class SenseMaker {
                 this.data.push(bcs.ser(bcs_1.BCS.U8, type).toBytes());
                 this.type_validator.push(protocol_1.ValueType.TYPE_STATIC_u64);
                 break;
+            case protocol_1.ContextType.TYPE_CONTEXT_bool:
+            case protocol_1.ContextType.TYPE_CONTEXT_u8:
+            case protocol_1.ContextType.TYPE_CONTEXT_u64:
+            case protocol_1.ContextType.TYPE_CONTEXT_vec_u8:
+            case protocol_1.ContextType.TYPE_CONTEXT_address:
             case protocol_1.ContextType.TYPE_CONTEXT_FUTURE_ID:
-                this.data.push(bcs.ser(bcs_1.BCS.U8, type).toBytes());
-                this.data.push(bcs.ser(bcs_1.BCS.ADDRESS, param).toBytes());
-                this.type_validator.push(protocol_1.ValueType.TYPE_STATIC_address);
-                break;
+                if (!variable || !param)
+                    return false;
+                if (typeof (param) != 'number')
+                    return false;
+                if (!(0, protocol_1.IsValidInt)(param) || param > 255)
+                    return false;
+                var v = variable.get(param);
+                if (v?.type == type) {
+                    this.data.push(bcs.ser(bcs_1.BCS.U8, type).toBytes());
+                    this.data.push(bcs.ser(bcs_1.BCS.U8, param).toBytes());
+                    if (type == protocol_1.ContextType.TYPE_CONTEXT_bool) {
+                        this.type_validator.push(protocol_1.ValueType.TYPE_STATIC_bool);
+                    }
+                    else if (type == protocol_1.ContextType.TYPE_CONTEXT_u8) {
+                        this.type_validator.push(protocol_1.ValueType.TYPE_STATIC_u8);
+                    }
+                    else if (type == protocol_1.ContextType.TYPE_CONTEXT_u64) {
+                        this.type_validator.push(protocol_1.ValueType.TYPE_STATIC_u64);
+                    }
+                    else if (type == protocol_1.ContextType.TYPE_CONTEXT_vec_u8) {
+                        this.type_validator.push(protocol_1.ValueType.TYPE_STATIC_vec_u8);
+                    }
+                    else if (type == protocol_1.ContextType.TYPE_CONTEXT_address) {
+                        this.type_validator.push(protocol_1.ValueType.TYPE_STATIC_address);
+                    }
+                    else if (type == protocol_1.ContextType.TYPE_CONTEXT_FUTURE_ID) {
+                        this.type_validator.push(protocol_1.ValueType.TYPE_STATIC_address);
+                    }
+                    break;
+                }
+                ;
+                return false;
             default:
                 return false;
         }
@@ -235,17 +278,14 @@ class SenseMaker {
         }
         return -1;
     }
-    // query_index: index(from 0) of array QUERIES 
-    // TYPE_FUTURE_ORDER_DYNAMIC_QUERY: object_address: service/machine id;  module:order/progress 
-    add_query(type, object_address, module, query_name) {
+    add_future_query(identifier, module, query_name, variable) {
         let query_index = this.query_index(module, query_name);
-        if (!object_address || query_index == -1) {
+        if (!(0, protocol_1.IsValidInt)(identifier) || identifier > 255 || query_index == -1) {
             return false;
         }
-        // if future type , object_address must be SERVICE OR MACHINE address
-        if (type == protocol_1.OperatorType.TYPE_FUTURE_ORDER_DYNAMIC_QUERY && module != protocol_1.MODULES.order)
+        if (module != protocol_1.MODULES.order && module != protocol_1.MODULES.progress)
             return false;
-        if (type == protocol_1.OperatorType.TYPE_FUTURE_PROGRESS_DYNAMIC_QUERY && module != protocol_1.MODULES.progress)
+        if (!variable || variable.get(identifier)?.type != protocol_1.OperatorType.TYPE_FUTURE_QUERY)
             return false;
         let offset = this.type_validator.length - exports.QUERIES[query_index][3].length;
         if (offset < 0) {
@@ -256,7 +296,31 @@ class SenseMaker {
             return false;
         }
         const bcs = new bcs_1.BCS((0, bcs_1.getSuiMoveConfig)());
-        this.data.push(bcs.ser(bcs_1.BCS.U8, type).toBytes()); // TYPE
+        this.data.push(bcs.ser(bcs_1.BCS.U8, protocol_1.OperatorType.TYPE_FUTURE_QUERY).toBytes()); // TYPE
+        this.data.push(bcs.ser(bcs_1.BCS.U8, identifier).toBytes()); // variable identifier
+        this.data.push(bcs.ser(bcs_1.BCS.U8, exports.QUERIES[query_index][2]).toBytes()); // cmd
+        this.type_validator.splice(offset, exports.QUERIES[query_index][3].length); // delete type stack
+        this.type_validator.push(exports.QUERIES[query_index][4]); // add the return value type to type stack
+        // console.log(this.type_validator)
+        return true;
+    }
+    // query_index: index(from 0) of array QUERIES 
+    // TYPE_FUTURE_ORDER_DYNAMIC_QUERY: object_address: service/machine id;  module:order/progress 
+    add_query(object_address, module, query_name) {
+        let query_index = this.query_index(module, query_name);
+        if (!object_address || query_index == -1) {
+            return false;
+        }
+        let offset = this.type_validator.length - exports.QUERIES[query_index][3].length;
+        if (offset < 0) {
+            return false;
+        }
+        let types = this.type_validator.slice(offset);
+        if (!(0, utils_1.array_equal)(types, exports.QUERIES[query_index][3])) { // type validate 
+            return false;
+        }
+        const bcs = new bcs_1.BCS((0, bcs_1.getSuiMoveConfig)());
+        this.data.push(bcs.ser(bcs_1.BCS.U8, protocol_1.OperatorType.TYPE_DYNAMIC_QUERY).toBytes()); // TYPE
         this.data.push(bcs.ser(bcs_1.BCS.ADDRESS, object_address).toBytes()); // object address
         this.data.push(bcs.ser(bcs_1.BCS.U8, exports.QUERIES[query_index][2]).toBytes()); // cmd
         this.type_validator.splice(offset, exports.QUERIES[query_index][3].length); // delete type stack
@@ -329,7 +393,7 @@ function parse_graphql_senses(senses) {
 }
 exports.parse_graphql_senses = parse_graphql_senses;
 // parse guard senses input bytes of a guard, return [objectids] for 'query_cmd' 
-function parse_sense_bsc(chain_sense_bsc, future_order, future_progress) {
+function parse_sense_bsc(chain_sense_bsc, variable) {
     var arr = [].slice.call(chain_sense_bsc.reverse());
     const bcs = new bcs_1.BCS((0, bcs_1.getSuiMoveConfig)());
     var result = [];
@@ -349,7 +413,9 @@ function parse_sense_bsc(chain_sense_bsc, future_order, future_progress) {
             case protocol_1.OperatorType.TYPE_LOGIC_ALWAYS_TRUE:
                 break;
             case protocol_1.ContextType.TYPE_CONTEXT_FUTURE_ID: // MACHINE-ID
-                arr.splice(0, 32);
+                var v = arr.splice(0, 1);
+                if (!variable || variable?.get(v[0])?.type != type)
+                    return false;
                 break;
             case protocol_1.ValueType.TYPE_STATIC_address:
                 //console.log('0x' + bcs.de(BCS.ADDRESS,  Uint8Array.from(array)).toString());
@@ -373,23 +439,13 @@ function parse_sense_bsc(chain_sense_bsc, future_order, future_progress) {
                 result.push('0x' + bcs.de(bcs_1.BCS.ADDRESS, Uint8Array.from(arr)).toString());
                 arr.splice(0, 33); // address + cmd
                 break;
-            case protocol_1.OperatorType.TYPE_FUTURE_PROGRESS_DYNAMIC_QUERY: // SERVICE-ID
-                if (!future_progress) {
-                    console.error('OperatorType.TYPE_FUTURE_PROGRESS_DYNAMIC_QUERY need object');
-                    console.log(arr);
-                    return false; // error                
-                }
-                result.push(future_progress.shift()); // real query object
-                arr.splice(0, 33);
-                break;
-            case protocol_1.OperatorType.TYPE_FUTURE_ORDER_DYNAMIC_QUERY: // 
-                if (!future_order) {
-                    console.error('OperatorType.TYPE_FUTURE_ORDER_DYNAMIC_QUERY need object');
-                    console.log(arr);
-                    return false; // error                
-                }
-                result.push(future_order.shift());
-                arr.splice(0, 33);
+            case protocol_1.OperatorType.TYPE_FUTURE_QUERY: // SERVICE-ID
+                var v = arr.splice(0, 1);
+                if (!variable || variable?.get(v[0])?.type != type)
+                    return false;
+                console.log(variable.get(v[0]));
+                var r = variable.get(v[0])?.value;
+                result.push(r); // NOTICE!!
                 break;
             default:
                 console.error('parse_sense_bsc:undefined');

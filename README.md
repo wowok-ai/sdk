@@ -8,7 +8,7 @@ AI-oriented web3 collaboration protocol, driving innovaion and making it more li
 ### Installation
 
 ```
-$ npm install wowok
+$ npm i wowok
 ```
 
 ### Documentation

@@ -9,7 +9,7 @@ import { IsValidPermissionIndex, PermissionIndexType } from './permission';
 
 export type MachineNodeObject = TransactionResult | String;
 export const INITIAL_NODE_NAME = '';
-export const namedOperator_ORDER_PAYER = 'order payer';
+export const OPERATOR_ORDER_PAYER = 'order payer';
 
 export type Machine_Forward = {
     name: string; // foward name
@@ -36,7 +36,6 @@ export function machine_add_node(txb:TransactionBlock, machine:MachineObject, pe
     let bValid = true;
     nodes.forEach((node) => {
         if (!IsValidDesription(node.description) || !IsValidName(node.name))  { bValid = false; }
-
         node.pairs.forEach((p) => {
             if (!IsValidName_AllowEmpty(p.prior_node)) { bValid = false; }
             if (p?.threshold && !IsValidInt(p.threshold)) { bValid = false; }

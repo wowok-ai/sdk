@@ -55,13 +55,13 @@ export function progress_set_namedOperator(txb:TransactionBlock, machine:Machine
     if (passport) {
         txb.moveCall({
             target:PROTOCOL.ProgressFn('namedOperator_set_with_passport') as FnCallType,
-            arguments: [passport, TXB_OBJECT(txb, progress), txb.pure(name), txb.pure(array_unique(addresses), 'vector<address>'), 
+            arguments: [passport, TXB_OBJECT(txb, progress), txb.pure(name, BCS.STRING), txb.pure(array_unique(addresses), 'vector<address>'), 
             TXB_OBJECT(txb, machine), TXB_OBJECT(txb, permission)],
         })  
     } else {
         txb.moveCall({
             target:PROTOCOL.ProgressFn('namedOperator_set') as FnCallType,
-            arguments: [TXB_OBJECT(txb, progress), txb.pure(name), txb.pure(array_unique(addresses), 'vector<address>'), 
+            arguments: [TXB_OBJECT(txb, progress), txb.pure(name, BCS.STRING), txb.pure(array_unique(addresses), 'vector<address>'), 
             TXB_OBJECT(txb, machine), TXB_OBJECT(txb, permission)],
         })  
     }  

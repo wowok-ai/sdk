@@ -465,20 +465,20 @@ function service_add_sale(pay_type, txb, service, permission, sales, passport) {
         stock.push(s.stock);
     });
     if (passport) {
-        sales.forEach((sale) => txb.moveCall({
+        txb.moveCall({
             target: protocol_1.PROTOCOL.ServiceFn('sales_add_with_passport'),
             arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(utils_1.BCS_CONVERT.ser_vector_string(names)),
                 txb.pure(utils_1.BCS_CONVERT.ser_vector_u64(price)), txb.pure(utils_1.BCS_CONVERT.ser_vector_u64(stock)), (0, protocol_1.TXB_OBJECT)(txb, permission)],
             typeArguments: [pay_type]
-        }));
+        });
     }
     else {
-        sales.forEach((sale) => txb.moveCall({
+        txb.moveCall({
             target: protocol_1.PROTOCOL.ServiceFn('sales_add'),
             arguments: [(0, protocol_1.TXB_OBJECT)(txb, service), txb.pure(utils_1.BCS_CONVERT.ser_vector_string(names)),
                 txb.pure(utils_1.BCS_CONVERT.ser_vector_u64(price)), txb.pure(utils_1.BCS_CONVERT.ser_vector_u64(stock)), (0, protocol_1.TXB_OBJECT)(txb, permission)],
             typeArguments: [pay_type]
-        }));
+        });
     }
     return true;
 }

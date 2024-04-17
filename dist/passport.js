@@ -25,7 +25,6 @@ const passport_queries = async (guards) => {
         sense_objects_result = sense_objects_result.concat(value.data);
     });
     sense_objects_result = (0, utils_1.array_unique)(sense_objects_result); // objects in guards
-    // console.log(sense_objects_result);
     let queries = sense_objects_result.map((value) => {
         return { objectid: value, callback: exports.rpc_query_cmd_fn, data: [] };
     });
@@ -55,10 +54,10 @@ function verify(txb, guards, passport_queries) {
     }
     var passport = txb.moveCall({
         target: protocol_1.PROTOCOL.PassportFn('new'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, guards[0])]
+        arguments: []
     });
     // add others guards, if any
-    for (let i = 1; i < guards.length; i++) {
+    for (let i = 0; i < guards.length; i++) {
         txb.moveCall({
             target: protocol_1.PROTOCOL.PassportFn('guard_add'),
             arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, guards[i])]
@@ -78,7 +77,7 @@ function verify(txb, guards, passport_queries) {
     }
     txb.moveCall({
         target: protocol_1.PROTOCOL.PassportFn('passport_verify'),
-        arguments: [passport]
+        arguments: [passport, txb.object(protocol_1.CLOCK_OBJECT)]
     });
     return passport;
 }

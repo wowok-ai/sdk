@@ -1,5 +1,5 @@
 import { SuiTransactionBlockResponse, SuiObjectChange } from '@mysten/sui.js/client';
-import { bcs, BCS, toHEX, fromHEX, getSuiMoveConfig } from '@mysten/bcs';
+import { bcs, BCS, toHEX, fromHEX, getSuiMoveConfig, TypeName, StructTypeDefinition } from '@mysten/bcs';
 import { PROTOCOL, MODULES, OBJECTS_TYPE } from './protocol';
 
 export const ulebDecode = (arr: number[] | Uint8Array) : {value: number, length: number} => {
@@ -97,6 +97,27 @@ export class Bcs {
     ser_vector_u64(data:number[]) : Uint8Array {
         return this.bcs.ser('vector<u64>', data).toBytes();
     }
+    ser_vector_u8(data:number[])  : Uint8Array {
+        return this.bcs.ser('vector<u8>', data).toBytes();
+    }
+    ser_address(data:string) : Uint8Array {
+        return this.bcs.ser(BCS.ADDRESS, data).toBytes();
+    }
+    ser_bool(data:boolean) : Uint8Array {
+        return this.bcs.ser(BCS.BOOL, data).toBytes();
+    }
+    ser_u8(data:number) : Uint8Array {
+        return this.bcs.ser(BCS.U8, data).toBytes();
+    }
+    ser_u64(data:number) : Uint8Array {
+        return this.bcs.ser(BCS.U64, data).toBytes();
+    }
+    ser_string(data:string) : Uint8Array {
+        return this.bcs.ser(BCS.STRING, data).toBytes();
+    }
+    de(type:TypeName | StructTypeDefinition, data:Uint8Array) {
+        return this.bcs.de(type, data)
+    }
 }
 
 export const BCS_CONVERT = new Bcs();
@@ -110,6 +131,7 @@ export const Object_Type_Extra = () => {
 
 export const objectids_from_response = (response:SuiTransactionBlockResponse, concat_result?:Map<string, string[]>): Map<string, string[]> => {
     let ret = new Map<string, string[]>();
+    console.log(0)
     if (response?.objectChanges) {
         response.objectChanges.forEach((change) => {
             Object_Type_Extra().forEach((name) => {
@@ -124,6 +146,7 @@ export const objectids_from_response = (response:SuiTransactionBlockResponse, co
             })
         });    
     }
+    console.log(1)
     if (concat_result) {
         ret.forEach((value, key) => {
             if (concat_result.has(key)) {
@@ -133,6 +156,7 @@ export const objectids_from_response = (response:SuiTransactionBlockResponse, co
             }
         })
     }
+    console.log(2)
     return ret;
 }
 

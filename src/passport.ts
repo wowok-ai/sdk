@@ -2,24 +2,42 @@ import { SuiObjectResponse, SuiObjectDataOptions } from '@mysten/sui.js/client';
 import { TransactionBlock, TransactionResult, type TransactionObjectInput, Inputs } from '@mysten/sui.js/transactions';
 import { PROTOCOL, FnCallType, CLOCK_OBJECT, Query_Param, OBJECTS_TYPE, OBJECTS_TYPE_PREFIX, PassportObject, GuardObject, TXB_OBJECT, ContextType, IsValidAddress} from './protocol';
 import { parse_object_type, array_unique } from './utils';
-import { rpc_sense_objects_fn } from './guard';
+import { rpc_sense_objects_fn, parse_sense_bsc, parse_futures, FutureValueRequest, VariableType } from './guard';
 import { BCS } from '@mysten/bcs';
 
 export const MAX_GUARD_COUNT = 8;
 
+// from guards: get future objects to fill by singer 
+export const guard_futures = async (guards:string[]) : Promise<FutureValueRequest[]> => {
+    let futrue_objects = guards.map((value) => {
+        return {objectid:value, callback:rpc_sense_objects_fn, parser:parse_futures, data:[]} as Query_Param
+    });
+    await PROTOCOL.Query(futrue_objects); // future objects
+    let future_objects_result:FutureValueRequest[] = [];
+    futrue_objects.forEach((value) => { // DONT CHANGE objects sequence 
+        future_objects_result = future_objects_result.concat(value.data);
+    });
+    future_objects_result = array_unique(future_objects_result); // objects in guards   
+    return future_objects_result
+}
+
+export type GuardQueryType = {
+    guardid: string;
+    variables?: VariableType;
+}
+
+// from guards: get objects to 'guard_query' on chain , with future variables had filled.
 // passport verify for some guards, MUST be in ONE pxb:
 // 0. construct Guard_Query_Objects(passport_quries) from queries for guards of objects
 // 1. create passport
-// 2. add all guards
+// 2. add all guards / guards future variables
 // 3. verify passport
 // 4. ops using passport(guard set on object)
 // 5. ops using passport(guard set on object)
 // 6. destroy passport
-
-
-export const passport_queries = async (guards:string[]) : Promise<Guard_Query_Object[]> => {
+export const guard_queries = async (guards:GuardQueryType[]) : Promise<Guard_Query_Object[]> => {
     let sense_objects = guards.map((value) => {
-        return {objectid:value, callback:rpc_sense_objects_fn, data:[]} as Query_Param
+        return {objectid:value.guardid, callback:rpc_sense_objects_fn, parser:parse_sense_bsc, data:[], variables:value?.variables} as Query_Param
     });
     await PROTOCOL.Query(sense_objects); // objects need quering in guards
     let sense_objects_result:string[] = [];
@@ -27,7 +45,6 @@ export const passport_queries = async (guards:string[]) : Promise<Guard_Query_Ob
         sense_objects_result = sense_objects_result.concat(value.data);
     });
     sense_objects_result = array_unique(sense_objects_result); // objects in guards
-
     let queries = sense_objects_result.map((value) => { 
         return {objectid:value, callback:rpc_query_cmd_fn, data:[]} as Query_Param;
     })
@@ -51,34 +68,35 @@ export const passport_queries = async (guards:string[]) : Promise<Guard_Query_Ob
 }
 
 // return passport object used
-export function verify(txb:TransactionBlock, guards:string[], passport_queries:Guard_Query_Object[]) : PassportObject | boolean {
-    if (!guards || passport_queries.length == 0 || passport_queries.length > MAX_GUARD_COUNT) {
+export function verify(txb:TransactionBlock, guards:string[], guard_queries:Guard_Query_Object[]) : PassportObject | boolean {
+    if (!guards || guards.length > MAX_GUARD_COUNT) {
         return false;
     }
     
     var passport = txb.moveCall({
         target: PROTOCOL.PassportFn('new') as FnCallType,
-        arguments: [ TXB_OBJECT(txb, guards[0])]
+        arguments: []
     });
-
+   
     // add others guards, if any
-    for (let i = 1; i < guards.length; i++) {
+    for (let i = 0; i < guards.length; i++) {
+        console.log(guards[i])
         txb.moveCall({
             target:PROTOCOL.PassportFn('guard_add') as FnCallType,
             arguments:[passport, TXB_OBJECT(txb, guards[i])]
         });
     }
-
+ 
     // rules: 'verify' & 'query' in turns；'verify' at final end.
-    for (let i = 0; i < passport_queries.length; i++) {
+    for (let i = 0; i < guard_queries.length; i++) {
         let res = txb.moveCall({
             target: PROTOCOL.PassportFn('passport_verify') as FnCallType,
             arguments: [ passport, txb.object(CLOCK_OBJECT),  ]
         }); 
         txb.moveCall({
-            target: passport_queries[i].target as FnCallType,
-            arguments: [ txb.object(passport_queries[i].object), passport, res ],
-            typeArguments: passport_queries[i].types,
+            target: guard_queries[i].target as FnCallType,
+            arguments: [ txb.object(guard_queries[i].object), passport, res ],
+            typeArguments: guard_queries[i].types,
         })
     }
     txb.moveCall({

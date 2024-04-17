@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.OBJECTS_TYPE = exports.OBJECTS_TYPE_PREFIX = exports.WOWOK_TYPE = exports.SUI_TYPE = exports.PROTOCOL = exports.Protocol = exports.ENTRYPOINT = exports.ContextType = exports.OperatorType = exports.ValueType = exports.CLOCK_OBJECT = exports.TXB_OBJECT = exports.MODULES = exports.IsValidObjects = exports.IsValidArray = exports.IsValidPercent = exports.IsValidInt = exports.IsValidUint = exports.IsValidArgType = exports.IsValidAddress = exports.IsValidEndpoint = exports.IsValidName_AllowEmpty = exports.IsValidName = exports.IsValidDesription = exports.OptionNone = exports.MAX_ENDPOINT_LENGTH = exports.MAX_NAME_LENGTH = exports.MAX_DESCRIPTION_LENGTH = void 0;
+exports.OBJECTS_TYPE = exports.OBJECTS_TYPE_PREFIX = exports.WOWOK_TYPE = exports.SUI_TYPE = exports.PROTOCOL = exports.Protocol = exports.ENTRYPOINT = exports.ValueType = exports.ContextType = exports.OperatorType = exports.CLOCK_OBJECT = exports.TXB_OBJECT = exports.MODULES = exports.IsValidObjects = exports.IsValidArray = exports.IsValidPercent = exports.IsValidInt = exports.IsValidUint = exports.IsValidArgType = exports.IsValidAddress = exports.IsValidEndpoint = exports.IsValidName_AllowEmpty = exports.IsValidName = exports.IsValidDesription = exports.OptionNone = exports.MAX_ENDPOINT_LENGTH = exports.MAX_NAME_LENGTH = exports.MAX_DESCRIPTION_LENGTH = void 0;
 const client_1 = require("@mysten/sui.js/client");
 const ed25519_1 = require("@mysten/sui.js/keypairs/ed25519");
 const bcs_1 = require("@mysten/bcs");
@@ -75,6 +75,41 @@ exports.CLOCK_OBJECT = transactions_1.Inputs.SharedObjectRef({
     mutable: false,
     initialSharedVersion: 1,
 });
+var OperatorType;
+(function (OperatorType) {
+    OperatorType[OperatorType["TYPE_DYNAMIC_QUERY"] = 1] = "TYPE_DYNAMIC_QUERY";
+    OperatorType[OperatorType["TYPE_FUTURE_QUERY"] = 2] = "TYPE_FUTURE_QUERY";
+    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_GREATER"] = 11] = "TYPE_LOGIC_OPERATOR_U128_GREATER";
+    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL"] = 12] = "TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL";
+    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_LESSER"] = 13] = "TYPE_LOGIC_OPERATOR_U128_LESSER";
+    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_LESSER_EQUAL"] = 14] = "TYPE_LOGIC_OPERATOR_U128_LESSER_EQUAL";
+    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_EQUAL"] = 15] = "TYPE_LOGIC_OPERATOR_U128_EQUAL";
+    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_EQUAL"] = 16] = "TYPE_LOGIC_OPERATOR_EQUAL";
+    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_HAS_SUBSTRING"] = 17] = "TYPE_LOGIC_OPERATOR_HAS_SUBSTRING";
+    OperatorType[OperatorType["TYPE_LOGIC_ALWAYS_TRUE"] = 18] = "TYPE_LOGIC_ALWAYS_TRUE";
+})(OperatorType || (exports.OperatorType = OperatorType = {}));
+var ContextType;
+(function (ContextType) {
+    ContextType[ContextType["TYPE_CONTEXT_SIGNER"] = 60] = "TYPE_CONTEXT_SIGNER";
+    ContextType[ContextType["TYPE_CONTEXT_CLOCK"] = 61] = "TYPE_CONTEXT_CLOCK";
+    ContextType[ContextType["TYPE_CONTEXT_FUTURE_ID"] = 62] = "TYPE_CONTEXT_FUTURE_ID";
+    ContextType[ContextType["TYPE_CONTEXT_bool"] = 70] = "TYPE_CONTEXT_bool";
+    ContextType[ContextType["TYPE_CONTEXT_address"] = 71] = "TYPE_CONTEXT_address";
+    ContextType[ContextType["TYPE_CONTEXT_u64"] = 72] = "TYPE_CONTEXT_u64";
+    ContextType[ContextType["TYPE_CONTEXT_u8"] = 73] = "TYPE_CONTEXT_u8";
+    ContextType[ContextType["TYPE_CONTEXT_u128"] = 74] = "TYPE_CONTEXT_u128";
+    ContextType[ContextType["TYPE_CONTEXT_vec_u8"] = 75] = "TYPE_CONTEXT_vec_u8";
+    ContextType[ContextType["TYPE_CONTEXT_vec_address"] = 76] = "TYPE_CONTEXT_vec_address";
+    ContextType[ContextType["TYPE_CONTEXT_vec_bool"] = 77] = "TYPE_CONTEXT_vec_bool";
+    ContextType[ContextType["TYPE_CONTEXT_vec_vec_u8"] = 78] = "TYPE_CONTEXT_vec_vec_u8";
+    ContextType[ContextType["TYPE_CONTEXT_vec_u64"] = 79] = "TYPE_CONTEXT_vec_u64";
+    ContextType[ContextType["TYPE_CONTEXT_vec_u128"] = 80] = "TYPE_CONTEXT_vec_u128";
+    ContextType[ContextType["TYPE_CONTEXT_option_address"] = 81] = "TYPE_CONTEXT_option_address";
+    ContextType[ContextType["TYPE_CONTEXT_option_bool"] = 82] = "TYPE_CONTEXT_option_bool";
+    ContextType[ContextType["TYPE_CONTEXT_option_u8"] = 83] = "TYPE_CONTEXT_option_u8";
+    ContextType[ContextType["TYPE_CONTEXT_option_u64"] = 84] = "TYPE_CONTEXT_option_u64";
+    ContextType[ContextType["TYPE_CONTEXT_option_u128"] = 85] = "TYPE_CONTEXT_option_u128";
+})(ContextType || (exports.ContextType = ContextType = {}));
 var ValueType;
 (function (ValueType) {
     ValueType[ValueType["TYPE_STATIC_bool"] = 100] = "TYPE_STATIC_bool";
@@ -94,26 +129,6 @@ var ValueType;
     ValueType[ValueType["TYPE_STATIC_option_u64"] = 114] = "TYPE_STATIC_option_u64";
     ValueType[ValueType["TYPE_STATIC_option_u128"] = 115] = "TYPE_STATIC_option_u128";
 })(ValueType || (exports.ValueType = ValueType = {}));
-var OperatorType;
-(function (OperatorType) {
-    OperatorType[OperatorType["TYPE_DYNAMIC_QUERY"] = 1] = "TYPE_DYNAMIC_QUERY";
-    OperatorType[OperatorType["TYPE_FUTURE_ORDER_DYNAMIC_QUERY"] = 2] = "TYPE_FUTURE_ORDER_DYNAMIC_QUERY";
-    OperatorType[OperatorType["TYPE_FUTURE_PROGRESS_DYNAMIC_QUERY"] = 3] = "TYPE_FUTURE_PROGRESS_DYNAMIC_QUERY";
-    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_GREATER"] = 11] = "TYPE_LOGIC_OPERATOR_U128_GREATER";
-    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL"] = 12] = "TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL";
-    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_LESSER"] = 13] = "TYPE_LOGIC_OPERATOR_U128_LESSER";
-    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_LESSER_EQUAL"] = 14] = "TYPE_LOGIC_OPERATOR_U128_LESSER_EQUAL";
-    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_EQUAL"] = 15] = "TYPE_LOGIC_OPERATOR_U128_EQUAL";
-    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_EQUAL"] = 16] = "TYPE_LOGIC_OPERATOR_EQUAL";
-    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_HAS_SUBSTRING"] = 17] = "TYPE_LOGIC_OPERATOR_HAS_SUBSTRING";
-    OperatorType[OperatorType["TYPE_LOGIC_ALWAYS_TRUE"] = 18] = "TYPE_LOGIC_ALWAYS_TRUE";
-})(OperatorType || (exports.OperatorType = OperatorType = {}));
-var ContextType;
-(function (ContextType) {
-    ContextType[ContextType["TYPE_CONTEXT_SIGNER"] = 60] = "TYPE_CONTEXT_SIGNER";
-    ContextType[ContextType["TYPE_CONTEXT_CLOCK"] = 61] = "TYPE_CONTEXT_CLOCK";
-    ContextType[ContextType["TYPE_CONTEXT_FUTURE_ID"] = 62] = "TYPE_CONTEXT_FUTURE_ID";
-})(ContextType || (exports.ContextType = ContextType = {}));
 var ENTRYPOINT;
 (function (ENTRYPOINT) {
     ENTRYPOINT["mainnet"] = "mainnet";
@@ -141,7 +156,7 @@ class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0x82b70ca54720b7e22d82b6c8c9a1601a228ccdb2a8bd70804a690ca8ea59777f";
+                this.package = "0xd4b49ee3dabe6de4b255b1f312983bdd4caf338467dba0253adbd3b055e95fd4";
                 this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
