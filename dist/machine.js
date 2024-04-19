@@ -1,12 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.change_permission = exports.machine_publish = exports.machine_pause = exports.machine_set_endpoint = exports.machine_clone = exports.machine_remove_repository = exports.machine_add_repository = exports.machine_set_description = exports.launch = exports.destroy = exports.machine = exports.machine_remove_node = exports.machine_add_node2 = exports.machine_add_node = exports.namedOperator_ORDER_PAYER = exports.INITIAL_NODE_NAME = void 0;
+exports.change_permission = exports.machine_publish = exports.machine_pause = exports.machine_set_endpoint = exports.machine_clone = exports.machine_remove_repository = exports.machine_add_repository = exports.machine_set_description = exports.launch = exports.destroy = exports.machine = exports.machine_remove_node = exports.machine_add_node2 = exports.machine_add_node = exports.OPERATOR_ORDER_PAYER = exports.INITIAL_NODE_NAME = void 0;
 const bcs_1 = require("@mysten/bcs");
 const protocol_1 = require("./protocol");
 const utils_1 = require("./utils");
 const permission_1 = require("./permission");
 exports.INITIAL_NODE_NAME = '';
-exports.namedOperator_ORDER_PAYER = 'order payer';
+exports.OPERATOR_ORDER_PAYER = 'order payer';
 // create new nodes for machine
 function machine_add_node(txb, machine, permission, nodes, passport) {
     if (!(0, protocol_1.IsValidObjects)([machine, permission]))

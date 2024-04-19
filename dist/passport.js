@@ -1,23 +1,43 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.graphql_query_objects = exports.rpc_query_cmd_fn = exports.destroy = exports.add_context_address = exports.verify = exports.passport_queries = exports.MAX_GUARD_COUNT = void 0;
+exports.graphql_query_objects = exports.rpc_query_cmd_fn = exports.destroy = exports.verify = exports.guard_queries = exports.guard_futures = exports.MAX_GUARD_COUNT = void 0;
 const transactions_1 = require("@mysten/sui.js/transactions");
 const protocol_1 = require("./protocol");
 const utils_1 = require("./utils");
 const guard_1 = require("./guard");
-const bcs_1 = require("@mysten/bcs");
 exports.MAX_GUARD_COUNT = 8;
+// from guards: get future objects to fill by singer 
+const guard_futures = async (guards) => {
+    let futrue_objects = guards.map((value) => {
+        return { objectid: value, callback: guard_1.rpc_sense_objects_fn, parser: guard_1.parse_futures, data: [] };
+    });
+    await protocol_1.PROTOCOL.Query(futrue_objects); // future objects
+    let future_objects_result = [];
+    futrue_objects.forEach((value) => {
+        future_objects_result = future_objects_result.concat(value.data);
+    });
+    future_objects_result = (0, utils_1.array_unique)(future_objects_result); // objects in guards   
+    return future_objects_result;
+};
+exports.guard_futures = guard_futures;
+// from guards: get objects to 'guard_query' on chain , with future variables had filled.
 // passport verify for some guards, MUST be in ONE pxb:
 // 0. construct Guard_Query_Objects(passport_quries) from queries for guards of objects
 // 1. create passport
-// 2. add all guards
+// 2. add all guards / guards future variables
 // 3. verify passport
 // 4. ops using passport(guard set on object)
 // 5. ops using passport(guard set on object)
 // 6. destroy passport
-const passport_queries = async (guards) => {
+const guard_queries = async (guards, futures) => {
     let sense_objects = guards.map((value) => {
-        return { objectid: value, callback: guard_1.rpc_sense_objects_fn, data: [] };
+        let v = new Map();
+        futures?.forEach((f) => {
+            if (f.guardid == value) {
+                (0, guard_1.add_future_variable)(v, f.identifier, f.type, f.witness, f?.value, false);
+            }
+        });
+        return { objectid: value, callback: guard_1.rpc_sense_objects_fn, parser: guard_1.parse_sense_bsc, data: [], variables: futures ? v : undefined };
     });
     await protocol_1.PROTOCOL.Query(sense_objects); // objects need quering in guards
     let sense_objects_result = [];
@@ -46,33 +66,42 @@ const passport_queries = async (guards) => {
     });
     return res;
 };
-exports.passport_queries = passport_queries;
+exports.guard_queries = guard_queries;
 // return passport object used
-function verify(txb, guards, passport_queries) {
-    if (!guards || passport_queries.length == 0 || passport_queries.length > exports.MAX_GUARD_COUNT) {
+function verify(txb, guards, guard_queries, future_values) {
+    if (!guards || guards.length > exports.MAX_GUARD_COUNT)
         return false;
-    }
+    if (!(0, protocol_1.IsValidObjects)(guards))
+        return false;
     var passport = txb.moveCall({
         target: protocol_1.PROTOCOL.PassportFn('new'),
         arguments: []
     });
     // add others guards, if any
-    for (let i = 0; i < guards.length; i++) {
+    guards.forEach((guard) => {
         txb.moveCall({
             target: protocol_1.PROTOCOL.PassportFn('guard_add'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, guards[i])]
+            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, guard)]
         });
-    }
+    });
+    future_values?.forEach((v) => {
+        console.log(v.value);
+        txb.moveCall({
+            target: protocol_1.PROTOCOL.PassportFn('future_set'),
+            arguments: [passport, txb.pure(utils_1.BCS_CONVERT.ser_address(v.guardid)), txb.pure(utils_1.BCS_CONVERT.ser_u8(v.identifier)),
+                txb.pure([].slice.call(v.value))]
+        });
+    });
     // rules: 'verify' & 'query' in turns；'verify' at final end.
-    for (let i = 0; i < passport_queries.length; i++) {
+    for (let i = 0; i < guard_queries.length; i++) {
         let res = txb.moveCall({
             target: protocol_1.PROTOCOL.PassportFn('passport_verify'),
             arguments: [passport, txb.object(protocol_1.CLOCK_OBJECT),]
         });
         txb.moveCall({
-            target: passport_queries[i].target,
-            arguments: [txb.object(passport_queries[i].object), passport, res],
-            typeArguments: passport_queries[i].types,
+            target: guard_queries[i].target,
+            arguments: [txb.object(guard_queries[i].object), passport, res],
+            typeArguments: guard_queries[i].types,
         });
     }
     txb.moveCall({
@@ -82,16 +111,6 @@ function verify(txb, guards, passport_queries) {
     return passport;
 }
 exports.verify = verify;
-function add_context_address(txb, passport, type, value, witness) {
-    if (!(0, protocol_1.IsValidAddress)(value) || !(0, protocol_1.IsValidAddress)(witness))
-        return false;
-    txb.moveCall({
-        target: protocol_1.PROTOCOL.PassportFn('context_add_address'),
-        arguments: [passport, txb.pure(type, bcs_1.BCS.U8), txb.pure(value, bcs_1.BCS.ADDRESS), txb.pure(witness, bcs_1.BCS.ADDRESS)]
-    });
-    return true;
-}
-exports.add_context_address = add_context_address;
 function destroy(txb, passport) {
     txb.moveCall({
         target: protocol_1.PROTOCOL.PassportFn('destroy'),

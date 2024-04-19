@@ -11,17 +11,22 @@ exports.MAX_NAME_LENGTH = 64;
 exports.MAX_ENDPOINT_LENGTH = 1024;
 const OptionNone = (txb) => { return txb.pure([], bcs_1.BCS.U8); };
 exports.OptionNone = OptionNone;
-const IsValidDesription = (description) => { return description.length <= exports.MAX_DESCRIPTION_LENGTH; };
+const IsValidDesription = (description) => { if (!description)
+    return false; return description.length <= exports.MAX_DESCRIPTION_LENGTH; };
 exports.IsValidDesription = IsValidDesription;
-const IsValidName = (name) => { return name.length <= exports.MAX_NAME_LENGTH && name.length != 0; };
+const IsValidName = (name) => { if (!name)
+    return false; return name.length <= exports.MAX_NAME_LENGTH && name.length != 0; };
 exports.IsValidName = IsValidName;
 const IsValidName_AllowEmpty = (name) => { return name.length <= exports.MAX_NAME_LENGTH; };
 exports.IsValidName_AllowEmpty = IsValidName_AllowEmpty;
-const IsValidEndpoint = (endpoint) => { return endpoint.length <= exports.MAX_ENDPOINT_LENGTH; };
+const IsValidEndpoint = (endpoint) => { if (!endpoint)
+    return false; return endpoint.length <= exports.MAX_ENDPOINT_LENGTH; };
 exports.IsValidEndpoint = IsValidEndpoint;
-const IsValidAddress = (address) => { return address.length != 0; };
+const IsValidAddress = (addr) => { if (!addr)
+    return false; return true; };
 exports.IsValidAddress = IsValidAddress;
-const IsValidArgType = (argType) => { return argType.length != 0; };
+const IsValidArgType = (argType) => { if (!argType)
+    return false; return argType.length != 0; };
 exports.IsValidArgType = IsValidArgType;
 const IsValidUint = (value) => { return Number.isSafeInteger(value) && value != 0; };
 exports.IsValidUint = IsValidUint;
@@ -77,8 +82,9 @@ exports.CLOCK_OBJECT = transactions_1.Inputs.SharedObjectRef({
 });
 var OperatorType;
 (function (OperatorType) {
-    OperatorType[OperatorType["TYPE_DYNAMIC_QUERY"] = 1] = "TYPE_DYNAMIC_QUERY";
+    OperatorType[OperatorType["TYPE_QUERY"] = 1] = "TYPE_QUERY";
     OperatorType[OperatorType["TYPE_FUTURE_QUERY"] = 2] = "TYPE_FUTURE_QUERY";
+    OperatorType[OperatorType["TYPE_QUERY_FROM_CONTEXT"] = 3] = "TYPE_QUERY_FROM_CONTEXT";
     OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_GREATER"] = 11] = "TYPE_LOGIC_OPERATOR_U128_GREATER";
     OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL"] = 12] = "TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL";
     OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_LESSER"] = 13] = "TYPE_LOGIC_OPERATOR_U128_LESSER";
@@ -97,18 +103,18 @@ var ContextType;
     ContextType[ContextType["TYPE_CONTEXT_address"] = 71] = "TYPE_CONTEXT_address";
     ContextType[ContextType["TYPE_CONTEXT_u64"] = 72] = "TYPE_CONTEXT_u64";
     ContextType[ContextType["TYPE_CONTEXT_u8"] = 73] = "TYPE_CONTEXT_u8";
-    ContextType[ContextType["TYPE_CONTEXT_u128"] = 74] = "TYPE_CONTEXT_u128";
-    ContextType[ContextType["TYPE_CONTEXT_vec_u8"] = 75] = "TYPE_CONTEXT_vec_u8";
-    ContextType[ContextType["TYPE_CONTEXT_vec_address"] = 76] = "TYPE_CONTEXT_vec_address";
-    ContextType[ContextType["TYPE_CONTEXT_vec_bool"] = 77] = "TYPE_CONTEXT_vec_bool";
-    ContextType[ContextType["TYPE_CONTEXT_vec_vec_u8"] = 78] = "TYPE_CONTEXT_vec_vec_u8";
-    ContextType[ContextType["TYPE_CONTEXT_vec_u64"] = 79] = "TYPE_CONTEXT_vec_u64";
-    ContextType[ContextType["TYPE_CONTEXT_vec_u128"] = 80] = "TYPE_CONTEXT_vec_u128";
-    ContextType[ContextType["TYPE_CONTEXT_option_address"] = 81] = "TYPE_CONTEXT_option_address";
-    ContextType[ContextType["TYPE_CONTEXT_option_bool"] = 82] = "TYPE_CONTEXT_option_bool";
-    ContextType[ContextType["TYPE_CONTEXT_option_u8"] = 83] = "TYPE_CONTEXT_option_u8";
-    ContextType[ContextType["TYPE_CONTEXT_option_u64"] = 84] = "TYPE_CONTEXT_option_u64";
-    ContextType[ContextType["TYPE_CONTEXT_option_u128"] = 85] = "TYPE_CONTEXT_option_u128";
+    ContextType[ContextType["TYPE_CONTEXT_vec_u8"] = 74] = "TYPE_CONTEXT_vec_u8";
+    /*   TYPE_CONTEXT_u128 = 75,
+       TYPE_CONTEXT_vec_address = 76,
+       TYPE_CONTEXT_vec_bool = 77,
+       TYPE_CONTEXT_vec_vec_u8 = 78,
+       TYPE_CONTEXT_vec_u64 = 79,
+       TYPE_CONTEXT_vec_u128 = 80,
+       TYPE_CONTEXT_option_address = 81,
+       TYPE_CONTEXT_option_bool = 82,
+       TYPE_CONTEXT_option_u8 = 83,
+       TYPE_CONTEXT_option_u64 = 84,
+       TYPE_CONTEXT_option_u128 = 85,*/
 })(ContextType || (exports.ContextType = ContextType = {}));
 var ValueType;
 (function (ValueType) {
@@ -116,8 +122,8 @@ var ValueType;
     ValueType[ValueType["TYPE_STATIC_address"] = 101] = "TYPE_STATIC_address";
     ValueType[ValueType["TYPE_STATIC_u64"] = 102] = "TYPE_STATIC_u64";
     ValueType[ValueType["TYPE_STATIC_u8"] = 103] = "TYPE_STATIC_u8";
-    ValueType[ValueType["TYPE_STATIC_u128"] = 104] = "TYPE_STATIC_u128";
-    ValueType[ValueType["TYPE_STATIC_vec_u8"] = 105] = "TYPE_STATIC_vec_u8";
+    ValueType[ValueType["TYPE_STATIC_vec_u8"] = 104] = "TYPE_STATIC_vec_u8";
+    ValueType[ValueType["TYPE_STATIC_u128"] = 105] = "TYPE_STATIC_u128";
     ValueType[ValueType["TYPE_STATIC_vec_address"] = 106] = "TYPE_STATIC_vec_address";
     ValueType[ValueType["TYPE_STATIC_vec_bool"] = 107] = "TYPE_STATIC_vec_bool";
     ValueType[ValueType["TYPE_STATIC_vec_vec_u8"] = 108] = "TYPE_STATIC_vec_vec_u8";
@@ -156,7 +162,7 @@ class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0xd4b49ee3dabe6de4b255b1f312983bdd4caf338467dba0253adbd3b055e95fd4";
+                this.package = "0x858da47ed710b543dfeb7235eddeaf9063348a8b187e030ffcb9d8d8bc7e75c3";
                 this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
@@ -218,7 +224,7 @@ class Protocol {
         const response = await client.signAndExecuteTransactionBlock({
             transactionBlock: txb,
             signer: keypair,
-            options
+            options,
         });
         return response;
     };

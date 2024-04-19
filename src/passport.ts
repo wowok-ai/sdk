@@ -1,8 +1,9 @@
 import { SuiObjectResponse, SuiObjectDataOptions } from '@mysten/sui.js/client';
-import { TransactionBlock, TransactionResult, type TransactionObjectInput, Inputs } from '@mysten/sui.js/transactions';
-import { PROTOCOL, FnCallType, CLOCK_OBJECT, Query_Param, OBJECTS_TYPE, OBJECTS_TYPE_PREFIX, PassportObject, GuardObject, TXB_OBJECT, ContextType, IsValidAddress} from './protocol';
-import { parse_object_type, array_unique } from './utils';
-import { rpc_sense_objects_fn, parse_sense_bsc, parse_futures, FutureValueRequest, VariableType } from './guard';
+import { TransactionBlock, TransactionResult, type TransactionObjectInput, Inputs, TransactionArgument } from '@mysten/sui.js/transactions';
+import { PROTOCOL, FnCallType, CLOCK_OBJECT, Query_Param, OBJECTS_TYPE, OBJECTS_TYPE_PREFIX, PassportObject, GuardObject, 
+    TXB_OBJECT, ContextType, IsValidAddress, IsValidArray, IsValidObjects} from './protocol';
+import { parse_object_type, array_unique, BCS_CONVERT } from './utils';
+import { rpc_sense_objects_fn, parse_sense_bsc, parse_futures, FutureValueRequest, VariableType, add_variable, add_future_variable} from './guard';
 import { BCS } from '@mysten/bcs';
 
 export const MAX_GUARD_COUNT = 8;
@@ -14,16 +15,15 @@ export const guard_futures = async (guards:string[]) : Promise<FutureValueReques
     });
     await PROTOCOL.Query(futrue_objects); // future objects
     let future_objects_result:FutureValueRequest[] = [];
-    futrue_objects.forEach((value) => { // DONT CHANGE objects sequence 
-        future_objects_result = future_objects_result.concat(value.data);
+    futrue_objects.forEach((futrue) => { 
+        futrue.data.forEach((f:FutureValueRequest) => {
+            if (future_objects_result.findIndex((v)=>{ return v.guardid == f.guardid && v.identifier == f.identifier}) ==  -1) {
+                future_objects_result.push(f);
+            }
+        }) ;
     });
-    future_objects_result = array_unique(future_objects_result); // objects in guards   
-    return future_objects_result
-}
 
-export type GuardQueryType = {
-    guardid: string;
-    variables?: VariableType;
+    return future_objects_result
 }
 
 // from guards: get objects to 'guard_query' on chain , with future variables had filled.
@@ -35,19 +35,28 @@ export type GuardQueryType = {
 // 4. ops using passport(guard set on object)
 // 5. ops using passport(guard set on object)
 // 6. destroy passport
-export const guard_queries = async (guards:GuardQueryType[]) : Promise<Guard_Query_Object[]> => {
+export const guard_queries = async (guards:string[], futures?:FutureValueRequest[]) : Promise<Guard_Query_Object[]> => {
     let sense_objects = guards.map((value) => {
-        return {objectid:value.guardid, callback:rpc_sense_objects_fn, parser:parse_sense_bsc, data:[], variables:value?.variables} as Query_Param
+        let v:VariableType = new Map();
+        futures?.forEach((f) => {
+            if (f.guardid == value) {   
+                add_future_variable(v, f.identifier, f.type, f.witness.slice(0), f?.value?f.value.slice(0):undefined, true);
+            } 
+        })
+        return {objectid:value, callback:rpc_sense_objects_fn, parser:parse_sense_bsc, data:[], variables:futures?v:undefined} as Query_Param
     });
+
     await PROTOCOL.Query(sense_objects); // objects need quering in guards
     let sense_objects_result:string[] = [];
     sense_objects.forEach((value) => { // DONT CHANGE objects sequence 
         sense_objects_result = sense_objects_result.concat(value.data);
     });
     sense_objects_result = array_unique(sense_objects_result); // objects in guards
+    
     let queries = sense_objects_result.map((value) => { 
         return {objectid:value, callback:rpc_query_cmd_fn, data:[]} as Query_Param;
     })
+
     await PROTOCOL.Query(queries, {'showType':true}); // queries for passport verifing
     let res : Guard_Query_Object[] = [];
     sense_objects.forEach((guard) => { // DONT CHANGE objects sequence  for passport verifying
@@ -68,24 +77,31 @@ export const guard_queries = async (guards:GuardQueryType[]) : Promise<Guard_Que
 }
 
 // return passport object used
-export function verify(txb:TransactionBlock, guards:string[], guard_queries:Guard_Query_Object[]) : PassportObject | boolean {
-    if (!guards || guards.length > MAX_GUARD_COUNT) {
-        return false;
-    }
-    
+export function verify(txb:TransactionBlock, guards:GuardObject[], guard_queries:Guard_Query_Object[], future_values?:FutureValueRequest[]) : PassportObject | boolean {
+    if (!guards || guards.length > MAX_GUARD_COUNT)   return false;
+    if (!IsValidObjects(guards)) return false;
+
     var passport = txb.moveCall({
         target: PROTOCOL.PassportFn('new') as FnCallType,
         arguments: []
     });
    
     // add others guards, if any
-    for (let i = 0; i < guards.length; i++) {
+    guards.forEach((guard) => {
         txb.moveCall({
             target:PROTOCOL.PassportFn('guard_add') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, guards[i])]
-        });
-    }
- 
+            arguments:[passport, TXB_OBJECT(txb, guard)]
+        });        
+    })
+
+    future_values?.forEach((v) => {
+        txb.moveCall({
+            target:PROTOCOL.PassportFn('future_set') as FnCallType,
+            arguments:[passport, txb.pure(BCS_CONVERT.ser_address(v.guardid)), txb.pure(BCS_CONVERT.ser_u8(v.identifier)), 
+                txb.pure(BCS_CONVERT.ser_address(v.value!))]
+        })
+    })
+
     // rules: 'verify' & 'query' in turns；'verify' at final end.
     for (let i = 0; i < guard_queries.length; i++) {
         let res = txb.moveCall({
@@ -97,23 +113,13 @@ export function verify(txb:TransactionBlock, guards:string[], guard_queries:Guar
             arguments: [ txb.object(guard_queries[i].object), passport, res ],
             typeArguments: guard_queries[i].types,
         })
-    }
+    } 
     txb.moveCall({
         target: PROTOCOL.PassportFn('passport_verify') as FnCallType,
         arguments: [ passport,  txb.object(CLOCK_OBJECT) ]
-    });     
+    });   
 
     return passport;
-}
-
-export function add_context_address(txb:TransactionBlock, passport:PassportObject, type:ContextType, value:string, witness:string) : Boolean {
-    if (!IsValidAddress(value) || !IsValidAddress(witness)) return false;
-
-    txb.moveCall({
-        target: PROTOCOL.PassportFn('context_add_address') as FnCallType,
-        arguments: [ passport, txb.pure(type, BCS.U8), txb.pure(value, BCS.ADDRESS), txb.pure(witness, BCS.ADDRESS)]   
-    });
-    return true
 }
 
 export function destroy(txb:TransactionBlock, passport:PassportObject) : boolean {

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.numToUint8Array = exports.stringToUint8Array = exports.objectids_from_response = exports.Object_Type_Extra = exports.BCS_CONVERT = exports.Bcs = exports.parse_object_type = exports.capitalize = exports.array_unique = exports.array_equal = exports.concatenate = exports.ulebDecode = void 0;
+exports.deepClone = exports.isArr = exports.numToUint8Array = exports.stringToUint8Array = exports.objectids_from_response = exports.Object_Type_Extra = exports.BCS_CONVERT = exports.Bcs = exports.parse_object_type = exports.capitalize = exports.array_unique = exports.array_equal = exports.concatenate = exports.ulebDecode = void 0;
 const bcs_1 = require("@mysten/bcs");
 const protocol_1 = require("./protocol");
 const ulebDecode = (arr) => {
@@ -96,6 +96,27 @@ class Bcs {
     ser_vector_u64(data) {
         return this.bcs.ser('vector<u64>', data).toBytes();
     }
+    ser_vector_u8(data) {
+        return this.bcs.ser('vector<u8>', data).toBytes();
+    }
+    ser_address(data) {
+        return this.bcs.ser(bcs_1.BCS.ADDRESS, data).toBytes();
+    }
+    ser_bool(data) {
+        return this.bcs.ser(bcs_1.BCS.BOOL, data).toBytes();
+    }
+    ser_u8(data) {
+        return this.bcs.ser(bcs_1.BCS.U8, data).toBytes();
+    }
+    ser_u64(data) {
+        return this.bcs.ser(bcs_1.BCS.U64, data).toBytes();
+    }
+    ser_string(data) {
+        return this.bcs.ser(bcs_1.BCS.STRING, data).toBytes();
+    }
+    de(type, data) {
+        return this.bcs.de(type, data);
+    }
 }
 exports.Bcs = Bcs;
 exports.BCS_CONVERT = new Bcs();
@@ -156,3 +177,25 @@ function numToUint8Array(num) {
     return new Uint8Array(a);
 }
 exports.numToUint8Array = numToUint8Array;
+// 判断是否为数组
+const isArr = (origin) => {
+    let str = '[object Array]';
+    return Object.prototype.toString.call(origin) == str ? true : false;
+};
+exports.isArr = isArr;
+const deepClone = (origin, target) => {
+    let tar = target || {};
+    for (const key in origin) {
+        if (Object.prototype.hasOwnProperty.call(origin, key)) {
+            if (typeof origin[key] === 'object' && origin[key] !== null) {
+                tar[key] = (0, exports.isArr)(origin[key]) ? [] : {};
+                (0, exports.deepClone)(origin[key], tar[key]);
+            }
+            else {
+                tar[key] = origin[key];
+            }
+        }
+    }
+    return tar;
+};
+exports.deepClone = deepClone;

@@ -161,24 +161,24 @@ function demand_set_description(earnest_type, txb, demand, permission, descripti
     return true;
 }
 exports.demand_set_description = demand_set_description;
-function demand_yes(earnest_type, txb, demand, permission, service, passport) {
+function demand_yes(earnest_type, txb, demand, permission, service_id, passport) {
     if (!(0, protocol_1.IsValidObjects)([demand, permission]))
         return false;
     if (!(0, protocol_1.IsValidArgType)(earnest_type))
         return false;
-    if (!(0, protocol_1.IsValidAddress)(service))
+    if (!(0, protocol_1.IsValidAddress)(service_id))
         return false;
     if (passport) {
         txb.moveCall({
             target: protocol_1.PROTOCOL.DemandFn('yes_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, demand), txb.pure(service, bcs_1.BCS.ADDRESS), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, demand), txb.pure(service_id, bcs_1.BCS.ADDRESS), (0, protocol_1.TXB_OBJECT)(txb, permission)],
             typeArguments: [earnest_type],
         });
     }
     else {
         txb.moveCall({
             target: protocol_1.PROTOCOL.DemandFn('yes'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, demand), txb.pure(service, bcs_1.BCS.ADDRESS), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            arguments: [(0, protocol_1.TXB_OBJECT)(txb, demand), txb.pure(service_id, bcs_1.BCS.ADDRESS), (0, protocol_1.TXB_OBJECT)(txb, permission)],
             typeArguments: [earnest_type],
         });
     }

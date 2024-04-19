@@ -64,14 +64,14 @@ function progress_set_namedOperator(txb, machine, permission, progress, name, ad
     if (passport) {
         txb.moveCall({
             target: protocol_1.PROTOCOL.ProgressFn('namedOperator_set_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, progress), txb.pure(name), txb.pure((0, utils_1.array_unique)(addresses), 'vector<address>'),
+            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, progress), txb.pure(name, bcs_1.BCS.STRING), txb.pure((0, utils_1.array_unique)(addresses), 'vector<address>'),
                 (0, protocol_1.TXB_OBJECT)(txb, machine), (0, protocol_1.TXB_OBJECT)(txb, permission)],
         });
     }
     else {
         txb.moveCall({
             target: protocol_1.PROTOCOL.ProgressFn('namedOperator_set'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, progress), txb.pure(name), txb.pure((0, utils_1.array_unique)(addresses), 'vector<address>'),
+            arguments: [(0, protocol_1.TXB_OBJECT)(txb, progress), txb.pure(name, bcs_1.BCS.STRING), txb.pure((0, utils_1.array_unique)(addresses), 'vector<address>'),
                 (0, protocol_1.TXB_OBJECT)(txb, machine), (0, protocol_1.TXB_OBJECT)(txb, permission)],
         });
     }

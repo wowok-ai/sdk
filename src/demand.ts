@@ -151,7 +151,6 @@ export function demand_set_description(earnest_type:string, txb:TransactionBlock
 
 export function demand_yes(earnest_type:string, txb:TransactionBlock, demand:DemandObject, permission:PermissionObject, 
     service_id:string, passport?:PassportObject) : boolean {
-    console.log(service_id)
     if (!IsValidObjects([demand, permission])) return false;
     if (!IsValidArgType(earnest_type)) return false;
     if (!IsValidAddress(service_id)) return false;

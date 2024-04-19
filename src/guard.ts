@@ -39,8 +39,10 @@ export type FutureValueRequest = {
     guardid: string;
     identifier: number;
     type: ContextType | OperatorType,
-    witness: Uint8Array,
+    witness: string,
+    value?: string, // future object address
 }
+
 
 export const IsValidGuardVirableType = (type:OperatorType | ContextType) : boolean => {
     if (type == OperatorType.TYPE_FUTURE_QUERY || type == ContextType.TYPE_CONTEXT_FUTURE_ID || type == OperatorType.TYPE_QUERY_FROM_CONTEXT || 
@@ -54,7 +56,7 @@ export const IsValidIndentifier = (identifier:number) : boolean => {
     if (!IsValidInt(identifier) || identifier > 255) return false;
     return true
 }
-
+/*
 // called by de-guard or passport
 export function set_futrue_value(variables:VariableType, identifier:number, type:OperatorType | ContextType, value?:any) : boolean {
     if (!IsValidIndentifier(identifier)) return false;
@@ -65,7 +67,7 @@ export function set_futrue_value(variables:VariableType, identifier:number, type
         return true;   
     }
     return false;
-}
+} */
 export function get_variable_value(variables:VariableType, identifier:number, type:OperatorType | ContextType) : Uint8Array | boolean {
     if (variables.has(identifier)) {
         let v = variables.get(identifier);
@@ -83,27 +85,43 @@ export function get_variable_witness(variables:VariableType, identifier:number, 
     }  return false;
 }
 
-export function add_variable(variables:VariableType, identifier:number, type:OperatorType | ContextType, 
-    value?:any, witness?:any, bNeedSerialize=true) : boolean {
+export function add_future_variable(variables:VariableType, identifier:number, type:OperatorType | ContextType, 
+    witness:any, value?:any, bNeedSerialize=true) : boolean {
     if (!IsValidIndentifier(identifier)) return false;
     if (!IsValidGuardVirableType(type)) return false;
+    if (!witness && !value) return false;
+
     switch (type) {
         case OperatorType.TYPE_FUTURE_QUERY : 
         case ContextType.TYPE_CONTEXT_FUTURE_ID :
             if (variables.has(identifier)) {
-                if (value)  {
-                    bNeedSerialize? (variables.get(identifier) as Guard_Vriable).value = BCS_CONVERT.ser_address(value) :
-                        (variables.get(identifier) as Guard_Vriable).value = value;
-                }
-                if (witness) {
-                    bNeedSerialize? (variables.get(identifier) as Guard_Vriable).witness = BCS_CONVERT.ser_address(witness) :
-                        (variables.get(identifier) as Guard_Vriable).witness = witness;
+                let v = (variables.get(identifier) as Guard_Vriable);
+                if (bNeedSerialize) {
+                    v.value = value ? BCS_CONVERT.ser_address(value) : undefined;
+                    v.witness = witness ? BCS_CONVERT.ser_address(witness) : undefined;
+                } else {
+                    v.value = value ? value : undefined; 
+                    v.witness = witness ? witness : undefined;                  
                 }
             } else {
-                bNeedSerialize ? variables.set(identifier, {type:type, witness:BCS_CONVERT.ser_address(witness)}) : 
-                    variables.set(identifier, {type:type, witness:witness});                
+                if (bNeedSerialize) {
+                    variables.set(identifier, {type:type, value:value ? BCS_CONVERT.ser_address(value) : undefined, witness:witness ? BCS_CONVERT.ser_address(witness) : undefined})
+                } else {
+                    variables.set(identifier, {type:type, value:value?value:undefined, witness:witness?witness:undefined});             
+                }                     
             }
             return true;
+    }
+    return false;
+}
+
+export function add_variable(variables:VariableType, identifier:number, type:OperatorType | ContextType, 
+    value:any, bNeedSerialize=true) : boolean {
+    if (!IsValidIndentifier(identifier)) return false;
+    if (!IsValidGuardVirableType(type)) return false;
+    if (!value) return false;
+
+    switch (type) {
         case ContextType.TYPE_CONTEXT_bool:
             bNeedSerialize ? variables.set(identifier, {type:type, value:BCS_CONVERT.ser_bool(value)}) :
                 variables.set(identifier,  {type:type, value:value})              
@@ -160,7 +178,6 @@ export function launch(txb:TransactionBlock, creation:Guard_Creation) : GuardAdd
     creation?.variables?.forEach((v, k) => {
         if (v.type == OperatorType.TYPE_FUTURE_QUERY || v.type == ContextType.TYPE_CONTEXT_FUTURE_ID) {
             if (!v.witness) return false;
-
             txb.moveCall({
                 target:PROTOCOL.GuardFn("variable_add") as FnCallType,
                 arguments:[guard, txb.pure(k, BCS.U8), txb.pure(v.type, BCS.U8), txb.pure([].slice.call(v.witness)), txb.pure(true, BCS.BOOL)]
@@ -422,7 +439,7 @@ export class SenseMaker {
         }
         return -1;
     }
-    add_future_query(identifier:number, module:MODULES, query_name:string, variable?:VariableType) : boolean {
+    add_future_query(identifier:number, module:MODULES, query_name:string, variable:VariableType) : boolean {
         let query_index = this.query_index(module, query_name);
         if (!IsValidIndentifier(identifier) || query_index == -1)  return false;  
         if (module != MODULES.order && module != MODULES.progress)    return false;
@@ -512,7 +529,7 @@ export class SenseMaker {
         //console.log(this.type_validator);
         //this.data.forEach((value:Uint8Array) => console.log(value));
         if (this.type_validator.length != 1 || this.type_validator[0] != ValueType.TYPE_STATIC_bool) { 
-            // console.log(this.type_validator)
+            console.log(this.type_validator)
             return false;
         } // ERROR
 
@@ -541,7 +558,6 @@ export function parse_graphql_senses(guardid:string, senses:any) : string[] {
 
 export function parse_futures(result:any[], guardid: string, chain_sense_bsc:Uint8Array, variable?:VariableType) : boolean {
     var arr = [].slice.call(chain_sense_bsc.reverse());
-
     while (arr.length > 0) {
         var type : unknown = arr.shift() ;
         // console.log(type);
@@ -563,12 +579,12 @@ export function parse_futures(result:any[], guardid: string, chain_sense_bsc:Uin
             if (type == OperatorType.TYPE_FUTURE_QUERY) {
                 arr.splice(0, 1); // cmd
             }
-
             if (!variable || variable?.get(identifer[0])?.type != type) return false;
+            
             let witness = get_variable_witness(variable, identifer[0], type as OperatorType) ;
             if (!witness)  return false;
-
-            result.push({guardid:guardid, identifier:identifer[0], type:type, witness:Uint8Array.from(witness as Uint8Array)} as FutureValueRequest);
+            result.push({guardid:guardid, identifier:identifer[0], type:type, 
+                witness:'0x' + BCS_CONVERT.de(BCS.ADDRESS, Uint8Array.from(witness as Uint8Array))} as FutureValueRequest);
             break;
         case ContextType.TYPE_CONTEXT_address:
         case ContextType.TYPE_CONTEXT_bool:
@@ -699,20 +715,28 @@ export const rpc_sense_objects_fn = (response:SuiObjectResponse, param:Query_Par
         let c = response?.data?.content as any;
         let index = OBJECTS_TYPE().findIndex(v => v.includes('guard::Guard') && v == c.type);
         if (index >= 0 && c.fields.id.id == param.objectid) { // GUARD OBJECT
-            let v = param?.variables  ? param.variables : new Map<number, Guard_Vriable>();
-            
-            for (let i = 0; i < c.fields.variables.length; i ++) {
-                let variable = c.fields.variables[i];
-                if (variable.type == (OBJECTS_TYPE_PREFIX()[index] + 'Variable')) { // ...::guard::Variable
-                    if (!add_variable(v, variable.fields.identifier, variable.fields.type, variable.fields?.value, variable.fields?.witness, false)) {
-                        console.log('rpc_sense_objects_fn add_variable error');
-                        console.log(variable);
-                        return ;
-                    }
-                }                         
+            if (!param?.variables)  {
+                let v =  new Map<number, Guard_Vriable>();
+                for (let i = 0; i < c.fields.variables.length; i ++) {
+                    let variable = c.fields.variables[i]; let bret ;
+                    if (variable.type == (OBJECTS_TYPE_PREFIX()[index] + 'Variable')) { // ...::guard::Variable
+                        if (variable.fields.type == OperatorType.TYPE_FUTURE_QUERY || variable.fields.type == ContextType.TYPE_CONTEXT_FUTURE_ID) {
+                            bret = add_future_variable(v, variable.fields.identifier, variable.fields.type, 
+                                variable.fields?.value?Uint8Array.from(variable.fields.value):undefined, undefined, false);
+                        } else {
+                            bret = add_variable(v, variable.fields.identifier, variable.fields.type, 
+                                variable.fields?.value?Uint8Array.from(variable.fields.value):undefined, false);
+                        }
+                        if (!bret) {
+                            console.log('rpc_sense_objects_fn add_variable error');
+                            console.log(variable);
+                            return ;       
+                        }
+                    }                         
+                }
+                param.variables = v;
             }
-            param.variables = v;
-
+            
             for (let i = 0; i < c.fields.senses.length; i ++) {
                 let sense = c.fields.senses[i];
                 if (sense.type == (OBJECTS_TYPE_PREFIX()[index] + 'Sense')) { // ...::guard::Sense    

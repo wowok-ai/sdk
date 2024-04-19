@@ -58,7 +58,7 @@ export type PermissionObject = TransactionResult | string;
 export type RepositoryAddress = TransactionResult;
 export type RepositoryObject = TransactionResult | string;
 export type GuardAddress = TransactionResult;
-export type GuardObject = TransactionResult | string;
+export type GuardObject = TransactionResult | string ;
 export type MachineAddress = TransactionResult;
 export type MachineObject = TransactionResult | string;
 export type PassportObject = TransactionResult;
@@ -180,7 +180,7 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0xea5fafbf0cfcdadd1d9c24b0601f6ac786598ac06df57c219e3507b178bea72e";
+                this.package = "0xf4233055f40a9f301c85c020496b58ad761fdd2cd6a5d82da7a912adb4608f7f";
                 this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
@@ -245,7 +245,8 @@ export class Protocol {
         const response = await client.signAndExecuteTransactionBlock({
             transactionBlock: txb, 
             signer: keypair,
-            options
+            options,
+            
         });
         return response;
     }

@@ -177,3 +177,28 @@ export function numToUint8Array(num:number) : Uint8Array {
     }
     return new Uint8Array(a)
 } 
+
+// 判断是否为数组
+export const isArr = (origin: any): boolean => {
+    let str = '[object Array]'
+    return Object.prototype.toString.call(origin) == str ? true : false
+}
+
+
+export const deepClone = <T>(origin: T, target?: Record<string, any> | T ): T => {
+    let tar = target || {}
+
+    for (const key in origin) {
+        if (Object.prototype.hasOwnProperty.call(origin, key)) {
+            if (typeof origin[key] === 'object' && origin[key] !== null) {
+                tar[key] = isArr(origin[key]) ? [] : {}
+                deepClone(origin[key], tar[key])
+            } else {
+                tar[key] = origin[key]
+            }
+
+        }
+    }
+
+    return tar as T
+}
