@@ -13,10 +13,13 @@ const guard_futures = async (guards) => {
     });
     await protocol_1.PROTOCOL.Query(futrue_objects); // future objects
     let future_objects_result = [];
-    futrue_objects.forEach((value) => {
-        future_objects_result = future_objects_result.concat(value.data);
+    futrue_objects.forEach((futrue) => {
+        futrue.data.forEach((f) => {
+            if (future_objects_result.findIndex((v) => { return v.guardid == f.guardid && v.identifier == f.identifier; }) == -1) {
+                future_objects_result.push(f);
+            }
+        });
     });
-    future_objects_result = (0, utils_1.array_unique)(future_objects_result); // objects in guards   
     return future_objects_result;
 };
 exports.guard_futures = guard_futures;
@@ -34,7 +37,7 @@ const guard_queries = async (guards, futures) => {
         let v = new Map();
         futures?.forEach((f) => {
             if (f.guardid == value) {
-                (0, guard_1.add_future_variable)(v, f.identifier, f.type, f.witness, f?.value, false);
+                (0, guard_1.add_future_variable)(v, f.identifier, f.type, f.witness.slice(0), f?.value ? f.value.slice(0) : undefined, true);
             }
         });
         return { objectid: value, callback: guard_1.rpc_sense_objects_fn, parser: guard_1.parse_sense_bsc, data: [], variables: futures ? v : undefined };
@@ -85,11 +88,10 @@ function verify(txb, guards, guard_queries, future_values) {
         });
     });
     future_values?.forEach((v) => {
-        console.log(v.value);
         txb.moveCall({
             target: protocol_1.PROTOCOL.PassportFn('future_set'),
             arguments: [passport, txb.pure(utils_1.BCS_CONVERT.ser_address(v.guardid)), txb.pure(utils_1.BCS_CONVERT.ser_u8(v.identifier)),
-                txb.pure([].slice.call(v.value))]
+                txb.pure(utils_1.BCS_CONVERT.ser_address(v.value))]
         });
     });
     // rules: 'verify' & 'query' in turns；'verify' at final end.

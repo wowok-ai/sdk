@@ -513,7 +513,7 @@ class SenseMaker {
         //console.log(this.type_validator);
         //this.data.forEach((value:Uint8Array) => console.log(value));
         if (this.type_validator.length != 1 || this.type_validator[0] != protocol_1.ValueType.TYPE_STATIC_bool) {
-            // console.log(this.type_validator)
+            console.log(this.type_validator);
             return false;
         } // ERROR
         let input = (0, utils_1.concatenate)(Uint8Array, ...this.data);
@@ -566,7 +566,8 @@ function parse_futures(result, guardid, chain_sense_bsc, variable) {
                 let witness = get_variable_witness(variable, identifer[0], type);
                 if (!witness)
                     return false;
-                result.push({ guardid: guardid, identifier: identifer[0], type: type, witness: Uint8Array.from(witness) });
+                result.push({ guardid: guardid, identifier: identifer[0], type: type,
+                    witness: '0x' + utils_2.BCS_CONVERT.de(bcs_1.BCS.ADDRESS, Uint8Array.from(witness)) });
                 break;
             case protocol_1.ContextType.TYPE_CONTEXT_address:
             case protocol_1.ContextType.TYPE_CONTEXT_bool:
@@ -704,10 +705,10 @@ const rpc_sense_objects_fn = (response, param, option) => {
                     let bret;
                     if (variable.type == ((0, protocol_1.OBJECTS_TYPE_PREFIX)()[index] + 'Variable')) { // ...::guard::Variable
                         if (variable.fields.type == protocol_1.OperatorType.TYPE_FUTURE_QUERY || variable.fields.type == protocol_1.ContextType.TYPE_CONTEXT_FUTURE_ID) {
-                            bret = add_future_variable(v, variable.fields.identifier, variable.fields.type, variable.fields?.value, undefined, false);
+                            bret = add_future_variable(v, variable.fields.identifier, variable.fields.type, variable.fields?.value ? Uint8Array.from(variable.fields.value) : undefined, undefined, false);
                         }
                         else {
-                            bret = add_variable(v, variable.fields.identifier, variable.fields.type, variable.fields?.value, false);
+                            bret = add_variable(v, variable.fields.identifier, variable.fields.type, variable.fields?.value ? Uint8Array.from(variable.fields.value) : undefined, false);
                         }
                         if (!bret) {
                             console.log('rpc_sense_objects_fn add_variable error');

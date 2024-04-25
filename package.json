@@ -1,6 +1,6 @@
 {
   "name": "wowok",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "AI-oriented web3 collaboration protocol, driving innovaion and making it more likely to happen.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
