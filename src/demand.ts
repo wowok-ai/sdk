@@ -1,217 +1,256 @@
-import { TransactionBlock, Inputs, type TransactionResult } from '@mysten/sui.js/transactions';
+import { type TransactionResult } from '@mysten/sui.js/transactions';
 import { BCS } from '@mysten/bcs';
-import { CLOCK_OBJECT, FnCallType, IsValidDesription, PROTOCOL, PassportObject, PermissionObject, IsValidArgType, GuardObject,
-    DemandAddress, DemandObject, TXB_OBJECT, IsValidUint, IsValidAddress, TxbObject, IsValidObjects, ServiceObject } from './protocol';
+import { FnCallType, Protocol, PassportObject, PermissionObject, GuardObject, DemandAddress, TxbObject} from './protocol.js';
+import { IsValidDesription, IsValidUint, IsValidAddress, IsValidArgType, } from './utils.js'
+import { Errors, ERROR}  from './exception.js'
+import { Service } from './service.js'
 
-export const MAX_EARNEST_COUNT = 200;
-export const MAX_PRESENTERS_COUNT = 200;
 
+export class Demand {
+    protected earnest_type;
+    protected permission ;
+    protected object : TxbObject ;
+    protected protocol;
 
-export function demand(earnest_type:string, txb:TransactionBlock, permission:PermissionObject, description:string, 
-    earnest:TransactionResult, passport?:PassportObject) : DemandObject | boolean {
-    if (!IsValidObjects([permission, earnest])) return false;
-    if (!IsValidDesription(description) || !IsValidArgType(earnest_type)) return false;
+    get_earnest_type() {  return this.earnest_type }
+    get_object() { return this.object }
 
-    if (passport) {
-        return txb.moveCall({
-            target:PROTOCOL.DemandFn('new_with_passport') as FnCallType,
-            arguments:[passport, txb.pure(description), earnest, TXB_OBJECT(txb, permission)],
-            typeArguments:[earnest_type],
-        })        
-    } else {
-        return txb.moveCall({
-            target:PROTOCOL.DemandFn('new') as FnCallType,
-            arguments:[txb.pure(description), earnest, TXB_OBJECT(txb, permission)],
-            typeArguments:[earnest_type],
-        })        
+    static From(protocol:Protocol, earnest_type:string, permission:PermissionObject, object:TxbObject) : Demand {
+        let d = new Demand(protocol,  earnest_type, permission)
+        d.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object)
+        return d
     }
-}
 
-export function launch(earnest_type:string, txb:TransactionBlock, demand:DemandObject) : DemandAddress | boolean {
-    if (!IsValidObjects([demand])) return false;
-    if (!IsValidArgType(earnest_type)) return false;
-    return txb.moveCall({
-        target:PROTOCOL.DemandFn('create') as FnCallType,
-        arguments:[TXB_OBJECT(txb, demand)],
-        typeArguments:[earnest_type],
-    })
-}
-
-export function destroy(earnest_type:string, txb:TransactionBlock, demand:DemandObject) : boolean {
-    if (!IsValidObjects([demand])) return false;
-    if (!IsValidArgType(earnest_type)) return false;
-    txb.moveCall({
-        target:PROTOCOL.DemandFn('destroy') as FnCallType,
-        arguments: [TXB_OBJECT(txb, demand)],
-        typeArguments:[earnest_type]
-    }) 
-    return true  
-}
-export function demand_refund(earnest_type:string, txb:TransactionBlock, demand:DemandObject, permission:PermissionObject, 
-    passport?:PassportObject) : boolean {
-    if (!IsValidObjects([demand, permission])) return false;
-    if (!IsValidArgType(earnest_type)) return false;
-
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.DemandFn('refund_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, demand), txb.object(CLOCK_OBJECT), TXB_OBJECT(txb, permission)],
-            typeArguments:[earnest_type],
-        })
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.DemandFn('refund') as FnCallType,
-            arguments:[TXB_OBJECT(txb, demand), txb.object(CLOCK_OBJECT), TXB_OBJECT(txb, permission)],
-            typeArguments:[earnest_type],
-        })            
+    private constructor(protocol:Protocol, earnest_type:string, permission:PermissionObject) {
+        this.earnest_type = earnest_type;
+        this.permission = permission;
+        this.protocol = protocol;
+        this.object = '';
     }
-    return true
-}
+    static New(protocol:Protocol, earnest_type:string, permission:PermissionObject, description:string, 
+        earnest:TransactionResult, passport?:PassportObject) : Demand {
+        let  d = new Demand(protocol, earnest_type, permission);
 
-export function demand_expand_time(earnest_type:string, txb:TransactionBlock, demand:DemandObject, permission:PermissionObject, 
-    minutes_duration:number, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([demand, permission])) return false;
-    if (!IsValidArgType(earnest_type)) return false;
-    if (!IsValidUint(minutes_duration)) return false;
-
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.DemandFn('time_expand_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, demand), txb.pure(minutes_duration, BCS.U64), txb.object(CLOCK_OBJECT), TXB_OBJECT(txb, permission)],
-            typeArguments:[earnest_type],
-        })  
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.DemandFn('time_expand') as FnCallType,
-            arguments:[TXB_OBJECT(txb, demand), txb.pure(minutes_duration, BCS.U64), txb.object(CLOCK_OBJECT), TXB_OBJECT(txb, permission)],
-            typeArguments:[earnest_type],
-        })          
-    }
-    return true
-}
-
-export function demand_set_guard(earnest_type:string, txb:TransactionBlock, demand:DemandObject, permission:PermissionObject, 
-    guard?:GuardObject, passport?:PassportObject) : boolean {  
-    if (!IsValidObjects([demand, permission])) return false;
-    if (!IsValidArgType(earnest_type)) return false;
-
-    if (passport) {
-        if (guard) {
-            txb.moveCall({
-                target:PROTOCOL.DemandFn('guard_set_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, demand), TXB_OBJECT(txb, guard), TXB_OBJECT(txb, permission)],
-                typeArguments:[earnest_type],
-            })            
-        } else {
-            txb.moveCall({
-                target:PROTOCOL.DemandFn('guard_none_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, demand), TXB_OBJECT(txb, permission)],
-                typeArguments:[earnest_type],
-            })               
+        if (!Protocol.IsValidObjects([permission, earnest])) {
+            ERROR(Errors.IsValidObjects, 'permission, earnest');
         }
-    } else {
-        if (guard) {
-            txb.moveCall({
-                target:PROTOCOL.DemandFn('guard_set') as FnCallType,
-                arguments:[TXB_OBJECT(txb, demand), TXB_OBJECT(txb, guard), TXB_OBJECT(txb, permission)],
+        if (!IsValidDesription(description)) {
+            ERROR(Errors.IsValidDesription);
+        } 
+        if (!IsValidArgType(earnest_type)) {
+            ERROR(Errors.IsValidArgType, earnest_type);
+        }
+
+        let txb = protocol.CurrentSession();
+        if (passport) {
+            d.object = txb.moveCall({
+                target:protocol.DemandFn('new_with_passport') as FnCallType,
+                arguments:[passport, txb.pure(description), earnest, Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments:[earnest_type],
-            })            
+            })        
+        } else {
+            d.object = txb.moveCall({
+                target:protocol.DemandFn('new') as FnCallType,
+                arguments:[txb.pure(description), earnest, Protocol.TXB_OBJECT(txb, permission)],
+                typeArguments:[earnest_type],
+            })        
+        }
+        return d
+    }
+
+    launch() : DemandAddress {
+        let txb = this.protocol.CurrentSession();
+        return txb.moveCall({
+            target:this.protocol.DemandFn('create') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(txb, this.object)],
+            typeArguments:[this.earnest_type],
+        })
+    }
+    
+    destroy() {
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target:this.protocol.DemandFn('destroy') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(txb, this.object)],
+            typeArguments:[this.earnest_type]
+        }) 
+    }
+    refund(passport?:PassportObject)  {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.DemandFn('refund_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.earnest_type],
+            })
         } else {
             txb.moveCall({
-                target:PROTOCOL.DemandFn('guard_none') as FnCallType,
-                arguments:[TXB_OBJECT(txb, demand), TXB_OBJECT(txb, permission)],
-                typeArguments:[earnest_type],
-            })               
-        }        
+                target:this.protocol.DemandFn('refund') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.earnest_type],
+            })            
+        }
     }
-    return true
-}
+    
+    expand_time(minutes_duration:number, passport?:PassportObject) {
+        if (!IsValidUint(minutes_duration)) {
+            ERROR(Errors.IsValidUint, 'minutes_duration');
+        }
 
-export function demand_set_description(earnest_type:string, txb:TransactionBlock, demand:DemandObject, 
-    permission:PermissionObject, description:string, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([demand, permission])) return false;
-    if (!IsValidArgType(earnest_type)) return false;
-    if (!IsValidDesription(description)) return false;
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.DemandFn('time_expand_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(minutes_duration, BCS.U64), 
+                    txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.earnest_type],
+            })  
+        } else {
+            txb.moveCall({
+                target:this.protocol.DemandFn('time_expand') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(minutes_duration, BCS.U64), 
+                    txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.earnest_type],
+            })          
+        }
+    }
+    
+   set_guard(guard?:GuardObject, passport?:PassportObject)  {  
+        if (guard && !Protocol.IsValidObjects([guard])) {
+            ERROR(Errors.IsValidObjects, 'guard');
+        }
+    
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            if (guard) {
+                txb.moveCall({
+                    target:this.protocol.DemandFn('guard_set_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard), 
+                        Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.earnest_type],
+                })            
+            } else {
+                txb.moveCall({
+                    target:this.protocol.DemandFn('guard_none_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.earnest_type],
+                })               
+            }
+        } else {
+            if (guard) {
+                txb.moveCall({
+                    target:this.protocol.DemandFn('guard_set') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard), 
+                        Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.earnest_type],
+                })            
+            } else {
+                txb.moveCall({
+                    target:this.protocol.DemandFn('guard_none') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.earnest_type],
+                })               
+            }        
+        }
+    }
+    
+    set_description(description:string, passport?:PassportObject) {
+        if (!IsValidDesription(description)) {
+            ERROR(Errors.IsValidDesription);
+        }
+    
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.DemandFn('description_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(description), 
+                    Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.earnest_type],
+            })    
+        } else {
+            txb.moveCall({
+                target:this.protocol.DemandFn('description_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(description), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.earnest_type],
+            })    
+        }
+        return true
+    }
+    
+    yes(service_id:string, passport?:PassportObject) {
+        if (!IsValidAddress(service_id)) {
+            ERROR(Errors.IsValidAddress)
+        }
+    
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.DemandFn('yes_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(service_id, BCS.ADDRESS), 
+                    Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.earnest_type],
+            })    
+        } else {
+            txb.moveCall({
+                target:this.protocol.DemandFn('yes') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(service_id, BCS.ADDRESS), 
+                    Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.earnest_type],
+            })    
+        }
+    }
+    
+    deposit(earnest:TxbObject)  {
+        if (!Protocol.IsValidObjects([earnest])) {
+            ERROR(Errors.IsValidObjects)
+        }
 
-    if (passport) {
+        let txb = this.protocol.CurrentSession();
         txb.moveCall({
-            target:PROTOCOL.DemandFn('description_set_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, demand), txb.pure(description), TXB_OBJECT(txb, permission)],
-            typeArguments:[earnest_type],
-        })    
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.DemandFn('description_set') as FnCallType,
-            arguments:[TXB_OBJECT(txb, demand), txb.pure(description), TXB_OBJECT(txb, permission)],
-            typeArguments:[earnest_type],
+            target:this.protocol.DemandFn('deposit') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, earnest)],
+            typeArguments:[this.earnest_type],
         })    
     }
-    return true
-}
+    
+    present(service: Service, tips:string, passport?:PassportObject) : boolean {
+        if (!IsValidDesription(tips)) {
+            ERROR(Errors.IsValidDesription, 'tips')
+        }
 
-export function demand_yes(earnest_type:string, txb:TransactionBlock, demand:DemandObject, permission:PermissionObject, 
-    service_id:string, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([demand, permission])) return false;
-    if (!IsValidArgType(earnest_type)) return false;
-    if (!IsValidAddress(service_id)) return false;
-
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.DemandFn('yes_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, demand), txb.pure(service_id, BCS.ADDRESS), TXB_OBJECT(txb, permission)],
-            typeArguments:[earnest_type],
-        })    
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.DemandFn('yes') as FnCallType,
-            arguments:[TXB_OBJECT(txb, demand), txb.pure(service_id, BCS.ADDRESS), TXB_OBJECT(txb, permission)],
-            typeArguments:[earnest_type],
-        })    
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.DemandFn('present_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, service.get_object()), 
+                    txb.pure(tips, BCS.STRING), ],
+                typeArguments:[this.earnest_type, service.get_pay_type()],
+            })   
+        } else {
+            txb.moveCall({
+                target:this.protocol.DemandFn('present') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, service.get_object()), 
+                    txb.pure(tips, BCS.STRING), ],
+                typeArguments:[this.earnest_type, service.get_pay_type()],
+            })   
+        } 
+        return true
     }
-    return true
-}
-
-export function deposit(earnest_type:string, txb:TransactionBlock, demand:DemandObject, earnest:TxbObject) : boolean {
-    if (!IsValidObjects([demand, earnest])) return false;
-    if (!IsValidArgType(earnest_type)) return false;
-    txb.moveCall({
-        target:PROTOCOL.DemandFn('deposit') as FnCallType,
-        arguments:[TXB_OBJECT(txb, demand), TXB_OBJECT(txb, earnest)],
-        typeArguments:[earnest_type],
-    })    
-    return true
-}
-
-export function present(earnest_type:string, service_type:string, txb:TransactionBlock, demand:DemandObject, 
-    service:ServiceObject, tips:string, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([demand, service])) return false;
-    if (!IsValidArgType(earnest_type)) return false;
-    if (!IsValidDesription(tips)) return false;
-
-    if (passport) {
+    change_permission(new_permission:PermissionObject)  {
+        if (!Protocol.IsValidObjects([new_permission])) {
+            ERROR(Errors.IsValidObjects)
+        }
+    
+        let txb = this.protocol.CurrentSession();
         txb.moveCall({
-            target:PROTOCOL.DemandFn('present_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, demand), TXB_OBJECT(txb, service), txb.pure(tips, BCS.STRING), ],
-            typeArguments:[earnest_type, service_type],
-        })   
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.DemandFn('present') as FnCallType,
-            arguments:[TXB_OBJECT(txb, demand), TXB_OBJECT(txb, service), txb.pure(tips, BCS.STRING), ],
-            typeArguments:[earnest_type, service_type],
-        })   
-    } 
-    return true
-}
-export function change_permission(earnest_type:string, txb:TransactionBlock, demand:DemandObject, 
-    old_permission:PermissionObject, new_permission:PermissionObject) : boolean {
-    if (!IsValidObjects([demand, old_permission, new_permission])) return false;
-    if (!IsValidArgType(earnest_type)) return false;
+            target:this.protocol.DemandFn('permission_set') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), Protocol.TXB_OBJECT(txb, new_permission)],
+            typeArguments:[this.earnest_type]            
+        })    
+        return true
+    }
 
-    txb.moveCall({
-        target:PROTOCOL.DemandFn('permission_set') as FnCallType,
-        arguments: [TXB_OBJECT(txb, demand), TXB_OBJECT(txb, old_permission), TXB_OBJECT(txb, new_permission)],
-        typeArguments:[earnest_type]            
-    })    
-    return true
+    static MAX_EARNEST_COUNT = 200;
+    static MAX_PRESENTERS_COUNT = 200;
 }
+

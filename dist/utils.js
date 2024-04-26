@@ -1,9 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.deepClone = exports.isArr = exports.numToUint8Array = exports.stringToUint8Array = exports.objectids_from_response = exports.Object_Type_Extra = exports.BCS_CONVERT = exports.Bcs = exports.parse_object_type = exports.capitalize = exports.array_unique = exports.array_equal = exports.concatenate = exports.ulebDecode = void 0;
-const bcs_1 = require("@mysten/bcs");
-const protocol_1 = require("./protocol");
-const ulebDecode = (arr) => {
+import { BCS, getSuiMoveConfig } from '@mysten/bcs';
+export const ulebDecode = (arr) => {
     let total = 0;
     let shift = 0;
     let len = 0;
@@ -22,8 +18,7 @@ const ulebDecode = (arr) => {
         length: len,
     };
 };
-exports.ulebDecode = ulebDecode;
-const concatenate = (resultConstructor, ...arrays) => {
+export const concatenate = (resultConstructor, ...arrays) => {
     let totalLength = 0;
     for (const arr of arrays) {
         totalLength += arr.length;
@@ -36,16 +31,14 @@ const concatenate = (resultConstructor, ...arrays) => {
     }
     return result;
 };
-exports.concatenate = concatenate;
-const array_equal = (arr1, arr2) => {
+export const array_equal = (arr1, arr2) => {
     // Array.some(): 有一项不满足，返回false
     if (arr1.length !== arr2.length) {
         return false;
     }
     return !arr1.some((item) => !arr2.includes(item));
 };
-exports.array_equal = array_equal;
-const array_unique = (arr) => {
+export const array_unique = (arr) => {
     var newArr = [];
     for (var i = 0; i < arr.length; i++) {
         if (newArr.indexOf(arr[i]) == -1) {
@@ -54,13 +47,11 @@ const array_unique = (arr) => {
     }
     return newArr;
 };
-exports.array_unique = array_unique;
-function capitalize(s) {
+export function capitalize(s) {
     return s && s[0].toUpperCase() + s.slice(1);
 }
-exports.capitalize = capitalize;
 // for: "0xsdjfkskf<0x2::sui::coin<xxx>, 0xfdfff<>>"
-function parse_object_type(object_data) {
+export function parse_object_type(object_data) {
     var object_type = [];
     let type_pos = object_data.indexOf('<');
     if (type_pos >= 0) {
@@ -69,9 +60,8 @@ function parse_object_type(object_data) {
     }
     return object_type;
 }
-exports.parse_object_type = parse_object_type;
-class Bcs {
-    bcs = new bcs_1.BCS((0, bcs_1.getSuiMoveConfig)());
+export class Bcs {
+    bcs = new BCS(getSuiMoveConfig());
     constructor() {
         this.bcs.registerEnumType('Option<T>', {
             'none': null,
@@ -100,63 +90,26 @@ class Bcs {
         return this.bcs.ser('vector<u8>', data).toBytes();
     }
     ser_address(data) {
-        return this.bcs.ser(bcs_1.BCS.ADDRESS, data).toBytes();
+        return this.bcs.ser(BCS.ADDRESS, data).toBytes();
     }
     ser_bool(data) {
-        return this.bcs.ser(bcs_1.BCS.BOOL, data).toBytes();
+        return this.bcs.ser(BCS.BOOL, data).toBytes();
     }
     ser_u8(data) {
-        return this.bcs.ser(bcs_1.BCS.U8, data).toBytes();
+        return this.bcs.ser(BCS.U8, data).toBytes();
     }
     ser_u64(data) {
-        return this.bcs.ser(bcs_1.BCS.U64, data).toBytes();
+        return this.bcs.ser(BCS.U64, data).toBytes();
     }
     ser_string(data) {
-        return this.bcs.ser(bcs_1.BCS.STRING, data).toBytes();
+        return this.bcs.ser(BCS.STRING, data).toBytes();
     }
     de(type, data) {
         return this.bcs.de(type, data);
     }
 }
-exports.Bcs = Bcs;
-exports.BCS_CONVERT = new Bcs();
-const Object_Type_Extra = () => {
-    let names = Object.keys(protocol_1.MODULES).map((key) => { return key + '::' + capitalize(key); });
-    names.push('order::Discount');
-    return names;
-};
-exports.Object_Type_Extra = Object_Type_Extra;
-const objectids_from_response = (response, concat_result) => {
-    let ret = new Map();
-    if (response?.objectChanges) {
-        response.objectChanges.forEach((change) => {
-            (0, exports.Object_Type_Extra)().forEach((name) => {
-                let type = protocol_1.PROTOCOL.Package() + '::' + name;
-                if (change.type == 'created' && change.objectType.includes(type)) {
-                    if (ret.has(name)) {
-                        ret.get(name)?.push(change.objectId);
-                    }
-                    else {
-                        ret.set(name, [change.objectId]);
-                    }
-                }
-            });
-        });
-    }
-    if (concat_result) {
-        ret.forEach((value, key) => {
-            if (concat_result.has(key)) {
-                concat_result.set(key, concat_result.get(key).concat(value));
-            }
-            else {
-                concat_result.set(key, value);
-            }
-        });
-    }
-    return ret;
-};
-exports.objectids_from_response = objectids_from_response;
-function stringToUint8Array(str) {
+export const BCS_CONVERT = new Bcs();
+export function stringToUint8Array(str) {
     var arr = [];
     for (var i = 0, j = str.length; i < j; ++i) {
         arr.push(str.charCodeAt(i));
@@ -164,8 +117,7 @@ function stringToUint8Array(str) {
     var tmpUint8Array = new Uint8Array(arr);
     return tmpUint8Array;
 }
-exports.stringToUint8Array = stringToUint8Array;
-function numToUint8Array(num) {
+export function numToUint8Array(num) {
     if (!num)
         return new Uint8Array(0);
     const a = [];
@@ -176,20 +128,18 @@ function numToUint8Array(num) {
     }
     return new Uint8Array(a);
 }
-exports.numToUint8Array = numToUint8Array;
 // 判断是否为数组
-const isArr = (origin) => {
+export const isArr = (origin) => {
     let str = '[object Array]';
     return Object.prototype.toString.call(origin) == str ? true : false;
 };
-exports.isArr = isArr;
-const deepClone = (origin, target) => {
+export const deepClone = (origin, target) => {
     let tar = target || {};
     for (const key in origin) {
         if (Object.prototype.hasOwnProperty.call(origin, key)) {
             if (typeof origin[key] === 'object' && origin[key] !== null) {
-                tar[key] = (0, exports.isArr)(origin[key]) ? [] : {};
-                (0, exports.deepClone)(origin[key], tar[key]);
+                tar[key] = isArr(origin[key]) ? [] : {};
+                deepClone(origin[key], tar[key]);
             }
             else {
                 tar[key] = origin[key];
@@ -198,4 +148,30 @@ const deepClone = (origin, target) => {
     }
     return tar;
 };
-exports.deepClone = deepClone;
+export const MAX_DESCRIPTION_LENGTH = 1024;
+export const MAX_NAME_LENGTH = 64;
+export const MAX_ENDPOINT_LENGTH = 1024;
+// export const OptionNone = (txb:TransactionBlock) : TransactionArgument => { return txb.pure([], BCS.U8) };
+export const IsValidDesription = (description) => { return description?.length <= MAX_DESCRIPTION_LENGTH; };
+export const IsValidName = (name) => { if (!name)
+    return false; return name.length <= MAX_NAME_LENGTH && name.length != 0; };
+export const IsValidName_AllowEmpty = (name) => { return name.length <= MAX_NAME_LENGTH; };
+export const IsValidEndpoint = (endpoint) => { if (!endpoint)
+    return false; return endpoint.length <= MAX_ENDPOINT_LENGTH; };
+export const IsValidAddress = (addr) => { if (!addr)
+    return false; return true; };
+export const IsValidArgType = (argType) => { if (!argType)
+    return false; return argType.length != 0; };
+export const IsValidUint = (value) => { return Number.isSafeInteger(value) && value != 0; };
+export const IsValidInt = (value) => { return Number.isSafeInteger(value); };
+export const IsValidPercent = (value) => { return Number.isSafeInteger(value) && value > 0 && value <= 100; };
+export const IsValidArray = (arr, validFunc) => {
+    let bValid = true;
+    arr.forEach((v) => {
+        if (!validFunc(v)) {
+            bValid = false;
+        }
+    });
+    return bValid;
+};
+export const OptionNone = (txb) => { return txb.pure([], BCS.U8); };

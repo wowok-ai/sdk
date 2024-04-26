@@ -1,299 +1,281 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.change_permission = exports.deposit = exports.claim = exports.reward_lock_guards = exports.reward_set_description = exports.allow_repeat_claim = exports.reward_remove_guard = exports.reward_add_guard = exports.reward_expand_time = exports.reward_refund = exports.destroy = exports.launch = exports.reward = exports.MAX_PORTIONS_COUNT = void 0;
-const bcs_1 = require("@mysten/bcs");
-const protocol_1 = require("./protocol");
-const utils_1 = require("./utils");
-exports.MAX_PORTIONS_COUNT = 255;
-function reward(reward_type, txb, permission, description, minutes_duration, passport) {
-    if (!(0, protocol_1.IsValidObjects)([permission]))
-        return false;
-    if (!(0, protocol_1.IsValidArgType)(reward_type))
-        return false;
-    if (!(0, protocol_1.IsValidDesription)(description))
-        return false;
-    if (!(0, protocol_1.IsValidUint)(minutes_duration))
-        return false;
-    if (passport) {
+import { BCS } from '@mysten/bcs';
+import { Protocol, } from './protocol.js';
+import { array_unique, IsValidAddress, IsValidArgType, IsValidArray, IsValidDesription, IsValidUint, } from './utils.js';
+import { ERROR, Errors } from './exception.js';
+export class Reward {
+    earnest_type;
+    permission;
+    object;
+    protocol;
+    get_earnest_type() { return this.earnest_type; }
+    get_object() { return this.object; }
+    constructor(protocol, earnest_type, permission) {
+        this.protocol = protocol;
+        this.earnest_type = earnest_type;
+        this.permission = permission;
+        this.object = '';
+    }
+    static From(protocol, earnest_type, permission, object) {
+        let r = new Reward(protocol, earnest_type, permission);
+        r.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object);
+        return r;
+    }
+    static New(protocol, earnest_type, permission, description, minutes_duration, passport) {
+        let r = new Reward(protocol, earnest_type, permission);
+        if (!Protocol.IsValidObjects([permission])) {
+            ERROR(Errors.IsValidObjects, 'permission');
+        }
+        if (!IsValidArgType(earnest_type)) {
+            ERROR(Errors.IsValidArgType, 'earnest_type');
+        }
+        if (!IsValidDesription(description)) {
+            ERROR(Errors.IsValidDesription);
+        }
+        if (!IsValidUint(minutes_duration)) {
+            ERROR(Errors.IsValidUint, 'minutes_duration');
+        }
+        let txb = protocol.CurrentSession();
+        if (passport) {
+            r.object = txb.moveCall({
+                target: protocol.RewardFn('new_with_passport'),
+                arguments: [passport, txb.pure(description), txb.pure(minutes_duration, BCS.U64),
+                    txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, permission)],
+                typeArguments: [earnest_type]
+            });
+        }
+        else {
+            r.object = txb.moveCall({
+                target: protocol.RewardFn('new'),
+                arguments: [txb.pure(description), txb.pure(minutes_duration, BCS.U64),
+                    txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, permission)],
+                typeArguments: [earnest_type]
+            });
+        }
+        return r;
+    }
+    launch() {
+        let txb = this.protocol.CurrentSession();
         return txb.moveCall({
-            target: protocol_1.PROTOCOL.RewardFn('new_with_passport'),
-            arguments: [passport, txb.pure(description), txb.pure(minutes_duration, bcs_1.BCS.U64),
-                txb.object(protocol_1.CLOCK_OBJECT), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-            typeArguments: [reward_type]
+            target: this.protocol.RewardFn('create'),
+            arguments: [Protocol.TXB_OBJECT(txb, this.object)],
+            typeArguments: [this.earnest_type]
         });
     }
-    else {
-        return txb.moveCall({
-            target: protocol_1.PROTOCOL.RewardFn('new'),
-            arguments: [txb.pure(description), txb.pure(minutes_duration, bcs_1.BCS.U64),
-                txb.object(protocol_1.CLOCK_OBJECT), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-            typeArguments: [reward_type]
-        });
-    }
-}
-exports.reward = reward;
-function launch(reward_type, txb, reward) {
-    if (!(0, protocol_1.IsValidObjects)([reward]))
-        return false;
-    if (!(0, protocol_1.IsValidArgType)(reward_type))
-        return false;
-    return txb.moveCall({
-        target: protocol_1.PROTOCOL.RewardFn('create'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, reward)],
-        typeArguments: [reward_type]
-    });
-}
-exports.launch = launch;
-function destroy(reward_type, txb, reward) {
-    if (!(0, protocol_1.IsValidObjects)([reward]))
-        return false;
-    if (!(0, protocol_1.IsValidArgType)(reward_type))
-        return false;
-    txb.moveCall({
-        target: protocol_1.PROTOCOL.RewardFn('destroy'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, reward)],
-    });
-    return true;
-}
-exports.destroy = destroy;
-function reward_refund(reward_type, txb, reward, permission, passport) {
-    if (!(0, protocol_1.IsValidObjects)([reward, permission]))
-        return false;
-    if (!(0, protocol_1.IsValidArgType)(reward_type))
-        return false;
-    if (passport) {
+    destroy() {
+        let txb = this.protocol.CurrentSession();
         txb.moveCall({
-            target: protocol_1.PROTOCOL.RewardFn('refund_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, reward), txb.object(protocol_1.CLOCK_OBJECT), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-            typeArguments: [reward_type]
+            target: this.protocol.RewardFn('destroy'),
+            arguments: [Protocol.TXB_OBJECT(txb, this.object)],
         });
     }
-    else {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.RewardFn('refund'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, reward), txb.object(protocol_1.CLOCK_OBJECT), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-            typeArguments: [reward_type]
-        });
-    }
-    return true;
-}
-exports.reward_refund = reward_refund;
-function reward_expand_time(reward_type, txb, reward, permission, minutes_expand, passport) {
-    if (!(0, protocol_1.IsValidObjects)([reward, permission]))
-        return false;
-    if (!(0, protocol_1.IsValidArgType)(reward_type))
-        return false;
-    if (!(0, protocol_1.IsValidUint)(minutes_expand))
-        return false;
-    if (passport) {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.RewardFn('time_expand_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, reward), txb.pure(minutes_expand, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-            typeArguments: [reward_type]
-        });
-    }
-    else {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.RewardFn('time_expand'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, reward), txb.pure(minutes_expand, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-            typeArguments: [reward_type]
-        });
-    }
-    return true;
-}
-exports.reward_expand_time = reward_expand_time;
-function reward_add_guard(reward_type, txb, reward, permission, gurads, passport) {
-    if (!(0, protocol_1.IsValidObjects)([reward, permission]))
-        return false;
-    if (!(0, protocol_1.IsValidArgType)(reward_type))
-        return false;
-    if (!gurads)
-        return false;
-    let bValid = true;
-    gurads.forEach((v) => {
-        if (!(0, protocol_1.IsValidUint)(v.portions) || v.portions > exports.MAX_PORTIONS_COUNT)
-            bValid = false;
-        if (!(0, protocol_1.IsValidObjects)([v.guard]))
-            bValid = false;
-    });
-    if (!bValid)
-        return false;
-    if (passport) {
-        gurads.forEach((guard) => txb.moveCall({
-            target: protocol_1.PROTOCOL.RewardFn('guard_add_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, reward), (0, protocol_1.TXB_OBJECT)(txb, guard.guard), txb.pure(guard.portions, bcs_1.BCS.U8), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-            typeArguments: [reward_type]
-        }));
-    }
-    else {
-        gurads.forEach((guard) => txb.moveCall({
-            target: protocol_1.PROTOCOL.RewardFn('guard_add'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, reward), (0, protocol_1.TXB_OBJECT)(txb, guard.guard), txb.pure(guard.portions, bcs_1.BCS.U8), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-            typeArguments: [reward_type]
-        }));
-    }
-    return true;
-}
-exports.reward_add_guard = reward_add_guard;
-function reward_remove_guard(reward_type, txb, reward, permission, guards, removeall, passport) {
-    if (!(0, protocol_1.IsValidObjects)([reward, permission]))
-        return false;
-    if (!(0, protocol_1.IsValidArgType)(reward_type))
-        return false;
-    if (!removeall && !guards)
-        return false;
-    if (guards && !(0, protocol_1.IsValidArray)(guards, protocol_1.IsValidAddress))
-        return false;
-    if (passport) {
-        if (removeall) {
+    refund(passport) {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
             txb.moveCall({
-                target: protocol_1.PROTOCOL.RewardFn('guard_remove_all_with_passport'),
-                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, reward), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-                typeArguments: [reward_type]
+                target: this.protocol.RewardFn('refund_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments: [this.earnest_type]
             });
         }
         else {
             txb.moveCall({
-                target: protocol_1.PROTOCOL.RewardFn('guard_remove_with_passport'),
-                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, reward), txb.pure((0, utils_1.array_unique)(guards), 'vector<address>'), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-                typeArguments: [reward_type]
+                target: this.protocol.RewardFn('refund'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments: [this.earnest_type]
             });
         }
     }
-    else {
-        if (removeall) {
+    expand_time(minutes_expand, passport) {
+        if (!IsValidUint(minutes_expand)) {
+            ERROR(Errors.IsValidUint, 'minutes_expand');
+        }
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
             txb.moveCall({
-                target: protocol_1.PROTOCOL.RewardFn('guard_remove_all'),
-                arguments: [(0, protocol_1.TXB_OBJECT)(txb, reward), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-                typeArguments: [reward_type]
+                target: this.protocol.RewardFn('time_expand_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(minutes_expand, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments: [this.earnest_type]
             });
         }
         else {
             txb.moveCall({
-                target: protocol_1.PROTOCOL.RewardFn('guard_remove'),
-                arguments: [(0, protocol_1.TXB_OBJECT)(txb, reward), txb.pure(guards, 'vector<address>'), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-                typeArguments: [reward_type]
+                target: this.protocol.RewardFn('time_expand'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(minutes_expand, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments: [this.earnest_type]
             });
         }
     }
-    return true;
+    add_guard(gurads, passport) {
+        if (!gurads) {
+            ERROR(Errors.InvalidParam, 'gurads');
+        }
+        let bValid = true;
+        gurads.forEach((v) => {
+            if (!IsValidUint(v.portions) || v.portions > Reward.MAX_PORTIONS_COUNT)
+                bValid = false;
+            if (!Protocol.IsValidObjects([v.guard]))
+                bValid = false;
+        });
+        if (!bValid) {
+            ERROR(Errors.InvalidParam, 'gurads');
+        }
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            gurads.forEach((guard) => txb.moveCall({
+                target: this.protocol.RewardFn('guard_add_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object),
+                    Protocol.TXB_OBJECT(txb, guard.guard), txb.pure(guard.portions, BCS.U8),
+                    Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments: [this.earnest_type]
+            }));
+        }
+        else {
+            gurads.forEach((guard) => txb.moveCall({
+                target: this.protocol.RewardFn('guard_add'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard.guard),
+                    txb.pure(guard.portions, BCS.U8), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments: [this.earnest_type]
+            }));
+        }
+    }
+    remove_guard(guards, removeall, passport) {
+        if (!removeall && !guards) {
+            ERROR(Errors.AllInvalid, 'guards & removeall');
+        }
+        if (guards && !IsValidArray(guards, IsValidAddress)) {
+            ERROR(Errors.IsValidArray, 'guards');
+        }
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            if (removeall) {
+                txb.moveCall({
+                    target: this.protocol.RewardFn('guard_remove_all_with_passport'),
+                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments: [this.earnest_type]
+                });
+            }
+            else {
+                txb.moveCall({
+                    target: this.protocol.RewardFn('guard_remove_with_passport'),
+                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(guards), 'vector<address>'),
+                        Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments: [this.earnest_type]
+                });
+            }
+        }
+        else {
+            if (removeall) {
+                txb.moveCall({
+                    target: this.protocol.RewardFn('guard_remove_all'),
+                    arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments: [this.earnest_type]
+                });
+            }
+            else {
+                txb.moveCall({
+                    target: this.protocol.RewardFn('guard_remove'),
+                    arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(guards, 'vector<address>'),
+                        Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments: [this.earnest_type]
+                });
+            }
+        }
+    }
+    allow_repeat_claim(allow_repeat_claim, passport) {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target: this.protocol.RewardFn('allow_repeat_claim_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission),
+                    txb.pure(allow_repeat_claim, BCS.BOOL)],
+                typeArguments: [this.earnest_type]
+            });
+        }
+        else {
+            txb.moveCall({
+                target: this.protocol.RewardFn('allow_repeat_claim'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission),
+                    txb.pure(allow_repeat_claim, BCS.BOOL)],
+                typeArguments: [this.earnest_type]
+            });
+        }
+    }
+    set_description(description, passport) {
+        if (!IsValidDesription(description)) {
+            ERROR(Errors.IsValidDesription);
+        }
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target: this.protocol.RewardFn('description_set_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(description), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments: [this.earnest_type]
+            });
+        }
+        else {
+            txb.moveCall({
+                target: this.protocol.RewardFn('description_set'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(description), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments: [this.earnest_type]
+            });
+        }
+    }
+    lock_guards(passport) {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target: this.protocol.RewardFn('guard_lock_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments: [this.earnest_type]
+            });
+        }
+        else {
+            txb.moveCall({
+                target: this.protocol.RewardFn('guard_lock'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments: [this.earnest_type]
+            });
+        }
+    }
+    claim(passport) {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target: this.protocol.RewardFn('claim_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.object(Protocol.CLOCK_OBJECT)],
+                typeArguments: [this.earnest_type]
+            });
+        }
+        else {
+            txb.moveCall({
+                target: this.protocol.RewardFn('claim'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.object(Protocol.CLOCK_OBJECT)],
+                typeArguments: [this.earnest_type]
+            });
+        }
+        ;
+    }
+    deposit(rewards) {
+        if (!rewards || !Protocol.IsValidObjects(rewards)) {
+            ERROR(Errors.IsValidArray);
+        }
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target: this.protocol.RewardFn('deposit'),
+            arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.makeMoveVec({ objects: array_unique(rewards) })],
+            typeArguments: [this.earnest_type]
+        });
+    }
+    change_permission(new_permission) {
+        if (!Protocol.IsValidObjects([new_permission])) {
+            ERROR(Errors.IsValidObjects);
+        }
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target: this.protocol.RewardFn('this.permission_set'),
+            arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), Protocol.TXB_OBJECT(txb, new_permission)],
+            typeArguments: [this.earnest_type]
+        });
+    }
+    static MAX_PORTIONS_COUNT = 255;
 }
-exports.reward_remove_guard = reward_remove_guard;
-function allow_repeat_claim(reward_type, txb, reward, permission, allow_repeat_claim, passport) {
-    if (!(0, protocol_1.IsValidObjects)([reward, permission]))
-        return false;
-    if (!(0, protocol_1.IsValidArgType)(reward_type))
-        return false;
-    if (passport) {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.RewardFn('allow_repeat_claim_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, reward), (0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure(allow_repeat_claim, bcs_1.BCS.BOOL)],
-            typeArguments: [reward_type]
-        });
-    }
-    else {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.RewardFn('allow_repeat_claim'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, reward), (0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure(allow_repeat_claim, bcs_1.BCS.BOOL)],
-            typeArguments: [reward_type]
-        });
-    }
-    return true;
-}
-exports.allow_repeat_claim = allow_repeat_claim;
-function reward_set_description(reward_type, txb, reward, permission, description, passport) {
-    if (!(0, protocol_1.IsValidObjects)([reward, permission]))
-        return false;
-    if (!(0, protocol_1.IsValidArgType)(reward_type))
-        return false;
-    if (!(0, protocol_1.IsValidDesription)(description))
-        return false;
-    if (passport) {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.RewardFn('description_set_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, reward), txb.pure(description), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-            typeArguments: [reward_type]
-        });
-    }
-    else {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.RewardFn('description_set'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, reward), txb.pure(description), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-            typeArguments: [reward_type]
-        });
-    }
-    return true;
-}
-exports.reward_set_description = reward_set_description;
-function reward_lock_guards(reward_type, txb, reward, permission, passport) {
-    if (!(0, protocol_1.IsValidObjects)([reward, permission]))
-        return false;
-    if (!(0, protocol_1.IsValidArgType)(reward_type))
-        return false;
-    if (passport) {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.RewardFn('guard_lock_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, reward), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-            typeArguments: [reward_type]
-        });
-    }
-    else {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.RewardFn('guard_lock'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, reward), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-            typeArguments: [reward_type]
-        });
-    }
-    return true;
-}
-exports.reward_lock_guards = reward_lock_guards;
-function claim(reward_type, txb, reward, passport) {
-    if (!(0, protocol_1.IsValidObjects)([reward]))
-        return false;
-    if (!(0, protocol_1.IsValidArgType)(reward_type))
-        return false;
-    if (passport) {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.RewardFn('claim_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, reward), txb.object(protocol_1.CLOCK_OBJECT)],
-            typeArguments: [reward_type]
-        });
-    }
-    else {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.RewardFn('claim'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, reward), txb.object(protocol_1.CLOCK_OBJECT)],
-            typeArguments: [reward_type]
-        });
-    }
-    return true;
-}
-exports.claim = claim;
-function deposit(reward_type, txb, reward, rewards) {
-    if (!(0, protocol_1.IsValidObjects)([reward]))
-        return false;
-    if (!(0, protocol_1.IsValidArgType)(reward_type))
-        return false;
-    if (!rewards && !(0, protocol_1.IsValidObjects)(rewards))
-        return false;
-    txb.moveCall({
-        target: protocol_1.PROTOCOL.RewardFn('deposit'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, reward), txb.makeMoveVec({ objects: (0, utils_1.array_unique)(rewards) })],
-        typeArguments: [reward_type]
-    });
-    return true;
-}
-exports.deposit = deposit;
-function change_permission(reward_type, txb, reward, old_permission, new_permission) {
-    if (!(0, protocol_1.IsValidObjects)([reward, old_permission, new_permission]))
-        return false;
-    if (!(0, protocol_1.IsValidArgType)(reward_type))
-        return false;
-    txb.moveCall({
-        target: protocol_1.PROTOCOL.RewardFn('permission_set'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, reward), (0, protocol_1.TXB_OBJECT)(txb, old_permission), (0, protocol_1.TXB_OBJECT)(txb, new_permission)],
-        typeArguments: [reward_type]
-    });
-    return true;
-}
-exports.change_permission = change_permission;

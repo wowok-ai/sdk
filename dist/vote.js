@@ -1,351 +1,365 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.change_permission = exports.agree = exports.vote_lock_guard = exports.vote_expand_deadline = exports.vote_lock_deadline = exports.vote_open_voting = exports.vote_set_max_choice_count = exports.vote_remove_option = exports.vote_add_option = exports.vote_remove_guard = exports.vote_add_guard = exports.vote_set_reference = exports.vote_set_description = exports.destroy = exports.launch = exports.vote = exports.MAX_CHOICE_COUNT = exports.MAX_AGREES_COUNT = void 0;
-const bcs_1 = require("@mysten/bcs");
-const protocol_1 = require("./protocol");
-const utils_1 = require("./utils");
-exports.MAX_AGREES_COUNT = 200;
-exports.MAX_CHOICE_COUNT = 200;
-function vote(txb, permission, description, minutes_duration, max_choice_count, reference_address, passport) {
-    if (!(0, protocol_1.IsValidObjects)([permission]))
-        return false;
-    if (!(0, protocol_1.IsValidDesription)(description))
-        return false;
-    if (!(0, protocol_1.IsValidUint)(minutes_duration))
-        return false;
-    if (max_choice_count && !(0, protocol_1.IsValidUint)(max_choice_count))
-        return false;
-    if (max_choice_count && max_choice_count > exports.MAX_CHOICE_COUNT)
-        return false;
-    if (reference_address && !(0, protocol_1.IsValidAddress)(reference_address))
-        return false;
-    let reference = reference_address ? txb.pure(utils_1.BCS_CONVERT.ser_option_address(reference_address)) : (0, protocol_1.OptionNone)(txb);
-    let choice_count = max_choice_count ? max_choice_count : 1;
-    if (passport) {
-        return txb.moveCall({
-            target: protocol_1.PROTOCOL.VoteFn('new_with_passport'),
-            arguments: [passport, txb.pure(description), reference, txb.pure(protocol_1.CLOCK_OBJECT),
-                txb.pure(minutes_duration, bcs_1.BCS.U64), txb.pure(choice_count, bcs_1.BCS.U8), (0, protocol_1.TXB_OBJECT)(txb, permission)]
-        });
+import { BCS } from '@mysten/bcs';
+import { Protocol } from './protocol.js';
+import { IsValidDesription, IsValidUint, IsValidAddress, OptionNone, BCS_CONVERT, array_unique, IsValidArray, IsValidName } from './utils.js';
+import { ERROR, Errors } from './exception.js';
+export const MAX_AGREES_COUNT = 200;
+export const MAX_CHOICE_COUNT = 200;
+export class Vote {
+    permission;
+    object;
+    protocol;
+    get_object() { return this.object; }
+    constructor(protocol, permission) {
+        this.object = '';
+        this.protocol = protocol;
+        this.permission = permission;
     }
-    else {
-        return txb.moveCall({
-            target: protocol_1.PROTOCOL.VoteFn('new'),
-            arguments: [txb.pure(description), reference, txb.pure(protocol_1.CLOCK_OBJECT),
-                txb.pure(minutes_duration, bcs_1.BCS.U64), txb.pure(choice_count, bcs_1.BCS.U8), (0, protocol_1.TXB_OBJECT)(txb, permission)]
-        });
+    static From(protocol, permission, object) {
+        let v = new Vote(protocol, permission);
+        v.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object);
+        return v;
     }
-}
-exports.vote = vote;
-function launch(txb, vote) {
-    if (!(0, protocol_1.IsValidObjects)([vote]))
-        return false;
-    return txb.moveCall({
-        target: protocol_1.PROTOCOL.VoteFn('create'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote)]
-    });
-}
-exports.launch = launch;
-function destroy(txb, vote) {
-    if (!(0, protocol_1.IsValidObjects)([vote]))
-        return false;
-    txb.moveCall({
-        target: protocol_1.PROTOCOL.VoteFn('destroy'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote)]
-    });
-    return true;
-}
-exports.destroy = destroy;
-function vote_set_description(txb, vote, permission, description, passport) {
-    if (!(0, protocol_1.IsValidObjects)([vote, permission]))
-        return false;
-    if (!(0, protocol_1.IsValidDesription)(description))
-        return false;
-    if (passport) {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.VoteFn('description_set_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure(description), (0, protocol_1.TXB_OBJECT)(txb, permission)]
-        });
-    }
-    else {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.VoteFn('description_set'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure(description), (0, protocol_1.TXB_OBJECT)(txb, permission)]
-        });
-    }
-    return true;
-}
-exports.vote_set_description = vote_set_description;
-function vote_set_reference(txb, vote, permission, reference_address, passport) {
-    if (!(0, protocol_1.IsValidObjects)([vote, permission]))
-        return false;
-    if (reference_address && !(0, protocol_1.IsValidAddress)(reference_address))
-        return false;
-    let reference = reference_address ? txb.pure(utils_1.BCS_CONVERT.ser_option_address(reference_address)) : (0, protocol_1.OptionNone)(txb);
-    if (passport) {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.VoteFn('reference_set_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, vote), reference, (0, protocol_1.TXB_OBJECT)(txb, permission)]
-        });
-    }
-    else {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.VoteFn('reference_set'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote), reference, (0, protocol_1.TXB_OBJECT)(txb, permission)]
-        });
-    }
-    return true;
-}
-exports.vote_set_reference = vote_set_reference;
-function vote_add_guard(txb, vote, permission, guard, vote_weight, passport) {
-    if (!(0, protocol_1.IsValidObjects)([vote, permission, guard]))
-        return false;
-    if (!(0, protocol_1.IsValidUint)(vote_weight))
-        return false;
-    if (passport) {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.VoteFn('guard_add_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, vote), (0, protocol_1.TXB_OBJECT)(txb, guard), txb.pure(vote_weight, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission)]
-        });
-    }
-    else {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.VoteFn('guard_add'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote), (0, protocol_1.TXB_OBJECT)(txb, guard), txb.pure(vote_weight, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission)]
-        });
-    }
-    return true;
-}
-exports.vote_add_guard = vote_add_guard;
-function vote_remove_guard(txb, vote, permission, guard_address, removeall, passport) {
-    if (!(0, protocol_1.IsValidObjects)([vote, permission]))
-        return false;
-    if (!removeall && !guard_address)
-        return false;
-    if (guard_address && !(0, protocol_1.IsValidArray)(guard_address, protocol_1.IsValidAddress))
-        return false;
-    if (passport) {
-        if (removeall) {
-            txb.moveCall({
-                target: protocol_1.PROTOCOL.VoteFn('guard_remove_all_with_passport'),
-                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, vote), (0, protocol_1.TXB_OBJECT)(txb, permission)]
+    static New(protocol, permission, description, minutes_duration, max_choice_count, reference_address, passport) {
+        let v = new Vote(protocol, permission);
+        if (!Protocol.IsValidObjects([permission])) {
+            ERROR(Errors.IsValidObjects, 'permission');
+        }
+        if (!IsValidDesription(description)) {
+            ERROR(Errors.IsValidDesription);
+        }
+        if (!IsValidUint(minutes_duration)) {
+            ERROR(Errors.IsValidUint, 'minutes_duration');
+        }
+        if (max_choice_count && !IsValidUint(max_choice_count)) {
+            ERROR(Errors.IsValidUint, 'max_choice_count');
+        }
+        if (max_choice_count && max_choice_count > MAX_CHOICE_COUNT) {
+            ERROR(Errors.InvalidParam, 'max_choice_count');
+        }
+        if (reference_address && !IsValidAddress(reference_address)) {
+            ERROR(Errors.IsValidAddress, 'reference_address');
+        }
+        let txb = protocol.CurrentSession();
+        let reference = reference_address ? txb.pure(BCS_CONVERT.ser_option_address(reference_address)) : OptionNone(txb);
+        let choice_count = max_choice_count ? max_choice_count : 1;
+        if (passport) {
+            v.object = txb.moveCall({
+                target: protocol.VoteFn('new_with_passport'),
+                arguments: [passport, txb.pure(description), reference, txb.pure(Protocol.CLOCK_OBJECT),
+                    txb.pure(minutes_duration, BCS.U64), txb.pure(choice_count, BCS.U8), Protocol.TXB_OBJECT(txb, permission)]
             });
         }
         else {
-            txb.moveCall({
-                target: protocol_1.PROTOCOL.VoteFn('guard_remove_with_passport'),
-                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure((0, utils_1.array_unique)(guard_address), 'vector<address>'), (0, protocol_1.TXB_OBJECT)(txb, permission)]
+            v.object = txb.moveCall({
+                target: protocol.VoteFn('new'),
+                arguments: [txb.pure(description), reference, txb.pure(Protocol.CLOCK_OBJECT),
+                    txb.pure(minutes_duration, BCS.U64), txb.pure(choice_count, BCS.U8), Protocol.TXB_OBJECT(txb, permission)]
             });
         }
+        return v;
     }
-    else {
-        if (removeall) {
-            txb.moveCall({
-                target: protocol_1.PROTOCOL.VoteFn('guard_remove_all'),
-                arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote), (0, protocol_1.TXB_OBJECT)(txb, permission)]
-            });
-        }
-        else {
-            txb.moveCall({
-                target: protocol_1.PROTOCOL.VoteFn('guard_remove'),
-                arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure((0, utils_1.array_unique)(guard_address), 'vector<address>'), (0, protocol_1.TXB_OBJECT)(txb, permission)]
-            });
-        }
+    launch() {
+        let txb = this.protocol.CurrentSession();
+        return txb.moveCall({
+            target: this.protocol.VoteFn('create'),
+            arguments: [Protocol.TXB_OBJECT(txb, this.object)]
+        });
     }
-    return true;
-}
-exports.vote_remove_guard = vote_remove_guard;
-function vote_add_option(txb, vote, permission, options, passport) {
-    if (!(0, protocol_1.IsValidObjects)([vote, permission]))
-        return false;
-    if (!options)
-        return false;
-    let bValid = true;
-    options.forEach((v) => {
-        if (!(0, protocol_1.IsValidName)(v.name))
-            bValid = false;
-        if (v?.reference_address && (0, protocol_1.IsValidAddress)(v.reference_address))
-            bValid = false;
-    });
-    if (!bValid)
-        return false;
-    options.forEach((option) => {
-        let reference = option?.reference_address ? txb.pure(utils_1.BCS_CONVERT.ser_option_address(option.reference_address)) : (0, protocol_1.OptionNone)(txb);
+    destroy() {
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target: this.protocol.VoteFn('destroy'),
+            arguments: [Protocol.TXB_OBJECT(txb, this.object)]
+        });
+    }
+    set_description(description, passport) {
+        if (!IsValidDesription(description)) {
+            ERROR(Errors.IsValidDesription);
+        }
+        let txb = this.protocol.CurrentSession();
         if (passport) {
             txb.moveCall({
-                target: protocol_1.PROTOCOL.VoteFn('agrees_add_with_passport'),
-                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure(option.name), reference, (0, protocol_1.TXB_OBJECT)(txb, permission)]
+                target: this.protocol.VoteFn('description_set_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(description), Protocol.TXB_OBJECT(txb, this.permission)]
             });
         }
         else {
             txb.moveCall({
-                target: protocol_1.PROTOCOL.VoteFn('agrees_add'),
-                arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure(option.name), reference, (0, protocol_1.TXB_OBJECT)(txb, permission)]
+                target: this.protocol.VoteFn('description_set'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(description), Protocol.TXB_OBJECT(txb, this.permission)]
             });
         }
-    });
-    return true;
-}
-exports.vote_add_option = vote_add_option;
-function vote_remove_option(txb, vote, permission, options, removeall, passport) {
-    if (!(0, protocol_1.IsValidObjects)([vote, permission]))
-        return false;
-    if (!removeall && !options)
-        return false;
-    if (options && !(0, protocol_1.IsValidArray)(options, protocol_1.IsValidAddress))
-        return false;
-    if (passport) {
-        if (removeall) {
+    }
+    set_reference(reference_address, passport) {
+        if (reference_address && !IsValidAddress(reference_address)) {
+            ERROR(Errors.IsValidAddress);
+        }
+        let txb = this.protocol.CurrentSession();
+        let reference = reference_address ? txb.pure(BCS_CONVERT.ser_option_address(reference_address)) : OptionNone(txb);
+        if (passport) {
             txb.moveCall({
-                target: protocol_1.PROTOCOL.VoteFn('agrees_remove_all_with_passport'),
-                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, vote), (0, protocol_1.TXB_OBJECT)(txb, permission)]
+                target: this.protocol.VoteFn('reference_set_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), reference, Protocol.TXB_OBJECT(txb, this.permission)]
             });
         }
         else {
             txb.moveCall({
-                target: protocol_1.PROTOCOL.VoteFn('agrees_remove_with_passport'),
-                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure(utils_1.BCS_CONVERT.ser_vector_string((0, utils_1.array_unique)(options))), (0, protocol_1.TXB_OBJECT)(txb, permission)]
+                target: this.protocol.VoteFn('reference_set'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), reference, Protocol.TXB_OBJECT(txb, this.permission)]
             });
         }
     }
-    else {
-        if (removeall) {
+    add_guard(guard, weight, passport) {
+        if (!Protocol.IsValidObjects([guard])) {
+            ERROR(Errors.IsValidObjects, 'guard');
+        }
+        if (!IsValidUint(weight)) {
+            ERROR(Errors.IsValidUint, 'weight');
+        }
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
             txb.moveCall({
-                target: protocol_1.PROTOCOL.VoteFn('agrees_remove_all'),
-                arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote), (0, protocol_1.TXB_OBJECT)(txb, permission)]
+                target: this.protocol.VoteFn('guard_add_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard),
+                    txb.pure(weight, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)]
             });
         }
         else {
             txb.moveCall({
-                target: protocol_1.PROTOCOL.VoteFn('agrees_remove'),
-                arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure(utils_1.BCS_CONVERT.ser_vector_string((0, utils_1.array_unique)(options))), (0, protocol_1.TXB_OBJECT)(txb, permission)]
+                target: this.protocol.VoteFn('guard_add'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard),
+                    txb.pure(weight, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)]
             });
         }
     }
-    return true;
+    remove_guard(guard_address, removeall, passport) {
+        if (!removeall && !guard_address) {
+            ERROR(Errors.AllInvalid, 'guard_address & removeall');
+        }
+        if (guard_address && !IsValidArray(guard_address, IsValidAddress)) {
+            ERROR(Errors.IsValidArray, 'guard_address');
+        }
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            if (removeall) {
+                txb.moveCall({
+                    target: this.protocol.VoteFn('guard_remove_all_with_passport'),
+                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)]
+                });
+            }
+            else {
+                txb.moveCall({
+                    target: this.protocol.VoteFn('guard_remove_with_passport'),
+                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object),
+                        txb.pure(array_unique(guard_address), 'vector<address>'), Protocol.TXB_OBJECT(txb, this.permission)]
+                });
+            }
+        }
+        else {
+            if (removeall) {
+                txb.moveCall({
+                    target: this.protocol.VoteFn('guard_remove_all'),
+                    arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)]
+                });
+            }
+            else {
+                txb.moveCall({
+                    target: this.protocol.VoteFn('guard_remove'),
+                    arguments: [Protocol.TXB_OBJECT(txb, this.object),
+                        txb.pure(array_unique(guard_address), 'vector<address>'),
+                        Protocol.TXB_OBJECT(txb, this.permission)]
+                });
+            }
+        }
+    }
+    add_option(options, passport) {
+        if (!options) {
+            ERROR(Errors.InvalidParam, 'options');
+        }
+        let bValid = true;
+        options.forEach((v) => {
+            if (!IsValidName(v.name))
+                bValid = false;
+            if (v?.reference_address && IsValidAddress(v.reference_address))
+                bValid = false;
+        });
+        if (!bValid) {
+            ERROR(Errors.InvalidParam, 'options');
+        }
+        let txb = this.protocol.CurrentSession();
+        options.forEach((option) => {
+            let reference = option?.reference_address ?
+                txb.pure(BCS_CONVERT.ser_option_address(option.reference_address)) :
+                OptionNone(txb);
+            if (passport) {
+                txb.moveCall({
+                    target: this.protocol.VoteFn('agrees_add_with_passport'),
+                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(option.name),
+                        reference, Protocol.TXB_OBJECT(txb, this.permission)]
+                });
+            }
+            else {
+                txb.moveCall({
+                    target: this.protocol.VoteFn('agrees_add'),
+                    arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(option.name),
+                        reference, Protocol.TXB_OBJECT(txb, this.permission)]
+                });
+            }
+        });
+    }
+    remove_option(options, removeall, passport) {
+        if (!removeall && !options) {
+            ERROR(Errors.AllInvalid, 'options & removeall');
+        }
+        if (options && !IsValidArray(options, IsValidAddress)) {
+            ERROR(Errors.IsValidArray, 'options');
+        }
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            if (removeall) {
+                txb.moveCall({
+                    target: this.protocol.VoteFn('agrees_remove_all_with_passport'),
+                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)]
+                });
+            }
+            else {
+                txb.moveCall({
+                    target: this.protocol.VoteFn('agrees_remove_with_passport'),
+                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object),
+                        txb.pure(BCS_CONVERT.ser_vector_string(array_unique(options))),
+                        Protocol.TXB_OBJECT(txb, this.permission)]
+                });
+            }
+        }
+        else {
+            if (removeall) {
+                txb.moveCall({
+                    target: this.protocol.VoteFn('agrees_remove_all'),
+                    arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)]
+                });
+            }
+            else {
+                txb.moveCall({
+                    target: this.protocol.VoteFn('agrees_remove'),
+                    arguments: [Protocol.TXB_OBJECT(txb, this.object),
+                        txb.pure(BCS_CONVERT.ser_vector_string(array_unique(options))),
+                        Protocol.TXB_OBJECT(txb, this.permission)]
+                });
+            }
+        }
+    }
+    set_max_choice_count(max_choice_count, passport) {
+        if (!IsValidUint(max_choice_count) || max_choice_count > MAX_CHOICE_COUNT) {
+            ERROR(Errors.InvalidParam, 'max_choice_count');
+        }
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target: this.protocol.VoteFn('max_choice_count_set_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object),
+                    txb.pure(max_choice_count, BCS.U8), Protocol.TXB_OBJECT(txb, this.permission)]
+            });
+        }
+        else {
+            txb.moveCall({
+                target: this.protocol.VoteFn('max_choice_count_set'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(max_choice_count, BCS.U8), Protocol.TXB_OBJECT(txb, this.permission)]
+            });
+        }
+    }
+    open_voting(passport) {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target: this.protocol.VoteFn('options_locked_for_voting_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)]
+            });
+        }
+        else {
+            txb.moveCall({
+                target: this.protocol.VoteFn('options_locked_for_voting'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)]
+            });
+        }
+    }
+    lock_deadline(passport) {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target: this.protocol.VoteFn('deadline_locked_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, this.permission)]
+            });
+        }
+        else {
+            txb.moveCall({
+                target: this.protocol.VoteFn('deadline_locked'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, this.permission)]
+            });
+        }
+    }
+    expand_deadline(minutes_expand, passport) {
+        if (!IsValidUint(minutes_expand)) {
+            ERROR(Errors.IsValidUint, 'minutes_expand');
+        }
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target: this.protocol.VoteFn('deadline_expand_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object),
+                    txb.pure(minutes_expand, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)]
+            });
+        }
+        else {
+            txb.moveCall({
+                target: this.protocol.VoteFn('deadline_expand'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object),
+                    txb.pure(minutes_expand, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)]
+            });
+        }
+    }
+    lock_guard(passport) {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target: this.protocol.VoteFn('guard_lock_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)]
+            });
+        }
+        else {
+            txb.moveCall({
+                target: this.protocol.VoteFn('guard_lock'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)]
+            });
+        }
+    }
+    agree(options, passport) {
+        if (!options || options.length > MAX_CHOICE_COUNT) {
+            ERROR(Errors.InvalidParam, 'options');
+        }
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target: this.protocol.VoteFn('with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object),
+                    txb.pure(BCS_CONVERT.ser_vector_string(array_unique(options)))]
+            });
+        }
+        else {
+            txb.moveCall({
+                target: this.protocol.VoteFn('this.object'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object),
+                    txb.pure(BCS_CONVERT.ser_vector_string(array_unique(options)))]
+            });
+        }
+    }
+    change_permission(new_permission) {
+        if (!Protocol.IsValidObjects([new_permission])) {
+            ERROR(Errors.IsValidObjects);
+        }
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target: this.protocol.VoteFn('this.permission_set'),
+            arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), Protocol.TXB_OBJECT(txb, new_permission)],
+        });
+    }
 }
-exports.vote_remove_option = vote_remove_option;
-function vote_set_max_choice_count(txb, vote, permission, max_choice_count, passport) {
-    if (!(0, protocol_1.IsValidObjects)([vote, permission]))
-        return false;
-    if (!(0, protocol_1.IsValidUint)(max_choice_count) || max_choice_count > exports.MAX_CHOICE_COUNT)
-        return false;
-    if (passport) {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.VoteFn('max_choice_count_set_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure(max_choice_count, bcs_1.BCS.U8), (0, protocol_1.TXB_OBJECT)(txb, permission)]
-        });
-    }
-    else {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.VoteFn('max_choice_count_set'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure(max_choice_count, bcs_1.BCS.U8), (0, protocol_1.TXB_OBJECT)(txb, permission)]
-        });
-    }
-    return true;
-}
-exports.vote_set_max_choice_count = vote_set_max_choice_count;
-function vote_open_voting(txb, vote, permission, passport) {
-    if (!(0, protocol_1.IsValidObjects)([vote, permission]))
-        return false;
-    if (passport) {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.VoteFn('options_locked_for_voting_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, vote), (0, protocol_1.TXB_OBJECT)(txb, permission)]
-        });
-    }
-    else {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.VoteFn('options_locked_for_voting'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote), (0, protocol_1.TXB_OBJECT)(txb, permission)]
-        });
-    }
-    return true;
-}
-exports.vote_open_voting = vote_open_voting;
-function vote_lock_deadline(txb, vote, permission, passport) {
-    if (!(0, protocol_1.IsValidObjects)([vote, permission]))
-        return false;
-    if (passport) {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.VoteFn('deadline_locked_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, vote), txb.object(protocol_1.CLOCK_OBJECT), (0, protocol_1.TXB_OBJECT)(txb, permission)]
-        });
-    }
-    else {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.VoteFn('deadline_locked'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote), txb.object(protocol_1.CLOCK_OBJECT), (0, protocol_1.TXB_OBJECT)(txb, permission)]
-        });
-    }
-    return true;
-}
-exports.vote_lock_deadline = vote_lock_deadline;
-function vote_expand_deadline(txb, vote, permission, minutes_expand, passport) {
-    if (!(0, protocol_1.IsValidObjects)([vote, permission]))
-        return false;
-    if (!(0, protocol_1.IsValidUint)(minutes_expand))
-        return false;
-    if (passport) {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.VoteFn('deadline_expand_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure(minutes_expand, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission)]
-        });
-    }
-    else {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.VoteFn('deadline_expand'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure(minutes_expand, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission)]
-        });
-    }
-    return true;
-}
-exports.vote_expand_deadline = vote_expand_deadline;
-function vote_lock_guard(txb, vote, permission, passport) {
-    if (!(0, protocol_1.IsValidObjects)([vote, permission]))
-        return false;
-    if (passport) {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.VoteFn('guard_lock_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, vote), (0, protocol_1.TXB_OBJECT)(txb, permission)]
-        });
-    }
-    else {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.VoteFn('guard_lock'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote), (0, protocol_1.TXB_OBJECT)(txb, permission)]
-        });
-    }
-    return true;
-}
-exports.vote_lock_guard = vote_lock_guard;
-function agree(txb, vote, options, passport) {
-    if (!(0, protocol_1.IsValidObjects)([vote]))
-        return false;
-    if (!options || options.length > exports.MAX_CHOICE_COUNT)
-        return false;
-    if (passport) {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.VoteFn('vote_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure(utils_1.BCS_CONVERT.ser_vector_string((0, utils_1.array_unique)(options)))]
-        });
-    }
-    else {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.VoteFn('vote'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote), txb.pure(utils_1.BCS_CONVERT.ser_vector_string((0, utils_1.array_unique)(options)))]
-        });
-    }
-    return true;
-}
-exports.agree = agree;
-function change_permission(txb, vote, old_permission, new_permission) {
-    if (!(0, protocol_1.IsValidObjects)([vote, old_permission, new_permission]))
-        return false;
-    txb.moveCall({
-        target: protocol_1.PROTOCOL.VoteFn('permission_set'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, vote), (0, protocol_1.TXB_OBJECT)(txb, old_permission), (0, protocol_1.TXB_OBJECT)(txb, new_permission)],
-    });
-    return true;
-}
-exports.change_permission = change_permission;

@@ -1,58 +1,9 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.OBJECTS_TYPE = exports.OBJECTS_TYPE_PREFIX = exports.WOWOK_TYPE = exports.SUI_TYPE = exports.PROTOCOL = exports.Protocol = exports.ENTRYPOINT = exports.ValueType = exports.ContextType = exports.OperatorType = exports.CLOCK_OBJECT = exports.TXB_OBJECT = exports.MODULES = exports.IsValidObjects = exports.IsValidArray = exports.IsValidPercent = exports.IsValidInt = exports.IsValidUint = exports.IsValidArgType = exports.IsValidAddress = exports.IsValidEndpoint = exports.IsValidName_AllowEmpty = exports.IsValidName = exports.IsValidDesription = exports.OptionNone = exports.MAX_ENDPOINT_LENGTH = exports.MAX_NAME_LENGTH = exports.MAX_DESCRIPTION_LENGTH = void 0;
-const client_1 = require("@mysten/sui.js/client");
-const ed25519_1 = require("@mysten/sui.js/keypairs/ed25519");
-const bcs_1 = require("@mysten/bcs");
-const transactions_1 = require("@mysten/sui.js/transactions");
-const utils_1 = require("./utils");
-exports.MAX_DESCRIPTION_LENGTH = 1024;
-exports.MAX_NAME_LENGTH = 64;
-exports.MAX_ENDPOINT_LENGTH = 1024;
-const OptionNone = (txb) => { return txb.pure([], bcs_1.BCS.U8); };
-exports.OptionNone = OptionNone;
-const IsValidDesription = (description) => { if (!description)
-    return false; return description.length <= exports.MAX_DESCRIPTION_LENGTH; };
-exports.IsValidDesription = IsValidDesription;
-const IsValidName = (name) => { if (!name)
-    return false; return name.length <= exports.MAX_NAME_LENGTH && name.length != 0; };
-exports.IsValidName = IsValidName;
-const IsValidName_AllowEmpty = (name) => { return name.length <= exports.MAX_NAME_LENGTH; };
-exports.IsValidName_AllowEmpty = IsValidName_AllowEmpty;
-const IsValidEndpoint = (endpoint) => { if (!endpoint)
-    return false; return endpoint.length <= exports.MAX_ENDPOINT_LENGTH; };
-exports.IsValidEndpoint = IsValidEndpoint;
-const IsValidAddress = (addr) => { if (!addr)
-    return false; return true; };
-exports.IsValidAddress = IsValidAddress;
-const IsValidArgType = (argType) => { if (!argType)
-    return false; return argType.length != 0; };
-exports.IsValidArgType = IsValidArgType;
-const IsValidUint = (value) => { return Number.isSafeInteger(value) && value != 0; };
-exports.IsValidUint = IsValidUint;
-const IsValidInt = (value) => { return Number.isSafeInteger(value); };
-exports.IsValidInt = IsValidInt;
-const IsValidPercent = (value) => { return Number.isSafeInteger(value) && value > 0 && value <= 100; };
-exports.IsValidPercent = IsValidPercent;
-const IsValidArray = (arr, validFunc) => {
-    let bValid = true;
-    arr.forEach((v) => {
-        if (!validFunc(v)) {
-            bValid = false;
-        }
-    });
-    return bValid;
-};
-exports.IsValidArray = IsValidArray;
-const IsValidObjects = (arr) => {
-    return (0, exports.IsValidArray)(arr, (v) => {
-        if (!v)
-            return false;
-        return true;
-    });
-};
-exports.IsValidObjects = IsValidObjects;
-var MODULES;
+import { SuiClient } from '@mysten/sui.js/client';
+import { Ed25519Keypair } from '@mysten/sui.js/keypairs/ed25519';
+import { fromHEX } from '@mysten/bcs';
+import { TransactionBlock, Inputs } from '@mysten/sui.js/transactions';
+import { capitalize, IsValidArray } from './utils.js';
+export var MODULES;
 (function (MODULES) {
     MODULES["machine"] = "machine";
     MODULES["node"] = "node";
@@ -68,19 +19,8 @@ var MODULES;
     MODULES["reward"] = "reward";
     MODULES["service"] = "service";
     MODULES["wowok"] = "wowok";
-})(MODULES || (exports.MODULES = MODULES = {}));
-function TXB_OBJECT(txb, arg) {
-    if (typeof arg == 'string')
-        return txb.object(arg);
-    return arg;
-}
-exports.TXB_OBJECT = TXB_OBJECT;
-exports.CLOCK_OBJECT = transactions_1.Inputs.SharedObjectRef({
-    objectId: "0x6",
-    mutable: false,
-    initialSharedVersion: 1,
-});
-var OperatorType;
+})(MODULES || (MODULES = {}));
+export var OperatorType;
 (function (OperatorType) {
     OperatorType[OperatorType["TYPE_QUERY"] = 1] = "TYPE_QUERY";
     OperatorType[OperatorType["TYPE_FUTURE_QUERY"] = 2] = "TYPE_FUTURE_QUERY";
@@ -93,8 +33,8 @@ var OperatorType;
     OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_EQUAL"] = 16] = "TYPE_LOGIC_OPERATOR_EQUAL";
     OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_HAS_SUBSTRING"] = 17] = "TYPE_LOGIC_OPERATOR_HAS_SUBSTRING";
     OperatorType[OperatorType["TYPE_LOGIC_ALWAYS_TRUE"] = 18] = "TYPE_LOGIC_ALWAYS_TRUE";
-})(OperatorType || (exports.OperatorType = OperatorType = {}));
-var ContextType;
+})(OperatorType || (OperatorType = {}));
+export var ContextType;
 (function (ContextType) {
     ContextType[ContextType["TYPE_CONTEXT_SIGNER"] = 60] = "TYPE_CONTEXT_SIGNER";
     ContextType[ContextType["TYPE_CONTEXT_CLOCK"] = 61] = "TYPE_CONTEXT_CLOCK";
@@ -115,8 +55,8 @@ var ContextType;
        TYPE_CONTEXT_option_u8 = 83,
        TYPE_CONTEXT_option_u64 = 84,
        TYPE_CONTEXT_option_u128 = 85,*/
-})(ContextType || (exports.ContextType = ContextType = {}));
-var ValueType;
+})(ContextType || (ContextType = {}));
+export var ValueType;
 (function (ValueType) {
     ValueType[ValueType["TYPE_STATIC_bool"] = 100] = "TYPE_STATIC_bool";
     ValueType[ValueType["TYPE_STATIC_address"] = 101] = "TYPE_STATIC_address";
@@ -134,25 +74,27 @@ var ValueType;
     ValueType[ValueType["TYPE_STATIC_option_u8"] = 113] = "TYPE_STATIC_option_u8";
     ValueType[ValueType["TYPE_STATIC_option_u64"] = 114] = "TYPE_STATIC_option_u64";
     ValueType[ValueType["TYPE_STATIC_option_u128"] = 115] = "TYPE_STATIC_option_u128";
-})(ValueType || (exports.ValueType = ValueType = {}));
-var ENTRYPOINT;
+})(ValueType || (ValueType = {}));
+export var ENTRYPOINT;
 (function (ENTRYPOINT) {
     ENTRYPOINT["mainnet"] = "mainnet";
     ENTRYPOINT["testnet"] = "testnet";
     ENTRYPOINT["devnet"] = "devnet";
     ENTRYPOINT["localnet"] = "localnet";
-})(ENTRYPOINT || (exports.ENTRYPOINT = ENTRYPOINT = {}));
-class Protocol {
+})(ENTRYPOINT || (ENTRYPOINT = {}));
+export class Protocol {
     network = '';
     package = '';
     signer = '';
     everyone_guard = '';
     graphql = '';
-    constructor(network = ENTRYPOINT.localnet, signer = "0xe386bb9e01b3528b75f3751ad8a1e418b207ad979fea364087deef5250a73d3f") {
-        this.signer = signer;
+    txb;
+    constructor(network, signer_address) {
+        this.signer = signer_address;
         this.UseNetwork(network);
+        this.NewSession();
     }
-    UseNetwork(network = ENTRYPOINT.localnet) {
+    UseNetwork(network = ENTRYPOINT.testnet) {
         this.network = network;
         switch (network) {
             case ENTRYPOINT.localnet:
@@ -204,7 +146,7 @@ class Protocol {
     ServiceFn = (fn) => { return `${this.package}::${MODULES.service}::${fn}`; };
     WowokFn = (fn) => { return `${this.package}::${MODULES.wowok}::${fn}`; };
     Query = async (objects, options = { showContent: true }) => {
-        const client = new client_1.SuiClient({ url: exports.PROTOCOL.NetworkUrl() });
+        const client = new SuiClient({ url: this.NetworkUrl() });
         const ids = objects.map((value) => value.objectid);
         const res = await client.call('sui_multiGetObjects', [ids, options]);
         let ret = [];
@@ -215,12 +157,17 @@ class Protocol {
         }
         return res;
     };
-    Sign_Excute = async (exes, priv_key, param, options = { showObjectChanges: true }) => {
-        const client = new client_1.SuiClient({ url: exports.PROTOCOL.NetworkUrl() });
-        const txb = new transactions_1.TransactionBlock();
-        exes.forEach((e) => { e(txb, param); });
-        const privkey = (0, bcs_1.fromHEX)(priv_key);
-        const keypair = ed25519_1.Ed25519Keypair.fromSecretKey(privkey);
+    NewSession = () => {
+        this.txb = new TransactionBlock();
+        return this.txb;
+    };
+    CurrentSession = () => { return this.txb; };
+    SignExcute = async (exes, priv_key, param, options = { showObjectChanges: true }) => {
+        const client = new SuiClient({ url: this.NetworkUrl() });
+        const txb = new TransactionBlock();
+        exes.forEach((e) => { e(this, param); });
+        const privkey = fromHEX(priv_key);
+        const keypair = Ed25519Keypair.fromSecretKey(privkey);
         const response = await client.signAndExecuteTransactionBlock({
             transactionBlock: txb,
             signer: keypair,
@@ -228,13 +175,61 @@ class Protocol {
         });
         return response;
     };
+    static SUI_COIN_TYPE = '0x2::coin::Coin<0x2::sui::SUI>';
+    static CLOCK_OBJECT = Inputs.SharedObjectRef({
+        objectId: "0x6",
+        mutable: false,
+        initialSharedVersion: 1,
+    });
+    static TXB_OBJECT(txb, arg) {
+        if (typeof arg == 'string')
+            return txb.object(arg);
+        return arg;
+    }
+    static IsValidObjects = (arr) => {
+        return IsValidArray(arr, (v) => {
+            if (!v)
+                return false;
+            return true;
+        });
+    };
+    WOWOK_COIN_TYPE = () => { return '0x2::coin::Coin<' + this.package + '::wowok::WOWOK'; };
+    WOWOK_OBJECTS_TYPE = () => Object.keys(MODULES).map((key) => { let i = this.package + '::' + key + '::'; return i + capitalize(key); });
+    WOWOK_OBJECTS_PREFIX_TYPE = () => Object.keys(MODULES).map((key) => { return this.package + '::' + key + '::'; });
 }
-exports.Protocol = Protocol;
-exports.PROTOCOL = new Protocol();
-exports.SUI_TYPE = '0x2::coin::Coin<0x2::sui::SUI>';
-const WOWOK_TYPE = () => { '0x2::coin::Coin<' + exports.PROTOCOL.Package() + '::wowok::WOWOK'; };
-exports.WOWOK_TYPE = WOWOK_TYPE;
-const OBJECTS_TYPE_PREFIX = () => Object.keys(MODULES).map((key) => { return exports.PROTOCOL.Package() + '::' + key + '::'; });
-exports.OBJECTS_TYPE_PREFIX = OBJECTS_TYPE_PREFIX;
-const OBJECTS_TYPE = () => Object.keys(MODULES).map((key) => { let i = exports.PROTOCOL.Package() + '::' + key + '::'; return i + (0, utils_1.capitalize)(key); });
-exports.OBJECTS_TYPE = OBJECTS_TYPE;
+export class RpcResultParser {
+    static Object_Type_Extra = () => {
+        let names = Object.keys(MODULES).map((key) => { return key + '::' + capitalize(key); });
+        names.push('order::Discount');
+        return names;
+    };
+    static objectids_from_response = (protocol, response, concat_result) => {
+        let ret = new Map();
+        if (response?.objectChanges) {
+            response.objectChanges.forEach((change) => {
+                RpcResultParser.Object_Type_Extra().forEach((name) => {
+                    let type = protocol.Package() + '::' + name;
+                    if (change.type == 'created' && change.objectType.includes(type)) {
+                        if (ret.has(name)) {
+                            ret.get(name)?.push(change.objectId);
+                        }
+                        else {
+                            ret.set(name, [change.objectId]);
+                        }
+                    }
+                });
+            });
+        }
+        if (concat_result) {
+            ret.forEach((value, key) => {
+                if (concat_result.has(key)) {
+                    concat_result.set(key, concat_result.get(key).concat(value));
+                }
+                else {
+                    concat_result.set(key, value);
+                }
+            });
+        }
+        return ret;
+    };
+}

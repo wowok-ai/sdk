@@ -1,13 +1,8 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.change_owner = exports.remove_admin = exports.add_admin = exports.set_description = exports.remove_entity = exports.remove_index = exports.set_guard = exports.add_entity = exports.destroy = exports.launch = exports.permission = exports.IsValidPermissionIndex = exports.IsValidUserDefinedIndex = exports.PermissionIndex = exports.MAX_PERMISSION_INDEX_COUNT = exports.MAX_ENTITY_COUNT = exports.MAX_ADMIN_COUNT = void 0;
-const bcs_1 = require("@mysten/bcs");
-const protocol_1 = require("./protocol");
-const utils_1 = require("./utils");
-exports.MAX_ADMIN_COUNT = 64;
-exports.MAX_ENTITY_COUNT = 2000;
-exports.MAX_PERMISSION_INDEX_COUNT = 200;
-var PermissionIndex;
+import { BCS } from '@mysten/bcs';
+import { Protocol } from './protocol.js';
+import { array_unique, IsValidAddress, IsValidArray, IsValidDesription, IsValidUint, BCS_CONVERT } from './utils.js';
+import { ERROR, Errors } from './exception.js';
+export var PermissionIndex;
 (function (PermissionIndex) {
     PermissionIndex[PermissionIndex["repository"] = 100] = "repository";
     PermissionIndex[PermissionIndex["repository_set_description_set"] = 101] = "repository_set_description_set";
@@ -85,201 +80,211 @@ var PermissionIndex;
     PermissionIndex[PermissionIndex["progress_set_context_repository"] = 653] = "progress_set_context_repository";
     PermissionIndex[PermissionIndex["progress_unhold"] = 654] = "progress_unhold";
     PermissionIndex[PermissionIndex["user_defined_start"] = 10000] = "user_defined_start";
-})(PermissionIndex || (exports.PermissionIndex = PermissionIndex = {}));
-const IsValidUserDefinedIndex = (index) => {
-    return index >= PermissionIndex.user_defined_start && (0, protocol_1.IsValidUint)(index);
-};
-exports.IsValidUserDefinedIndex = IsValidUserDefinedIndex;
-const IsValidPermissionIndex = (index) => {
-    //console.log(index)
-    if (Object.values(PermissionIndex).includes(index)) {
-        return true;
+})(PermissionIndex || (PermissionIndex = {}));
+export class Permission {
+    protocol;
+    object;
+    get_object() { this.object; }
+    constructor(protocol) {
+        this.protocol = protocol;
+        this.object = '';
     }
-    //console.log(Object.keys(PermissionIndex))
-    return (0, exports.IsValidUserDefinedIndex)(index);
-};
-exports.IsValidPermissionIndex = IsValidPermissionIndex;
-function permission(txb, description) {
-    if (!(0, protocol_1.IsValidDesription)(description))
-        return false;
-    return txb.moveCall({
-        target: protocol_1.PROTOCOL.PermissionFn('new'),
-        arguments: [txb.pure(description)]
-    });
-}
-exports.permission = permission;
-function launch(txb, permission) {
-    if (!(0, protocol_1.IsValidObjects)([permission]))
-        return false;
-    return txb.moveCall({
-        target: protocol_1.PROTOCOL.PermissionFn('create'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, permission)]
-    });
-}
-exports.launch = launch;
-function destroy(txb, permission) {
-    if (!(0, protocol_1.IsValidObjects)([permission]))
-        return false;
-    txb.moveCall({
-        target: protocol_1.PROTOCOL.PermissionFn('destroy'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, permission)],
-    });
-    return true;
-}
-exports.destroy = destroy;
-function add_entity(txb, permission, entities) {
-    if (!(0, protocol_1.IsValidObjects)([permission]))
-        return false;
-    if (!entities)
-        return false;
-    let bValid = true;
-    let e = entities.forEach((v) => {
-        if (!(0, protocol_1.IsValidAddress)(v.entity_address))
-            bValid = false;
-        v.permissions.forEach((p) => {
-            if (!(0, exports.IsValidPermissionIndex)(p.index))
-                bValid = false;
-            if (p?.guard && !(0, protocol_1.IsValidObjects)([p.guard]))
-                bValid = false;
+    static From(protocol, object) {
+        let p = new Permission(protocol);
+        p.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object);
+        return p;
+    }
+    static New(protocol, description) {
+        let p = new Permission(protocol);
+        if (!IsValidDesription(description)) {
+            ERROR(Errors.IsValidDesription);
+        }
+        let txb = protocol.CurrentSession();
+        p.object = txb.moveCall({
+            target: protocol.PermissionFn('new'),
+            arguments: [txb.pure(description)]
         });
-    });
-    if (!bValid)
-        return false;
-    let guards = [];
-    for (let i = 0; i < entities.length; i++) {
-        let entity = entities[i];
-        let indexes = [];
-        for (let j = 0; j < entity.permissions.length; j++) {
-            let index = entity.permissions[j];
-            if (!(0, exports.IsValidPermissionIndex)(index.index)) {
-                continue;
-            }
-            if (!indexes.includes(index.index)) {
-                indexes.push(index.index);
-                if (index?.guard) {
-                    guards.push({ entity_address: entity.entity_address, index: index.index, guard: index.guard });
+        return p;
+    }
+    launch() {
+        let txb = this.protocol.CurrentSession();
+        return txb.moveCall({
+            target: this.protocol.PermissionFn('create'),
+            arguments: [Protocol.TXB_OBJECT(txb, this.object)]
+        });
+    }
+    destroy() {
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target: this.protocol.PermissionFn('destroy'),
+            arguments: [Protocol.TXB_OBJECT(txb, this.object)],
+        });
+    }
+    add_entity(entities) {
+        if (!entities) {
+            ERROR(Errors.InvalidParam, 'entities');
+        }
+        let bValid = true;
+        let e = entities.forEach((v) => {
+            if (!IsValidAddress(v.entity_address))
+                bValid = false;
+            v.permissions.forEach((p) => {
+                if (!Permission.IsValidPermissionIndex(p.index))
+                    bValid = false;
+                if (p?.guard && !Protocol.IsValidObjects([p.guard]))
+                    bValid = false;
+            });
+        });
+        if (!bValid) {
+            ERROR(Errors.InvalidParam, 'entities');
+        }
+        let txb = this.protocol.CurrentSession();
+        let guards = [];
+        for (let i = 0; i < entities.length; i++) {
+            let entity = entities[i];
+            let indexes = [];
+            for (let j = 0; j < entity.permissions.length; j++) {
+                let index = entity.permissions[j];
+                if (!Permission.IsValidPermissionIndex(index.index)) {
+                    continue;
+                }
+                if (!indexes.includes(index.index)) {
+                    indexes.push(index.index);
+                    if (index?.guard) {
+                        guards.push({ entity_address: entity.entity_address, index: index.index, guard: index.guard });
+                    }
                 }
             }
+            if (indexes.length > 0) {
+                txb.moveCall({
+                    target: this.protocol.PermissionFn('add_batch'),
+                    arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(entity.entity_address, BCS.ADDRESS),
+                        txb.pure(indexes, 'vector<u64>')]
+                });
+            }
         }
-        if (indexes.length > 0) {
+        // set guards
+        guards.forEach(({ entity_address, index, guard }) => {
             txb.moveCall({
-                target: protocol_1.PROTOCOL.PermissionFn('add_batch'),
-                arguments: [(0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure(entity.entity_address, bcs_1.BCS.ADDRESS), txb.pure(indexes, 'vector<u64>')]
+                target: this.protocol.PermissionFn('guard_set'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(entity_address, BCS.ADDRESS),
+                    txb.pure(index, BCS.U64), Protocol.TXB_OBJECT(txb, guard)]
+            });
+        });
+    }
+    // guard: undefine to set none
+    set_guard(entity_address, index, guard) {
+        if (!IsValidAddress(entity_address)) {
+            ERROR(Errors.IsValidAddress, 'entity_address');
+        }
+        if (!Permission.IsValidPermissionIndex(index)) {
+            ERROR(Errors.IsValidPermissionIndex, 'index');
+        }
+        let txb = this.protocol.CurrentSession();
+        if (guard) {
+            txb.moveCall({
+                target: this.protocol.PermissionFn('guard_set'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(entity_address, BCS.ADDRESS),
+                    txb.pure(index, BCS.U64), Protocol.TXB_OBJECT(txb, guard)]
+            });
+        }
+        else {
+            txb.moveCall({
+                target: this.protocol.PermissionFn('guard_none'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(entity_address, BCS.ADDRESS),
+                    txb.pure(index, BCS.U64)]
+            });
+        }
+        ;
+    }
+    remove_index(entity_address, index) {
+        if (!IsValidAddress(entity_address)) {
+            ERROR(Errors.IsValidAddress);
+        }
+        if (!index || !(IsValidArray(index, Permission.IsValidPermissionIndex))) {
+            ERROR(Errors.InvalidParam, 'index');
+        }
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target: this.protocol.PermissionFn('remove_index'),
+            arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(entity_address, BCS.ADDRESS),
+                txb.pure(BCS_CONVERT.ser_vector_u64(array_unique(index)))]
+        });
+    }
+    remove_entity(entity_address) {
+        if (!entity_address || !IsValidArray(entity_address, IsValidAddress)) {
+            ERROR(Errors.IsValidArray);
+        }
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target: this.protocol.PermissionFn('remove'),
+            arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(entity_address), 'vector<address>')]
+        });
+    }
+    set_description(description) {
+        if (!IsValidDesription(description)) {
+            ERROR(Errors.IsValidDesription);
+        }
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target: this.protocol.PermissionFn('description_set'),
+            arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(description)]
+        });
+    }
+    add_admin(admin) {
+        if (!admin || !IsValidArray(admin, IsValidAddress)) {
+            ERROR(Errors.IsValidArray);
+        }
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target: this.protocol.PermissionFn('admin_add_batch'),
+            arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(admin), 'vector<address>')]
+        });
+        ;
+    }
+    remove_admin(admin, removeall) {
+        if (!removeall && !admin) {
+            ERROR(Errors.AllInvalid, 'admin & removeall');
+        }
+        if (admin && !IsValidArray(admin, IsValidAddress)) {
+            ERROR(Errors.IsValidArray, 'admin');
+        }
+        let txb = this.protocol.CurrentSession();
+        if (removeall) {
+            txb.moveCall({
+                target: this.protocol.PermissionFn('admins_clear'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object)]
+            });
+        }
+        else if (admin) {
+            txb.moveCall({
+                target: this.protocol.PermissionFn('admin_remove_batch'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(admin), 'vector<address>')]
             });
         }
     }
-    // set guards
-    guards.forEach(({ entity_address, index, guard }) => {
+    change_owner(new_owner) {
+        if (!IsValidAddress(new_owner)) {
+            ERROR(Errors.IsValidAddress);
+        }
+        let txb = this.protocol.CurrentSession();
         txb.moveCall({
-            target: protocol_1.PROTOCOL.PermissionFn('guard_set'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure(entity_address, bcs_1.BCS.ADDRESS), txb.pure(index, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, guard)]
-        });
-    });
-    return true;
-}
-exports.add_entity = add_entity;
-// guard: undefine to set none
-function set_guard(txb, permission, entity_address, index, guard) {
-    if (!(0, protocol_1.IsValidObjects)([permission]))
-        return false;
-    if (!(0, protocol_1.IsValidAddress)(entity_address) || !(0, exports.IsValidPermissionIndex)(index))
-        return false;
-    if (guard) {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.PermissionFn('guard_set'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure(entity_address, bcs_1.BCS.ADDRESS), txb.pure(index, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, guard)]
+            target: this.protocol.PermissionFn('builder_set'),
+            arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(new_owner, BCS.ADDRESS)]
         });
     }
-    else {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.PermissionFn('guard_none'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure(entity_address, bcs_1.BCS.ADDRESS), txb.pure(index, bcs_1.BCS.U64)]
-        });
-    }
-    return true;
+    static MAX_ADMIN_COUNT = 64;
+    static MAX_ENTITY_COUNT = 2000;
+    static MAX_PERMISSION_INDEX_COUNT = 200;
+    static IsValidUserDefinedIndex = (index) => {
+        return index >= PermissionIndex.user_defined_start && IsValidUint(index);
+    };
+    static IsValidPermissionIndex = (index) => {
+        //console.log(index)
+        if (Object.values(PermissionIndex).includes(index)) {
+            return true;
+        }
+        //console.log(Object.keys(PermissionIndex))
+        return Permission.IsValidUserDefinedIndex(index);
+    };
 }
-exports.set_guard = set_guard;
-function remove_index(txb, permission, entity_address, index) {
-    if (!(0, protocol_1.IsValidObjects)([permission]))
-        return false;
-    if (!(0, protocol_1.IsValidAddress)(entity_address))
-        return false;
-    if (!index || !((0, protocol_1.IsValidArray)(index, exports.IsValidPermissionIndex)))
-        return false;
-    txb.moveCall({
-        target: protocol_1.PROTOCOL.PermissionFn('remove_index'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure(entity_address, bcs_1.BCS.ADDRESS), txb.pure((0, utils_1.array_unique)(index), 'vector<u64>')]
-    });
-    return true;
-}
-exports.remove_index = remove_index;
-function remove_entity(txb, permission, entity_address) {
-    if (!(0, protocol_1.IsValidObjects)([permission]))
-        return false;
-    if (!entity_address || !(0, protocol_1.IsValidArray)(entity_address, protocol_1.IsValidAddress))
-        return false;
-    txb.moveCall({
-        target: protocol_1.PROTOCOL.PermissionFn('remove'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure((0, utils_1.array_unique)(entity_address), 'vector<address>')]
-    });
-    return true;
-}
-exports.remove_entity = remove_entity;
-function set_description(txb, permission, description) {
-    if (!(0, protocol_1.IsValidObjects)([permission]))
-        return false;
-    if (!(0, protocol_1.IsValidDesription)(description))
-        return false;
-    txb.moveCall({
-        target: protocol_1.PROTOCOL.PermissionFn('description_set'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure(description)]
-    });
-    return true;
-}
-exports.set_description = set_description;
-function add_admin(txb, permission, admin) {
-    if (!(0, protocol_1.IsValidObjects)([permission]))
-        return false;
-    if (!admin || !(0, protocol_1.IsValidArray)(admin, protocol_1.IsValidAddress))
-        return false;
-    txb.moveCall({
-        target: protocol_1.PROTOCOL.PermissionFn('admin_add_batch'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure((0, utils_1.array_unique)(admin), 'vector<address>')]
-    });
-    return true;
-}
-exports.add_admin = add_admin;
-function remove_admin(txb, permission, admin, removeall) {
-    if (!(0, protocol_1.IsValidObjects)([permission]))
-        return false;
-    if (!removeall && !admin)
-        return false;
-    if (!(0, protocol_1.IsValidArray)(admin, protocol_1.IsValidAddress))
-        return false;
-    if (removeall) {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.PermissionFn('admins_clear'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, permission)]
-        });
-    }
-    else if (admin) {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.PermissionFn('admin_remove_batch'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure((0, utils_1.array_unique)(admin), 'vector<address>')]
-        });
-    }
-    return true;
-}
-exports.remove_admin = remove_admin;
-function change_owner(txb, permission, new_owner) {
-    if (!(0, protocol_1.IsValidObjects)([permission]))
-        return false;
-    if (!(0, protocol_1.IsValidAddress)(new_owner))
-        return false;
-    txb.moveCall({
-        target: protocol_1.PROTOCOL.PermissionFn('builder_set'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, permission), txb.pure(new_owner, bcs_1.BCS.ADDRESS)]
-    });
-    return true;
-}
-exports.change_owner = change_owner;

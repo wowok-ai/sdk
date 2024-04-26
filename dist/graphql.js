@@ -1,8 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.GRAPHQL_OBJECTS = exports.GRAPHQL_OWNER = exports.GRAPHQL_OBJECT = exports.GRAPHQL_OBJECTS_TYPE = void 0;
-const graphql_tag_1 = require("graphql-tag");
-exports.GRAPHQL_OBJECTS_TYPE = (0, graphql_tag_1.gql)(`
+import { gql } from "graphql-tag";
+export const GRAPHQL_OBJECTS_TYPE = gql(`
  query objects_type_version($filter:ObjectFilter!) {
   objects(filter:$filter) {
     nodes {
@@ -19,7 +16,7 @@ exports.GRAPHQL_OBJECTS_TYPE = (0, graphql_tag_1.gql)(`
   }
 }
 `);
-exports.GRAPHQL_OBJECT = (0, graphql_tag_1.gql)(`
+export const GRAPHQL_OBJECT = gql(`
   query object($ObjectID:SuiAddress!) {
     object(address:$ObjectID)  {
       address
@@ -55,7 +52,7 @@ exports.GRAPHQL_OBJECT = (0, graphql_tag_1.gql)(`
     }
   }
 `);
-exports.GRAPHQL_OWNER = (0, graphql_tag_1.gql)(`
+export const GRAPHQL_OWNER = gql(`
   query owner($ObjectID:SuiAddress!) {
     owner (address: $ObjectID) {
         address
@@ -83,7 +80,7 @@ exports.GRAPHQL_OWNER = (0, graphql_tag_1.gql)(`
     }
     }
 `);
-exports.GRAPHQL_OBJECTS = (0, graphql_tag_1.gql)(`
+export const GRAPHQL_OBJECTS = gql(`
   query objects($filter:ObjectFilter!){
     objects(filter:$filter) {
       nodes {

@@ -1,20 +1,18 @@
 import { TransactionBlock, Inputs, type TransactionResult } from '@mysten/sui.js/transactions';
 import { BCS } from '@mysten/bcs';
-import { PROTOCOL, FnCallType, PermissionObject, RepositoryObject, IsValidEndpoint, OptionNone, IsValidDesription, PassportObject,
-    TXB_OBJECT, MachineObject, MachineAddress, IsValidArray, IsValidAddress, IsValidName, IsValidName_AllowEmpty, GuardObject, 
-    IsValidInt, IsValidUint, IsValidObjects} from './protocol';
-import { BCS_CONVERT, array_unique } from './utils'
-import { IsValidPermissionIndex, PermissionIndexType } from './permission';
+import { Protocol, FnCallType, PermissionObject, RepositoryObject,  PassportObject, MachineObject, MachineAddress,  GuardObject, TxbObject} from './protocol.js';
+import { IsValidInt, IsValidUint, BCS_CONVERT, array_unique, IsValidArray, IsValidAddress, IsValidName, IsValidName_AllowEmpty, 
+    IsValidEndpoint, OptionNone, IsValidDesription} from './utils.js'
+import { Permission, PermissionIndexType } from './permission.js';
+import { Errors, ERROR}  from './exception.js'
 
 
 export type MachineNodeObject = TransactionResult | String;
-export const INITIAL_NODE_NAME = '';
-export const OPERATOR_ORDER_PAYER = 'order payer';
 
 export type Machine_Forward = {
     name: string; // foward name
     namedOperator?: string; // dynamic operator
-    permission?: PermissionIndexType; // permission-index or named-operator MUST one defined.
+    permission?: PermissionIndexType; // this.permission-index or named-operator MUST one defined.
     weight?: number;
     guard?: GuardObject;
 }
@@ -29,279 +27,323 @@ export type Machine_Node = {
     pairs: Machine_Node_Pair[];
 }
 
-// create new nodes for machine
-export function machine_add_node(txb:TransactionBlock, machine:MachineObject, permission:PermissionObject, 
-    nodes:Machine_Node[], passport?:PassportObject) : boolean {
-    if (!IsValidObjects([machine, permission])) return false;
-    let bValid = true;
-    nodes.forEach((node) => {
-        if (!IsValidDesription(node.description) || !IsValidName(node.name))  { bValid = false; }
-        node.pairs.forEach((p) => {
-            if (!IsValidName_AllowEmpty(p.prior_node)) { bValid = false; }
-            if (p?.threshold && !IsValidInt(p.threshold)) { bValid = false; }
-            p.forwards.forEach((f) => {
-                if (!IsValidName(f.name)) { bValid = false }
-                if (f?.namedOperator && !IsValidName_AllowEmpty(f?.namedOperator)) { bValid = false }
-                if (f?.permission && !IsValidPermissionIndex(f?.permission)) { bValid = false }
-                if (!f?.permission && !f?.namedOperator) { bValid = false; }
-                if (f?.weight && !IsValidUint(f.weight)) { bValid = false; }
+export class Machine {
+    protected protocol;
+    protected object : TxbObject;
+    protected permission;
+
+    get_object() { return this.object }
+
+    static From(protocol:Protocol, permission:PermissionObject, object:TxbObject) : Machine {
+        let d = new Machine(protocol, permission)
+        d.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object)
+        return d
+    }
+
+    private constructor(protocol:Protocol, permission:PermissionObject) {
+        this.protocol = protocol;
+        this.permission = permission;
+        this.object =  '';
+    }
+    static New(protocol:Protocol, permission:PermissionObject, description:string, endpoint?:string, passport?:PassportObject) : Machine {
+        let m = new Machine(protocol, permission);
+
+        if (!Protocol.IsValidObjects([permission])) {
+            ERROR(Errors.IsValidObjects, 'permission')
+        }
+        if (!IsValidDesription(description)) {
+            ERROR(Errors.IsValidDesription)
+        }
+        if (endpoint && !IsValidEndpoint(endpoint)) {
+            ERROR(Errors.IsValidEndpoint)
+        }
+        let txb = protocol.CurrentSession();
+        let ep = endpoint? txb.pure(BCS_CONVERT.ser_option_string(endpoint)) : OptionNone(txb);
+    
+        if (passport) {
+            m.object = txb.moveCall({
+                target:protocol.MachineFn('new_with_passport') as FnCallType,
+                arguments:[passport, txb.pure(description), ep, Protocol.TXB_OBJECT(txb, permission)],
+            })
+        } else {
+            m.object = txb.moveCall({
+                target:protocol.MachineFn('new') as FnCallType,
+                arguments:[txb.pure(description), ep, Protocol.TXB_OBJECT(txb, permission)],
+            })
+        }
+        return m
+    }
+   
+    // create new nodes for machine
+    add_node(nodes:Machine_Node[], passport?:PassportObject) {
+        let bValid = true;
+        nodes.forEach((node) => {
+            if (!IsValidDesription(node.description) || !IsValidName(node.name))  { bValid = false; }
+            node.pairs.forEach((p) => {
+                if (!IsValidName_AllowEmpty(p.prior_node)) { bValid = false; }
+                if (p?.threshold && !IsValidInt(p.threshold)) { bValid = false; }
+                p.forwards.forEach((f) => {
+                    if (!IsValidName(f.name)) { bValid = false }
+                    if (f?.namedOperator && !IsValidName_AllowEmpty(f?.namedOperator)) { bValid = false }
+                    if (f?.permission && !Permission.IsValidPermissionIndex(f?.permission)) { bValid = false }
+                    if (!f?.permission && !f?.namedOperator) { bValid = false; }
+                    if (f?.weight && !IsValidUint(f.weight)) { bValid = false; }
+                })
             })
         })
-    })
-    if (!bValid) return false
+        if (!bValid) {
+            ERROR(Errors.InvalidParam, 'nodes')
+        }
 
-    let new_nodes: MachineNodeObject[] = [];
-    nodes.forEach((node) => {
-        let n = txb.moveCall({
-            target:PROTOCOL.NodeFn('new') as FnCallType,
-            arguments:[txb.pure(node.name), txb.pure(node.description)]
-        });
-        node.pairs.forEach((pair) => {
-            let threshold = pair?.threshold ? txb.pure(BCS_CONVERT.ser_option_u64(pair.threshold)) : OptionNone(txb);
+        let new_nodes: MachineNodeObject[] = [];
+        let txb = this.protocol.CurrentSession();
+        nodes.forEach((node) => {
+            let n = txb.moveCall({
+                target:this.protocol.NodeFn('new') as FnCallType,
+                arguments:[txb.pure(node.name), txb.pure(node.description)]
+            });
+            node.pairs.forEach((pair) => {
+                let threshold = pair?.threshold ? txb.pure(BCS_CONVERT.ser_option_u64(pair.threshold)) : OptionNone(txb);
 
-            pair.forwards.forEach((forward) => {
-                let weight = forward?.weight ? forward.weight : 1;
-                let perm = forward?.permission ? txb.pure(BCS_CONVERT.ser_option_u64(forward.permission)) : OptionNone(txb); 
-                let namedOperator = forward?.namedOperator ?  txb.pure(forward.namedOperator) : txb.pure('');
-                let f;
+                pair.forwards.forEach((forward) => {
+                    let weight = forward?.weight ? forward.weight : 1;
+                    let perm = forward?.permission ? txb.pure(BCS_CONVERT.ser_option_u64(forward.permission)) : OptionNone(txb); 
+                    let namedOperator = forward?.namedOperator ?  txb.pure(forward.namedOperator) : txb.pure('');
+                    let f;
 
-                if (forward?.guard) {
-                    f = txb.moveCall({ 
-                        target:PROTOCOL.NodeFn('forward') as FnCallType,
-                            arguments:[namedOperator, txb.pure(weight), txb.object(TXB_OBJECT(txb, forward.guard)), perm]
-                    });                        
-                } else {
-                    f = txb.moveCall({ 
-                        target:PROTOCOL.NodeFn('forward2') as FnCallType,
-                            arguments:[namedOperator, txb.pure(weight), perm]
+                    if (forward?.guard) {
+                        f = txb.moveCall({ 
+                            target:this.protocol.NodeFn('forward') as FnCallType,
+                                arguments:[namedOperator, txb.pure(weight), txb.object(Protocol.TXB_OBJECT(txb, forward.guard)), perm]
+                        });                        
+                    } else {
+                        f = txb.moveCall({ 
+                            target:this.protocol.NodeFn('forward2') as FnCallType,
+                                arguments:[namedOperator, txb.pure(weight), perm]
+                        });                
+                    }
+                    txb.moveCall({ // add forward
+                        target:this.protocol.NodeFn('forward_add') as FnCallType,
+                            arguments:[n, txb.pure(pair.prior_node), txb.pure(forward.name),  threshold, f]
                     });                
-                }
-                txb.moveCall({ // add forward
-                    target:PROTOCOL.NodeFn('forward_add') as FnCallType,
-                        arguments:[n, txb.pure(pair.prior_node), txb.pure(forward.name),  threshold, f]
-                });                
+                }); 
             }); 
+            new_nodes.push(n); 
         }); 
-        new_nodes.push(n); 
-    }); return machine_add_node2(txb, machine, permission, new_nodes, passport)
-}
-// move MachineNodeObject to the machine from signer-owned MachineNode object 
-export function machine_add_node2(txb:TransactionBlock, machine:MachineObject, permission:PermissionObject, 
-    nodes:MachineNodeObject[], passport?:PassportObject) : boolean {
-    if (!IsValidObjects([machine, permission])) return false;
-    if (!nodes) return false;
-
-    let n: TransactionResult[] = [];
-    array_unique(nodes).forEach((v) => {
-        n.push(TXB_OBJECT(txb, v));
-    })
-
-    if (passport) {
-        txb.moveCall({ // add node
-            target:PROTOCOL.MachineFn('node_add_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, machine), txb.makeMoveVec({objects:n}), TXB_OBJECT(txb, permission)]
-        });     
-    } else {
-        txb.moveCall({ // add node
-            target:PROTOCOL.MachineFn('node_add') as FnCallType,
-            arguments:[TXB_OBJECT(txb, machine), txb.makeMoveVec({objects:n}), TXB_OBJECT(txb, permission)]
-        });     
-    }    
-    return true
-}
-// move MachineNodeObject from machine to signer-owned MachineNode object 
-export function machine_remove_node(txb:TransactionBlock, machine:MachineObject, permission:PermissionObject, 
-    nodes_name:string[], bTransferMyself:boolean = false, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([machine, permission])) return false;
-    if (!nodes_name || !IsValidArray(nodes_name, IsValidName)) return false;
-
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.MachineFn('node_remove_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, machine), txb.pure(BCS_CONVERT.ser_vector_string(nodes_name)), 
-                txb.pure(bTransferMyself, BCS.BOOL), TXB_OBJECT(txb, permission)],
-        });  
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.MachineFn('node_remove') as FnCallType,
-            arguments:[TXB_OBJECT(txb, machine), txb.pure(BCS_CONVERT.ser_vector_string(nodes_name)), txb.pure(bTransferMyself, BCS.BOOL), TXB_OBJECT(txb, permission)],
-        });
-    } 
-    return true;
-}
-export function machine(txb:TransactionBlock, permission:PermissionObject, description:string, 
-    endpoint?:string, passport?:PassportObject) : MachineObject | boolean {
-    if (!IsValidObjects([permission])) return false;    
-    if (!IsValidDesription(description)) return false;
-    if (endpoint && !IsValidEndpoint(endpoint)) return false;
-    let ep = endpoint? txb.pure(BCS_CONVERT.ser_option_string(endpoint)) : OptionNone(txb);
-
-    if (passport) {
-        return txb.moveCall({
-            target:PROTOCOL.MachineFn('new_with_passport') as FnCallType,
-            arguments:[passport, txb.pure(description), ep, TXB_OBJECT(txb, permission)],
-        })
-    } else {
-        return txb.moveCall({
-            target:PROTOCOL.MachineFn('new') as FnCallType,
-            arguments:[txb.pure(description), ep, TXB_OBJECT(txb, permission)],
-        })
+        this.add_node2(new_nodes, passport)
     }
-}
-export function destroy(txb:TransactionBlock, machine:MachineObject) : boolean{
-    if (!IsValidObjects([machine])) return false;
-    txb.moveCall({
-        target:PROTOCOL.MachineFn('destroy') as FnCallType,
-        arguments: [TXB_OBJECT(txb, machine)],
-    })  
-    return true 
-}
-export function launch(txb:TransactionBlock, machine:MachineObject) : MachineAddress | boolean {
-    if (!IsValidObjects([machine])) return false;
-    return txb.moveCall({
-        target:PROTOCOL.MachineFn('create') as FnCallType,
-        arguments:[TXB_OBJECT(txb, machine)],
-    })
-}
-export function machine_set_description(txb:TransactionBlock, machine:MachineObject, permission:PermissionObject, 
-    description:string, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([machine, permission])) return false;
-    if (!IsValidDesription(description)) return false;
 
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.MachineFn('description_set_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, machine), txb.pure(description), TXB_OBJECT(txb, permission)],
+    // move MachineNodeObject to the machine from signer-owned MachineNode object 
+    add_node2(nodes:MachineNodeObject[], passport?:PassportObject) {
+        if (!nodes) {
+            ERROR(Errors.InvalidParam, 'nodes');
+        }
+
+        let txb = this.protocol.CurrentSession();
+        let n: TransactionResult[] = [];
+        array_unique(nodes).forEach((v) => {
+            n.push(Protocol.TXB_OBJECT(txb, v));
         })
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.MachineFn('description_set') as FnCallType,
-            arguments:[TXB_OBJECT(txb, machine), txb.pure(description), TXB_OBJECT(txb, permission)],
-        })
+
+        if (passport) {
+            txb.moveCall({ // add node
+                target:this.protocol.MachineFn('node_add_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.makeMoveVec({objects:n}), Protocol.TXB_OBJECT(txb, this.permission)]
+            });     
+        } else {
+            txb.moveCall({ // add node
+                target:this.protocol.MachineFn('node_add') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb,  this.object), txb.makeMoveVec({objects:n}), Protocol.TXB_OBJECT(txb, this.permission)]
+            });     
+        }    
     }
-    return true
-}
-export function machine_add_repository(txb:TransactionBlock, machine:MachineObject, permission:PermissionObject, 
-    repository:RepositoryObject, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([machine, permission, repository])) return false;
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.MachineFn('repository_add_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, machine), TXB_OBJECT(txb, repository), TXB_OBJECT(txb, permission)],
-        })
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.MachineFn('repository_add') as FnCallType,
-            arguments:[TXB_OBJECT(txb, machine), TXB_OBJECT(txb, repository), TXB_OBJECT(txb, permission)],
-        })
-    }
-    return true
-}
 
-export function machine_remove_repository(txb:TransactionBlock, machine:MachineObject, permission:PermissionObject, 
-    repositories:string[], removeall?:boolean, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([machine, permission])) return false;
-    if (!removeall && !repositories) return false;
-    if (!IsValidArray(repositories, IsValidAddress)) return false;
+    // move MachineNodeObject from  this.object to signer-owned MachineNode object 
+    remove_node(nodes_name:string[], bTransferMyself:boolean = false, passport?:PassportObject) {
+        if (!nodes_name || !IsValidArray(nodes_name, IsValidName)) {
+            ERROR(Errors.IsValidArray, 'nodes_name')
+        }
 
-    if (passport) {
-        if (removeall) {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
             txb.moveCall({
-                target:PROTOCOL.MachineFn('repository_remove_all_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, machine), TXB_OBJECT(txb, machine)],
+                target:this.protocol.MachineFn('node_remove_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb,  this.object), txb.pure(BCS_CONVERT.ser_vector_string(nodes_name)), 
+                    txb.pure(bTransferMyself, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+            });  
+        } else {
+            txb.moveCall({
+                target:this.protocol.MachineFn('node_remove') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb,  this.object), txb.pure(BCS_CONVERT.ser_vector_string(nodes_name)), txb.pure(bTransferMyself, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+            });
+        } 
+    }
+
+    destroy() {
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target:this.protocol.MachineFn('destroy') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(txb,  this.object)],
+        })  
+    }
+
+    launch() : MachineAddress {
+        let txb = this.protocol.CurrentSession();
+        return txb.moveCall({
+            target:this.protocol.MachineFn('create') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(txb,  this.object)],
+        })
+    }
+
+    set_description(description:string, passport?:PassportObject) {
+        if (!IsValidDesription(description)) {
+            ERROR(Errors.IsValidDesription)
+        }
+
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.MachineFn('description_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb,  this.object), txb.pure(description), Protocol.TXB_OBJECT(txb, this.permission)],
             })
         } else {
             txb.moveCall({
-                target:PROTOCOL.MachineFn('repository_remove_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, machine), txb.pure(repositories, 'vector<address>'), TXB_OBJECT(txb, permission)],
+                target:this.protocol.MachineFn('description_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb,  this.object), txb.pure(description), Protocol.TXB_OBJECT(txb, this.permission)],
             })
-        }   
-    } else {
-        if (removeall) {
+        }
+    }
+    add_repository(repository:RepositoryObject, passport?:PassportObject) {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
             txb.moveCall({
-                target:PROTOCOL.MachineFn('repository_remove_all') as FnCallType,
-                arguments:[TXB_OBJECT(txb, machine), TXB_OBJECT(txb, permission)],
+                target:this.protocol.MachineFn('repository_add_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb,  this.object), Protocol.TXB_OBJECT(txb, repository), Protocol.TXB_OBJECT(txb, this.permission)],
             })
         } else {
             txb.moveCall({
-                target:PROTOCOL.MachineFn('repository_remove') as FnCallType,
-                arguments:[TXB_OBJECT(txb, machine), txb.pure(repositories, 'vector<address>'), TXB_OBJECT(txb, permission)],
+                target:this.protocol.MachineFn('repository_add') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb,  this.object), Protocol.TXB_OBJECT(txb, repository), Protocol.TXB_OBJECT(txb, this.permission)],
             })
+        }
+    }
+
+    remove_repository(repositories:string[], removeall?:boolean, passport?:PassportObject) {
+        if (!removeall && !repositories) {
+            ERROR(Errors.AllInvalid, 'repositories & removeall')
+        }
+        if (repositories && !IsValidArray(repositories, IsValidAddress)){
+            ERROR(Errors.IsValidArray, 'repositories')
+        }
+
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            if (removeall) {
+                txb.moveCall({
+                    target:this.protocol.MachineFn('repository_remove_all_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(txb,  this.object), Protocol.TXB_OBJECT(txb,  this.object)],
+                })
+            } else {
+                txb.moveCall({
+                    target:this.protocol.MachineFn('repository_remove_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(txb,  this.object), txb.pure(repositories, 'vector<address>'),
+                        Protocol.TXB_OBJECT(txb, this.permission)],
+                })
+            }   
+        } else {
+            if (removeall) {
+                txb.moveCall({
+                    target:this.protocol.MachineFn('repository_remove_all') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(txb,  this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                })
+            } else {
+                txb.moveCall({
+                    target:this.protocol.MachineFn('repository_remove') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(txb,  this.object), txb.pure(repositories, 'vector<address>'), 
+                        Protocol.TXB_OBJECT(txb, this.permission)],
+                })
+            }   
         }   
-    }   
-    return true  
-}
+    }
 
-export function machine_clone(txb:TransactionBlock, machine:MachineObject, permission:PermissionObject, passport?:PassportObject) : MachineObject | boolean {
-    if (!IsValidObjects([machine, permission])) return false;
-    if (passport) {
-        return txb.moveCall({
-            target:PROTOCOL.MachineFn('clone_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, machine), TXB_OBJECT(txb, permission)],
-        })
-    } else {
-        return txb.moveCall({
-            target:PROTOCOL.MachineFn('clone') as FnCallType,
-            arguments:[TXB_OBJECT(txb, machine), TXB_OBJECT(txb, permission)],
-        })
+    clone(passport?:PassportObject) : MachineObject  {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            return txb.moveCall({
+                target:this.protocol.MachineFn('clone_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb,  this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+            })
+        } else {
+            return txb.moveCall({
+                target:this.protocol.MachineFn('clone') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb,  this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+            })
+        }
     }
-}
-export function machine_set_endpoint(txb:TransactionBlock, machine:MachineObject, permission:PermissionObject, 
-    endpoint?:string, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([machine, permission])) return false;
-    if (endpoint && !IsValidEndpoint(endpoint)) return false;
-    let ep = endpoint? txb.pure(BCS_CONVERT.ser_option_string(endpoint)) : OptionNone(txb);
 
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.MachineFn('endpoint_set_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, machine), ep, TXB_OBJECT(txb, permission)],
-        })
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.MachineFn('endpoint_set') as FnCallType,
-            arguments:[TXB_OBJECT(txb, machine), ep, TXB_OBJECT(txb, permission)],
-        })
-    }
-    return true
-}
-export function machine_pause(txb:TransactionBlock, machine:MachineObject, permission:PermissionObject, bPaused:boolean, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([machine, permission])) return false;
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.MachineFn('pause_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, machine), txb.pure(bPaused), TXB_OBJECT(txb, permission)],
-        })
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.MachineFn('pause') as FnCallType,
-            arguments:[TXB_OBJECT(txb, machine), txb.pure(bPaused), TXB_OBJECT(txb, permission)],
-        })
-    }
-    return true
-}
-export function machine_publish(txb:TransactionBlock, machine:MachineObject, permission:PermissionObject, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([machine, permission])) return false;
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.MachineFn('publish_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, machine), TXB_OBJECT(txb, permission)],
-        })
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.MachineFn('publish') as FnCallType,
-            arguments:[TXB_OBJECT(txb, machine), TXB_OBJECT(txb, permission)],
-        })
-    }
-    return true
-}
+    set_endpoint(endpoint?:string, passport?:PassportObject) {
+        if (endpoint && !IsValidEndpoint(endpoint)) {
+            ERROR(Errors.IsValidEndpoint)
+        }
 
-export function change_permission(txb:TransactionBlock, machine:MachineObject, old_permission:PermissionObject, new_permission:PermissionObject) : boolean {
-    if (!IsValidObjects([machine, old_permission, new_permission])) return false;
-    txb.moveCall({
-        target:PROTOCOL.MachineFn('permission_set') as FnCallType,
-        arguments: [TXB_OBJECT(txb, machine), TXB_OBJECT(txb, old_permission), TXB_OBJECT(txb, new_permission)],
-        typeArguments:[]            
-    })    
-    return true
+        let txb = this.protocol.CurrentSession();
+        let ep = endpoint? txb.pure(BCS_CONVERT.ser_option_string(endpoint)) : OptionNone(txb);
+        
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.MachineFn('endpoint_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb,  this.object), ep, Protocol.TXB_OBJECT(txb, this.permission)],
+            })
+        } else {
+            txb.moveCall({
+                target:this.protocol.MachineFn('endpoint_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb,  this.object), ep, Protocol.TXB_OBJECT(txb, this.permission)],
+            })
+        }
+    }
+    pause(bPaused:boolean, passport?:PassportObject) {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.MachineFn('pause_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb,  this.object), txb.pure(bPaused), Protocol.TXB_OBJECT(txb, this.permission)],
+            })
+        } else {
+            txb.moveCall({
+                target:this.protocol.MachineFn('pause') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb,  this.object), txb.pure(bPaused), Protocol.TXB_OBJECT(txb, this.permission)],
+            })
+        } 
+    }
+    publish(passport?:PassportObject) {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.MachineFn('publish_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb,  this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+            })
+        } else {
+            txb.moveCall({
+                target:this.protocol.MachineFn('publish') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb,  this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+            })
+        }
+        
+    }
+
+    change_permission(new_permission:PermissionObject) {
+        if (!Protocol.IsValidObjects([new_permission])){
+            ERROR(Errors.IsValidObjects, 'new_permission')
+        }
+
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target:this.protocol.MachineFn('permission_set') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(txb,  this.object), Protocol.TXB_OBJECT(txb, this.permission), Protocol.TXB_OBJECT(txb, new_permission)],
+            typeArguments:[]            
+        })      
+    }
+
+    static INITIAL_NODE_NAME = '';
+    static OPERATOR_ORDER_PAYER = 'order payer';
 }

@@ -1,21 +1,8 @@
-import { TransactionBlock, Inputs, type TransactionResult } from '@mysten/sui.js/transactions';
 import { BCS } from '@mysten/bcs';
-import { FnCallType, PROTOCOL, ValueType, IsValidDesription, IsValidAddress, IsValidArray, OptionNone, 
-    RepositoryObject, RepositoryAddress, PermissionObject, TXB_OBJECT, PassportObject, IsValidObjects,
-    IsValidInt} from './protocol';
-import { IsValidPermissionIndex, PermissionIndexType  } from './permission'
-import { BCS_CONVERT, array_unique } from './utils';
-
-export const MAX_POLICY_COUNT = 1000;
-export const MAX_KEY_LENGTH = 128;
-export const MAX_VALUE_LENGTH = 204800;
-
-export const IsValidKey = (key:string) : boolean => {
-    return key.length <= MAX_KEY_LENGTH && key.length != 0;
-}
-export const IsValidValue = (value:Uint8Array) : boolean => {
-    return value.length < MAX_VALUE_LENGTH;
-}
+import { Protocol, FnCallType, ValueType, RepositoryObject, RepositoryAddress, PermissionObject, PassportObject, TxbObject} from './protocol.js';
+import { PermissionIndexType, Permission } from './permission.js'
+import { BCS_CONVERT, array_unique, IsValidDesription, IsValidAddress, IsValidArray, OptionNone,  } from './utils.js';
+import { ERROR, Errors } from './exception.js';
 
 export enum Repository_Policy_Mode {
     POLICY_MODE_FREE = 0,
@@ -37,250 +24,312 @@ export type Repository_Value = {
     bcsBytes: Uint8Array;
 }
 
-export function repository(txb:TransactionBlock, permission:PermissionObject, description:string, 
-    policy_mode: Repository_Policy_Mode, passport?:PassportObject) : RepositoryObject | boolean {
-    if (!IsValidObjects([permission])) return false;
-    if (!IsValidDesription(description)) return false;
+export class Repository {
+    protected permission ;
+    protected object:TxbObject;
+    protected protocol;
 
-    if (passport) {
-        return txb.moveCall({
-            target:PROTOCOL.RepositoryFn('new_with_passport') as FnCallType,
-            arguments:[passport, txb.pure(description), txb.pure(policy_mode, BCS.U8), TXB_OBJECT(txb, permission)],
-        })
-    } else {
-        return txb.moveCall({
-            target:PROTOCOL.RepositoryFn('new') as FnCallType,
-            arguments:[txb.pure(description), txb.pure(policy_mode, BCS.U8), TXB_OBJECT(txb, permission)],
-        })
+    get_object() { return this.object }
+    private constructor(protocol:Protocol, permission:PermissionObject) {
+        this.protocol = protocol;
+        this.permission = permission;
+        this.object = '';
     }
-    return true;
-}
-
-export function launch(txb:TransactionBlock, repository:RepositoryObject) : RepositoryAddress | boolean {
-    if (!IsValidObjects([repository])) return false;
-    return txb.moveCall({
-        target:PROTOCOL.RepositoryFn('create') as FnCallType,
-        arguments:[TXB_OBJECT(txb, repository)],
-    })    
-}
-export function destroy(txb:TransactionBlock, repository:RepositoryObject) : boolean {
-    if (!IsValidObjects([repository])) return false;
-    txb.moveCall({
-        target:PROTOCOL.RepositoryFn('destroy') as FnCallType,
-        arguments: [TXB_OBJECT(txb, repository)],
-    })   
-    return true
-}
-
-export function add_data(txb:TransactionBlock, repository:RepositoryObject, permission:PermissionObject, data:Repository_Policy_Data) : boolean {
-    if (!IsValidObjects([repository, permission])) return false;
-    if (!IsValidKey(data.key)) return false; 
-    let bValid = true;
-    data.data.forEach((value) => {
-        if (!IsValidAddress(value.address)) bValid = false;
-        if (!IsValidValue(value.bcsBytes)) bValid = false; 
-    });
-    if (!bValid) return false;
-
-    if (data?.value_type) {
-        data.data.forEach((d) => txb.moveCall({
-            target:PROTOCOL.RepositoryFn('add') as FnCallType,
-            arguments:[TXB_OBJECT(txb, repository), 
-                txb.pure(d.address, BCS.ADDRESS),
-                txb.pure(data.key), 
-                txb.pure(data.value_type, BCS.U8),
-                txb.pure([...d.bcsBytes], 'vector<u8>'),
-                TXB_OBJECT(txb, permission),
-            ],
-        }))       
-    } else {
-        data.data.forEach((d) => txb.moveCall({
-            target:PROTOCOL.RepositoryFn('add_typed_data') as FnCallType,
-            arguments:[TXB_OBJECT(txb, repository), 
-                txb.pure(d.address, BCS.ADDRESS),
-                txb.pure(data.key), 
-                txb.pure([...d.bcsBytes], 'vector<u8>'),
-                TXB_OBJECT(txb, permission),
-            ],
-        }))   
+    static From(protocol:Protocol, permission:PermissionObject, object:TxbObject) : Repository {
+        let r = new Repository(protocol, permission);
+        r.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object);
+        return r
     }
-    return true;
-}
-
-export function remove(txb:TransactionBlock, repository:RepositoryObject, permission:PermissionObject, address:string, key:string) : boolean {
-    if (!IsValidObjects([repository, permission])) return false;
-    if (!IsValidKey(key) || !IsValidAddress(address)) return false;
-
-    txb.moveCall({
-        target:PROTOCOL.RepositoryFn('remove') as FnCallType,
-        arguments:[TXB_OBJECT(txb, repository), 
-            txb.pure(address, BCS.ADDRESS),
-            txb.pure(key), 
-            TXB_OBJECT(txb, permission),
-        ],
-    })  
-    return true  
-}
-// add or modify the old 
-export function repository_add_policies(txb:TransactionBlock, repository:RepositoryObject, permission:PermissionObject, 
-    policies:Repository_Policy[], passport?:PassportObject) : boolean {
-    if (!IsValidObjects([repository, permission])) return false;
-    if (!policies) return false;
-
-    let bValid = true;
-    policies.forEach((p) => {
-        if (!IsValidDesription(p.description) || !IsValidKey(p.key)) {
-            bValid = false
+    static New(protocol:Protocol, permission:PermissionObject, description:string, 
+        policy_mode: Repository_Policy_Mode, passport?:PassportObject) : Repository {
+        let r = new Repository(protocol, permission);
+        if (!Protocol.IsValidObjects([permission])) {
+            ERROR(Errors.IsValidObjects, 'permission')
         }
-    });
-    if (!bValid) return false;
+        if (!IsValidDesription(description)) {
+            ERROR(Errors.IsValidDesription)
+        }
 
-    policies.forEach((policy) => {
-        let permission_index = policy?.permission ? txb.pure(BCS_CONVERT.ser_option_u64(policy.permission)) : txb.pure([0], BCS.U8);
+        let txb = protocol.CurrentSession();
+
+        if (passport) {
+            r.object = txb.moveCall({
+                target:protocol.RepositoryFn('new_with_passport') as FnCallType,
+                arguments:[passport, txb.pure(description), txb.pure(policy_mode, BCS.U8), Protocol.TXB_OBJECT(txb, permission)],
+            })
+        } else {
+            r.object = txb.moveCall({
+                target:protocol.RepositoryFn('new') as FnCallType,
+                arguments:[txb.pure(description), txb.pure(policy_mode, BCS.U8), Protocol.TXB_OBJECT(txb, permission)],
+            })
+        }
+        return r
+    }
+
+    launch() : RepositoryAddress {
+        let txb = this.protocol.CurrentSession();
+        return txb.moveCall({
+            target:this.protocol.RepositoryFn('create') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(txb, this.object)],
+        })    
+    }
+    destroy()  {
+        if (!Protocol.IsValidObjects([this.object])) return false;
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target:this.protocol.RepositoryFn('destroy') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(txb, this.object)],
+        })   
+    }
+
+    add_data(data:Repository_Policy_Data)  {
+        if (!Repository.IsValidName(data.key)) {
+            ERROR(Errors.IsValidName)
+        }
+
+        let bValid = true;
+        data.data.forEach((value) => {
+            if (!IsValidAddress(value.address)) bValid = false;
+            if (!Repository.IsValidValue(value.bcsBytes)) bValid = false; 
+        });
+        if (!bValid) {
+            ERROR(Errors.InvalidParam)
+        }
+
+        let txb = this.protocol.CurrentSession();
+        if (data?.value_type) {
+            data.data.forEach((d) => txb.moveCall({
+                target:this.protocol.RepositoryFn('add') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), 
+                    txb.pure(d.address, BCS.ADDRESS),
+                    txb.pure(data.key), 
+                    txb.pure(data.value_type, BCS.U8),
+                    txb.pure([...d.bcsBytes], 'vector<u8>'),
+                    Protocol.TXB_OBJECT(txb, this.permission),
+                ],
+            }))       
+        } else {
+            data.data.forEach((d) => txb.moveCall({
+                target:this.protocol.RepositoryFn('add_typed_data') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), 
+                    txb.pure(d.address, BCS.ADDRESS),
+                    txb.pure(data.key), 
+                    txb.pure([...d.bcsBytes], 'vector<u8>'),
+                    Protocol.TXB_OBJECT(txb, this.permission),
+                ],
+            }))   
+        }
+    }
+
+    remove(address:string, key:string)  {
+        if (!Repository.IsValidName(key)) {
+            ERROR(Errors.IsValidName)
+        } 
+        if (!IsValidAddress(address)) {
+            ERROR(Errors.IsValidAddress)
+        }
+
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target:this.protocol.RepositoryFn('remove') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(txb, this.object), 
+                txb.pure(address, BCS.ADDRESS),
+                txb.pure(key), 
+                Protocol.TXB_OBJECT(txb, this.permission),
+            ],
+        })  
+    }
+    // add or modify the old 
+    add_policies(policies:Repository_Policy[], passport?:PassportObject)  {
+        if (!policies) {
+            ERROR(Errors.InvalidParam, 'policies')
+        }
+
+        let bValid = true;
+        policies.forEach((p) => {
+            if (!IsValidDesription(p.description) || !Repository.IsValidName(p.key)) {
+                bValid = false
+            }
+        });
+        if (!bValid) {
+            ERROR(Errors.InvalidParam, 'policies')
+        }
+
+        let txb = this.protocol.CurrentSession();
+        policies.forEach((policy) => {
+            let permission_index = policy?.permission ? txb.pure(BCS_CONVERT.ser_option_u64(policy.permission)) : OptionNone(txb);
+            if (passport) {
+                txb.moveCall({
+                    target:this.protocol.RepositoryFn('policy_add_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), 
+                        txb.pure(policy.key), 
+                        txb.pure(policy.description),
+                        permission_index, txb.pure(policy.value_type, BCS.U8),
+                        Protocol.TXB_OBJECT(txb, this.permission)]
+                })              
+            } else {
+                txb.moveCall({
+                    target:this.protocol.RepositoryFn('policy_add') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(txb, this.object), 
+                        txb.pure(policy.key), 
+                        txb.pure(policy.description),
+                        permission_index, txb.pure(policy.value_type, BCS.U8),
+                        Protocol.TXB_OBJECT(txb, this.permission)]
+                })  
+            }
+        });    
+    }
+
+    remove_policies(policy_keys:string[], removeall?:boolean, passport?:PassportObject)  {
+        if (!removeall && !policy_keys) {
+            ERROR(Errors.AllInvalid, 'policy_keys & removeall')
+        }
+        if (policy_keys && !IsValidArray(policy_keys, Repository.IsValidName)){
+            ERROR(Errors.InvalidParam, 'policy_keys')
+        }
+
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            if (removeall) {
+                txb.moveCall({
+                    target:this.protocol.RepositoryFn('policy_remove_all_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)]
+                })          
+            } else {
+                txb.moveCall({
+                    target:this.protocol.RepositoryFn('policy_remove_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), 
+                        txb.pure(BCS_CONVERT.ser_vector_string(array_unique(policy_keys))), 
+                        Protocol.TXB_OBJECT(txb, this.permission)]
+                })                
+            }
+        } else {
+            if (removeall) {
+                txb.moveCall({
+                    target:this.protocol.RepositoryFn('policy_remove_all') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)]
+                })          
+            } else {
+                txb.moveCall({
+                    target:this.protocol.RepositoryFn('policy_remove') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(txb, this.object), 
+                        txb.pure(BCS_CONVERT.ser_vector_string(array_unique(policy_keys))), 
+                        Protocol.TXB_OBJECT(txb, this.permission)]
+                })                
+            }
+        }
+        
+    }
+    // PermissionIndex.description_set
+    set_description(description:string, passport?:PassportObject)  {
+        if (!IsValidDesription(description)){
+            ERROR(Errors.IsValidDesription)
+        }
+
+        let txb = this.protocol.CurrentSession();
         if (passport) {
             txb.moveCall({
-                target:PROTOCOL.RepositoryFn('policy_add_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, repository), 
-                    txb.pure(policy.key), 
-                    txb.pure(policy.description),
-                    permission_index, txb.pure(policy.value_type, BCS.U8),
-                    TXB_OBJECT(txb, permission)]
-            })              
+                target:this.protocol.RepositoryFn('description_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(description), Protocol.TXB_OBJECT(txb, this.permission)]
+            }) 
         } else {
             txb.moveCall({
-                target:PROTOCOL.RepositoryFn('policy_add') as FnCallType,
-                arguments:[TXB_OBJECT(txb, repository), 
-                    txb.pure(policy.key), 
-                    txb.pure(policy.description),
-                    permission_index, txb.pure(policy.value_type, BCS.U8),
-                    TXB_OBJECT(txb, permission)]
+                target:this.protocol.RepositoryFn('description_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(description), Protocol.TXB_OBJECT(txb, this.permission)]
+            }) 
+        }        
+        
+    }
+
+    set_policy_mode(policy_mode:Repository_Policy_Mode, passport?:PassportObject)  {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.RepositoryFn('policy_mode_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(policy_mode), Protocol.TXB_OBJECT(txb, this.permission)]
             })  
-        }
-    });    
-    return true;
-}
-
-export function repository_remove_policies(txb:TransactionBlock, repository:RepositoryObject, permission:PermissionObject, 
-    policy_keys:string[], removeall?:boolean, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([repository, permission])) return false;
-    if (!removeall && !policy_keys) return false;
-    if (policy_keys && !IsValidArray(policy_keys, IsValidKey)) return false;
-
-    if (passport) {
-        if (removeall) {
-            txb.moveCall({
-                target:PROTOCOL.RepositoryFn('policy_remove_all_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, repository), TXB_OBJECT(txb, permission)]
-            })          
         } else {
             txb.moveCall({
-                target:PROTOCOL.RepositoryFn('policy_remove_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, repository), txb.pure(BCS_CONVERT.ser_vector_string(array_unique(policy_keys))), TXB_OBJECT(txb, permission)]
-            })                
+                target:this.protocol.RepositoryFn('policy_mode_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(policy_mode), Protocol.TXB_OBJECT(txb, this.permission)]
+            })  
+        }  
+    }
+
+    set_policy_description(policy:string, description:string, passport?:PassportObject)  {
+        if (!Repository.IsValidName(policy)) {
+            ERROR(Errors.IsValidName, 'policy')
         }
-    } else {
-        if (removeall) {
+        if (!IsValidDesription(description)) {
+            ERROR(Errors.IsValidDesription)
+        }
+
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
             txb.moveCall({
-                target:PROTOCOL.RepositoryFn('policy_remove_all') as FnCallType,
-                arguments:[TXB_OBJECT(txb, repository), TXB_OBJECT(txb, permission)]
-            })          
+                target:this.protocol.RepositoryFn('policy_description_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(policy), txb.pure(description), 
+                    Protocol.TXB_OBJECT(txb, this.permission)]
+            })   
         } else {
             txb.moveCall({
-                target:PROTOCOL.RepositoryFn('policy_remove') as FnCallType,
-                arguments:[TXB_OBJECT(txb, repository), txb.pure(BCS_CONVERT.ser_vector_string(array_unique(policy_keys))), TXB_OBJECT(txb, permission)]
-            })                
+                target:this.protocol.RepositoryFn('policy_description_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(policy), txb.pure(description), 
+                    Protocol.TXB_OBJECT(txb, this.permission)]
+            })   
+        } 
+        
+    }
+
+    set_policy_permission(policy:string, permission_index?:number, passport?:PassportObject)  {
+        if (!Repository.IsValidName(policy)) {
+            ERROR(Errors.IsValidName, 'policy')
         }
-    }
-    return true;
-}
-// PermissionIndex.repository_description_set
-export function repository_set_description(txb:TransactionBlock, repository:RepositoryObject, permission:PermissionObject, 
-    description:string, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([repository, permission])) return false;
-    if (!IsValidDesription(description)) return false;
 
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.RepositoryFn('description_set_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, repository), txb.pure(description), TXB_OBJECT(txb, permission)]
-        }) 
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.RepositoryFn('description_set') as FnCallType,
-            arguments:[TXB_OBJECT(txb, repository), txb.pure(description), TXB_OBJECT(txb, permission)]
-        }) 
-    }        
-    return true
-}
+        let txb = this.protocol.CurrentSession();
+        let index = OptionNone(txb);
 
-export function repository_set_policy_mode(txb:TransactionBlock, repository: RepositoryObject, permission:PermissionObject,
-    policy_mode:Repository_Policy_Mode, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([repository, permission])) return false;
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.RepositoryFn('policy_mode_set_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, repository), txb.pure(policy_mode), TXB_OBJECT(txb, permission)]
-        })  
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.RepositoryFn('policy_mode_set') as FnCallType,
-            arguments:[TXB_OBJECT(txb, repository), txb.pure(policy_mode), TXB_OBJECT(txb, permission)]
-        })  
-    }  
-    return true
-}
+        if (permission_index) {
+            if(!Permission.IsValidPermissionIndex(permission_index)) {
+                ERROR(Errors.IsValidPermissionIndex)
+            }
+            index = txb.pure(BCS_CONVERT.ser_option_u64(permission_index));
+        }
 
-export function repository_set_policy_description(txb:TransactionBlock, repository: RepositoryObject, permission:PermissionObject, 
-    policy:string, description:string, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([repository, permission])) return false;
-    if (!IsValidKey(policy) || !IsValidDesription(description)) return false;
-
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.RepositoryFn('policy_description_set_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, repository), txb.pure(policy), txb.pure(description), TXB_OBJECT(txb, permission)]
-        })   
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.RepositoryFn('policy_description_set') as FnCallType,
-            arguments:[TXB_OBJECT(txb, repository), txb.pure(policy), txb.pure(description), TXB_OBJECT(txb, permission)]
-        })   
-    } 
-    return true;
-}
-
-export function repository_set_policy_permission(txb:TransactionBlock, repository: RepositoryObject, permission:PermissionObject, 
-    policy:string, permission_index?:number, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([repository, permission])) return false;
-    if (!IsValidKey(policy)) return false;
-
-    let index = OptionNone(txb);
-    if (permission_index) {
-        if(!IsValidPermissionIndex(permission_index)) return false;
-        index = txb.pure(BCS_CONVERT.ser_option_u64(permission_index));
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.RepositoryFn('policy_permission_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), index, Protocol.TXB_OBJECT(txb, this.permission)]
+            })   
+        } else {
+            txb.moveCall({
+                target:this.protocol.RepositoryFn('policy_permission_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), index, Protocol.TXB_OBJECT(txb, this.permission)]
+            })   
+        }     
+        
     }
 
-    if (passport) {
+    change_permission(new_permission:PermissionObject) {
+        if (!Protocol.IsValidObjects([new_permission])) {
+            ERROR(Errors.IsValidObjects)
+        }
+        let txb = this.protocol.CurrentSession();
         txb.moveCall({
-            target:PROTOCOL.RepositoryFn('policy_permission_set_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, repository), index, TXB_OBJECT(txb, permission)]
-        })   
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.RepositoryFn('policy_permission_set') as FnCallType,
-            arguments:[TXB_OBJECT(txb, repository), index, TXB_OBJECT(txb, permission)]
-        })   
-    }     
-    return true
-}
+            target:this.protocol.RepositoryFn('permission_set') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), Protocol.TXB_OBJECT(txb, new_permission)],
+            typeArguments:[]            
+        })    
+    }
 
-export function change_permission(txb:TransactionBlock, repository:RepositoryObject, old_permission:PermissionObject, new_permission:PermissionObject) {
-    if (!IsValidObjects([repository, old_permission, new_permission])) return false;
-    txb.moveCall({
-        target:PROTOCOL.RepositoryFn('permission_set') as FnCallType,
-        arguments: [TXB_OBJECT(txb, repository), TXB_OBJECT(txb, old_permission), TXB_OBJECT(txb, new_permission)],
-        typeArguments:[]            
-    })    
+    static MAX_POLICY_COUNT = 1000;
+    static MAX_KEY_LENGTH = 128;
+    static MAX_VALUE_LENGTH = 204800;
+    static IsValidName = (key:string)  => {
+        return key.length <= Repository.MAX_KEY_LENGTH && key.length != 0;
+    }
+    static IsValidValue = (value:Uint8Array)  => {
+        return value.length < Repository.MAX_VALUE_LENGTH;
+    }
 }
-
 

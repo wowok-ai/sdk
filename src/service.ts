@@ -1,465 +1,20 @@
-import { TransactionBlock, type TransactionResult } from '@mysten/sui.js/transactions';
 import { bcs, BCS, toHEX, fromHEX, getSuiMoveConfig } from '@mysten/bcs';
-import { BCS_CONVERT, array_unique } from './utils'
-import { CLOCK_OBJECT, FnCallType, GuardObject, PROTOCOL, PassportObject, PermissionObject,
-    RepositoryObject, MachineObject, ServiceAddress, ServiceObject, IsValidObjects, IsValidArgType, IsValidDesription, 
-    IsValidAddress, IsValidEndpoint, OptionNone, TXB_OBJECT, IsValidUint, IsValidInt, IsValidName, DiscountObject,
-    IsValidArray, IsValidPercent, IsValidName_AllowEmpty, OrderObject, OrderAddress, CoinObject } from './protocol';
+import { IsValidArray, IsValidPercent, IsValidName_AllowEmpty, BCS_CONVERT, array_unique, IsValidArgType, IsValidDesription, 
+    IsValidAddress, IsValidEndpoint, OptionNone, IsValidUint, IsValidInt, IsValidName, } from './utils.js'
+import { FnCallType, GuardObject, PassportObject, PermissionObject, RepositoryObject, MachineObject, ServiceAddress, 
+    ServiceObject, DiscountObject, OrderObject, OrderAddress, CoinObject, Protocol, 
+    TxbObject} from './protocol.js';
+import { ERROR, Errors } from './exception.js';
 
-export function service(pay_type:string, txb:TransactionBlock, permission:PermissionObject, description:string, 
-    payee_address:string, endpoint?:string, passport?:PassportObject) : ServiceObject | boolean {
-    if (!IsValidObjects([permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    if (!IsValidDesription(description)) return false;
-    if (!IsValidAddress(payee_address)) return false;
-
-    if (endpoint && !IsValidEndpoint(endpoint)) return false;
-    let ep = endpoint? txb.pure(BCS_CONVERT.ser_option_string(endpoint)) : OptionNone(txb);
-    
-    if (passport) {
-        return txb.moveCall({
-            target:PROTOCOL.ServiceFn('new_with_passport') as FnCallType,
-            arguments:[passport, txb.pure(description), txb.pure(payee_address, BCS.ADDRESS), ep, TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type],
-        })
-    } else {
-        return txb.moveCall({
-            target:PROTOCOL.ServiceFn('new') as FnCallType,
-            arguments:[txb.pure(description), txb.pure(payee_address, BCS.ADDRESS), ep, TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type],
-        })
-    }
-}
-
-export function launch(pay_type:string, txb:TransactionBlock, service:ServiceObject) : ServiceAddress | boolean {
-    if (!IsValidObjects([service])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    return txb.moveCall({
-        target:PROTOCOL.ServiceFn('create') as FnCallType,
-        arguments:[TXB_OBJECT(txb, service)],
-        typeArguments:[pay_type]
-    })
-}
-export function destroy(pay_type:string, txb:TransactionBlock, service:ServiceObject) : boolean {
-    if (!IsValidObjects([service])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    txb.moveCall({
-        target:PROTOCOL.ServiceFn('destroy') as FnCallType,
-        arguments: [TXB_OBJECT(txb, service)],
-        typeArguments:[pay_type]
-    })   
-    return true
-}
-export function service_set_description(pay_type:string, txb:TransactionBlock, service:ServiceObject, 
-    permission:PermissionObject, description:string, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    if (!IsValidDesription(description)) return false;
-
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('description_set_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, service), txb.pure(description), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('description_set') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), txb.pure(description), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })
-    }
-    return true
-}
-export function service_set_price(pay_type:string, txb:TransactionBlock, service:ServiceObject, permission:PermissionObject, 
-    item:string, price:number, bNotFoundAssert:boolean=true, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    if (!IsValidInt(price) || !IsValidName(item)) return false;
-
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('price_set_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, service), txb.pure(item), txb.pure(price, BCS.U64), 
-                txb.pure(bNotFoundAssert, BCS.BOOL), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('price_set') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), txb.pure(item), txb.pure(price, BCS.U64), 
-                txb.pure(bNotFoundAssert, BCS.BOOL), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })
-    }
-    return true
-}
-export function service_set_stock(pay_type:string, txb:TransactionBlock, service:ServiceObject, permission:PermissionObject, 
-    item:string, stock:number, bNotFoundAssert:boolean=true, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    if (!IsValidName(item) || !IsValidInt(stock)) return false;
-
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('stock_set_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, service), txb.pure(item), txb.pure(stock, BCS.U64), 
-                txb.pure(bNotFoundAssert, BCS.BOOL), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('stock_set') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), txb.pure(item), txb.pure(stock, BCS.U64), 
-                txb.pure(bNotFoundAssert, BCS.BOOL), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })
-    }
-    return true
-}
-export function service_add_stock(pay_type:string, txb:TransactionBlock, service:ServiceObject, permission:PermissionObject, 
-    item:string, stock_add:number, bNotFoundAssert:boolean=true, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    if (!IsValidName(item) || !IsValidUint(stock_add)) return false;
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('stock_add_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, service), txb.pure(item), txb.pure(stock_add, BCS.U64), 
-                txb.pure(bNotFoundAssert, BCS.BOOL), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })  
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('stock_add') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), txb.pure(item), txb.pure(stock_add, BCS.U64), 
-                txb.pure(bNotFoundAssert, BCS.BOOL), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })        
-    }
-    return true
-}
-export function service_reduce_stock(pay_type:string, txb:TransactionBlock, service:ServiceObject, permission:PermissionObject, 
-    item:string, stock_reduce:number, bNotFoundAssert:boolean=true, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    if (!IsValidName(item) || !IsValidUint(stock_reduce)) return false;
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('stock_reduce_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, service), txb.pure(item), txb.pure(stock_reduce, BCS.U64), 
-                txb.pure(bNotFoundAssert, BCS.BOOL), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('stock_reduce') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), txb.pure(item), txb.pure(stock_reduce, BCS.U64), 
-                txb.pure(bNotFoundAssert, BCS.BOOL), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })
-    }
-    return  true
-}
-export function service_set_payee(pay_type:string, txb:TransactionBlock, service:ServiceObject, permission:PermissionObject, 
-    payee:string, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    if (!IsValidAddress(payee)) return false;
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('payee_set_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, service), txb.pure(payee, BCS.ADDRESS), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('payee_set') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), txb.pure(payee, BCS.ADDRESS), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })
-    }
-    return true
-}
-export function service_repository_add(pay_type:string, txb:TransactionBlock, service:ServiceObject, permission:PermissionObject, 
-    repository:RepositoryObject, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission, repository])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('repository_add_with_passport') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), TXB_OBJECT(txb, repository), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('repository_add') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), TXB_OBJECT(txb, repository), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })
-    }
-    return true
-}
-export function service_repository_remove(pay_type:string, txb:TransactionBlock, service:ServiceObject, 
-    permission:PermissionObject, repository_address?:string[], removeall?:boolean, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    if (!removeall && !repository_address) return false;
-    if (repository_address && !IsValidArray(repository_address, IsValidAddress)) return false;
-
-    if (passport) {
-        if (removeall) {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('repository_remove_all_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, service), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })
-        } else {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('repository_remove_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, service), txb.pure(array_unique(repository_address!), 'vector<address>'), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })                    
-        }
-    } else {
-        if (removeall) {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('repository_remove_all') as FnCallType,
-                arguments:[TXB_OBJECT(txb, service), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })
-        } else {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('repository_remove') as FnCallType,
-                arguments:[TXB_OBJECT(txb, service), txb.pure(array_unique(repository_address!), 'vector<address>'), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })                       
-        }
-    }
-    return true
-}
 export type Service_Guard_Percent = {
     guard:GuardObject;
     percent: number;
-}
-export function service_add_withdraw_guards(pay_type:string, txb:TransactionBlock, service:ServiceObject, 
-    permission:PermissionObject, guards:Service_Guard_Percent[], passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    let bValid = true;
-    guards.forEach((v) => {
-        if (!IsValidObjects([v.guard])) return false;
-        if (!IsValidPercent(v.percent)) return false;
-    })
-    if (!bValid) return false;
-
-    guards.forEach((guard) => { 
-        if (passport) {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('withdraw_guard_add_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, service), TXB_OBJECT(txb, guard.guard), txb.pure(guard.percent, BCS.U8), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]            
-                })
-        } else {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('withdraw_guard_add') as FnCallType,
-                arguments:[TXB_OBJECT(txb, service), TXB_OBJECT(txb, guard.guard), txb.pure(guard.percent, BCS.U8), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]            
-                })
-        }
-    })
-    return true
-}
-export function service_remove_withdraw_guards(pay_type:string, txb:TransactionBlock, service:ServiceObject, 
-    permission:PermissionObject, guard_address?:string[], removeall?:boolean, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    if (!removeall && !guard_address) return false;
-    if (guard_address && !IsValidArray(guard_address, IsValidAddress)) return false;
-
-    if (passport) {
-        if (removeall) {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('withdraw_guard_remove_all_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, service), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })    
-        } else {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('withdraw_guard_remove_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, service), txb.pure(array_unique(guard_address!), 'vector<address>'), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })            
-        }
-    } else {
-        if (removeall) {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('withdraw_guard_remove_all') as FnCallType,
-                arguments:[TXB_OBJECT(txb, service), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })     
-        } else {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('withdraw_guard_remove') as FnCallType,
-                arguments:[TXB_OBJECT(txb, service), txb.pure(array_unique(guard_address!), 'vector<address>'), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })            
-        }
-    }
-    return true
-}
-export function service_add_refund_guards(pay_type:string, txb:TransactionBlock, service:ServiceObject, 
-    permission:PermissionObject, guards:Service_Guard_Percent[], passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    let bValid = true;
-    guards.forEach((v) => {
-        if (!IsValidObjects([v.guard])) return false;
-        if (!IsValidPercent(v.percent)) return false;
-    })
-    if (!bValid) return false;
-
-    guards.forEach((guard) => { 
-        if (passport) {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('refund_guard_add_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, service), TXB_OBJECT(txb, guard.guard), txb.pure(guard.percent, BCS.U8), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]            
-            })                
-        } else {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('refund_guard_add') as FnCallType,
-                arguments:[TXB_OBJECT(txb, service), TXB_OBJECT(txb, guard.guard), txb.pure(guard.percent, BCS.U8), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]            
-            })
-        }
-    })
-    return true
-}
-export function service_remove_refund_guards(pay_type:string, txb:TransactionBlock, service:ServiceObject, 
-    permission:PermissionObject, guard_address?:string[], removeall?:boolean, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    if (!guard_address && !removeall) return false;
-    if (guard_address && !IsValidArray(guard_address, IsValidAddress)) return false;
-
-    if (passport) {
-        if (removeall) {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('refund_guard_remove_all_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, service), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })
-        } else {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('refund_guard_remove_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, service), txb.pure(array_unique(guard_address!), 'vector<address>'), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })
-        }
-    } else {
-        if (removeall) {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('refund_guard_remove_all') as FnCallType,
-                arguments:[TXB_OBJECT(txb, service), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })
-        } else {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('refund_guard_remove') as FnCallType,
-                arguments:[TXB_OBJECT(txb, service), txb.pure(array_unique(guard_address!), 'vector<address>'), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })
-        }
-    }
-    return true
 }
 export type Service_Sale = {
     item:string;
     price:number;
     stock:number;
 }
-
-export function is_valid_sale(sales:Service_Sale[]) : boolean {
-    let bValid = true; let names:string[]  = [];
-    sales.forEach((v) => {
-        if (!IsValidName(v.item)) bValid = false;
-        if (!IsValidInt(v.price)) bValid = false;
-        if (!IsValidUint(v.stock)) bValid = false;
-        if (names.includes(v.item)) bValid = false;
-        names.push(v.item)
-    })
-    return bValid
-}
-export function service_add_sale(pay_type:string, txb:TransactionBlock, service:ServiceObject, 
-    permission:PermissionObject, sales:Service_Sale[], passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    if (!sales) return false;
-    let bValid = is_valid_sale(sales);
-    if (!bValid) return false;
-    
-    let names: string[]  = []; let price: number[] = []; let stock: number[] = [];
-    sales.forEach((s) => {
-        names.push(s.item); price.push(s.price); stock.push(s.stock);
-    })
-
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('sales_add_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, service), txb.pure(BCS_CONVERT.ser_vector_string(names)), 
-                txb.pure(BCS_CONVERT.ser_vector_u64(price)), txb.pure(BCS_CONVERT.ser_vector_u64(stock)), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('sales_add') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), txb.pure(BCS_CONVERT.ser_vector_string(names)), 
-                txb.pure(BCS_CONVERT.ser_vector_u64(price)), txb.pure(BCS_CONVERT.ser_vector_u64(stock)), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })
-    }
-    return true
-}
-export function service_remove_sales(pay_type:string, txb:TransactionBlock, service:ServiceObject, 
-    permission:PermissionObject, sales?:string[], removeall?:boolean, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    if (!removeall && !sales) return false;
-    if (sales && !IsValidArray(sales, IsValidName)) return false;
-    
-    if (passport) {
-        if (removeall) {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('sales_remove_all_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, service), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })    
-        } else {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('sales_remove_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, service), txb.pure(BCS_CONVERT.ser_vector_string(array_unique(sales!))), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })            
-        }
-    } else {
-        if (removeall) {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('sales_remove_all') as FnCallType,
-                arguments:[TXB_OBJECT(txb, service), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })      
-        } else {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('sales_remove') as FnCallType,
-                arguments:[TXB_OBJECT(txb, service), txb.pure(BCS_CONVERT.ser_vector_string(array_unique(sales!))), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })            
-        }
-    }
-    return true
-}
-
 export enum Service_Discount_Type {
     ratio = 0, // -off%
     minus = 1, // -off
@@ -472,224 +27,13 @@ export type Service_Discount = {
     time_start?: number; // current time if undefined
     price_greater?: number;
 }
-export  const MAX_DISCOUNT_COUNT_ONCE = 200;
-export const MAX_DISCOUNT_RECEIVER_COUNT = 200;
-
-export type DicountDispatch = {
-    receiver: string;
-    count: number;
-    discount: Service_Discount;
-}
-
-export function service_discount_transfer(pay_type:string, txb:TransactionBlock, service:ServiceObject, 
-    permission:PermissionObject, discount_dispatch:DicountDispatch[], passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    if (!discount_dispatch || discount_dispatch.length > MAX_DISCOUNT_RECEIVER_COUNT) return false;
-
-    let bValid = true;
-    discount_dispatch.forEach((v) => {
-        if (!IsValidAddress(v.receiver)) bValid = false;
-        if (!IsValidUint(v.count) || v.count > MAX_DISCOUNT_COUNT_ONCE) return false;
-        if (!IsValidName_AllowEmpty(v.discount.name)) return false;
-        if (v.discount.type == Service_Discount_Type.ratio && !IsValidPercent(v.discount.off)) return false;
-        if (!IsValidUint(v.discount.duration_minutes)) return false;
-        if (v.discount?.time_start && !IsValidUint(v.discount.time_start)) return false;
-        if (v.discount?.price_greater && !IsValidInt(v.discount.price_greater)) return false;
-    })
-    if (!bValid) return false;
-
-    discount_dispatch.forEach((discount) => {
-        let price_greater = discount.discount?.price_greater ? 
-            txb.pure(BCS_CONVERT.ser_option_u64(discount.discount.price_greater)) : OptionNone(txb);
-        let time_start = discount.discount?.time_start ? 
-            txb.pure(BCS_CONVERT.ser_option_u64(discount.discount.time_start)) : OptionNone(txb);
-
-        if (passport) {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('dicscount_create_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, service), txb.pure(discount.discount.name), txb.pure(discount.discount.type, BCS.U8), 
-                    txb.pure(discount.discount.off, BCS.U64), price_greater, time_start, 
-                    txb.pure(discount.discount.duration_minutes, BCS.U64), txb.pure(discount.count, BCS.U64), 
-                    TXB_OBJECT(txb, permission), txb.pure(discount.receiver, BCS.ADDRESS), txb.object(CLOCK_OBJECT)],
-                typeArguments:[pay_type]
-            });
-        } else {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('dicscount_create') as FnCallType,
-                arguments:[TXB_OBJECT(txb, service), txb.pure(discount.discount.name), txb.pure(discount.discount.type, BCS.U8), 
-                    txb.pure(discount.discount.off, BCS.U64), price_greater, time_start, 
-                    txb.pure(discount.discount.duration_minutes, BCS.U64), txb.pure(discount.count, BCS.U64), 
-                    TXB_OBJECT(txb, permission), txb.pure(discount.receiver, BCS.ADDRESS), txb.object(CLOCK_OBJECT)],
-                typeArguments:[pay_type]
-            })
-        }
-    });
-    return true;
-}
-
-// 同时支持withdraw guard和permission guard
-export function service_withdraw(pay_type:string, txb:TransactionBlock, service:ServiceObject, 
-    permission:PermissionObject, order:OrderObject, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission, order])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('withdraw_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, service), TXB_OBJECT(txb, order), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })        
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('withdraw') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), TXB_OBJECT(txb, order), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })               
-    }
-    return true
-}
-export function service_set_buy_guard(pay_type:string, txb:TransactionBlock, service:ServiceObject, 
-    permission:PermissionObject, guard?:GuardObject, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-
-    if (passport) {
-        if (guard) {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('buy_guard_set_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, service), TXB_OBJECT(txb, guard), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })        
-        } else {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('buy_guard_none_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, service), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })   
-        }
-    } else {
-        if (guard) {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('buy_guard_set') as FnCallType,
-                arguments:[TXB_OBJECT(txb, service), TXB_OBJECT(txb, guard), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })        
-        } else {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('buy_guard_none') as FnCallType,
-                arguments:[TXB_OBJECT(txb, service), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })   
-        }
-    }
-    return true
-}
-export function service_set_machine(pay_type:string, txb:TransactionBlock, service:ServiceObject, 
-    permission:PermissionObject, machine?:MachineObject, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-
-    if (passport) {
-        if (machine) {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('machine_set_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, service), TXB_OBJECT(txb, machine), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })        
-        } else {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('machine_none_with_passport') as FnCallType,
-                arguments:[passport, TXB_OBJECT(txb, service), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })   
-        }
-    } else {
-        if (machine) {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('machine_set') as FnCallType,
-                arguments:[TXB_OBJECT(txb, service), TXB_OBJECT(txb, machine), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })        
-        } else {
-            txb.moveCall({
-                target:PROTOCOL.ServiceFn('machine_none') as FnCallType,
-                arguments:[TXB_OBJECT(txb, service), TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type]
-            })   
-        }
-    }
-    return true
-}
-
-export function service_set_endpoint(pay_type:string, txb:TransactionBlock, service:ServiceObject, 
-    permission:PermissionObject, endpoint?:string, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    if (endpoint && !IsValidEndpoint(endpoint)) return false;
-    let ep = endpoint? txb.pure(BCS_CONVERT.ser_option_string(endpoint)) : OptionNone(txb);
-
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('endpoint_set_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, service), ep, TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })      
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('endpoint_set') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), ep, TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })      
-    }   
-    return true
-}
-export function service_publish(pay_type:string, txb:TransactionBlock, service:ServiceObject, 
-    permission:PermissionObject, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('publish_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, service), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })   
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('publish') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })   
-    }      
-    return true
-}
-export function service_clone(pay_type:string, txb:TransactionBlock, service:ServiceObject, 
-    permission:PermissionObject, passport?:PassportObject) : ServiceObject | boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    if (passport) {
-        return txb.moveCall({
-            target:PROTOCOL.ServiceFn('clone_withpassport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, service), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })    
-    } else {
-        return txb.moveCall({
-            target:PROTOCOL.ServiceFn('clone') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })    
-    }  
-    return true   
-}
 
 export type Service_Buy_RequiredInfo = {
-    service_pubkey: string;
+    pubkey: string;
     customer_info: string[];
 }
 export type Customer_RequiredInfo = {
-    service_pubkey: string;
+    pubkey: string;
     customer_pubkey: string;
     customer_info_crypt: string[];
 }
@@ -699,242 +43,965 @@ export enum BuyRequiredEnum {
     name = 'name',
     postcode = 'postcode'
 }
-
-export function service_set_customer_required(pay_type:string, txb:TransactionBlock, service:ServiceObject, permission:PermissionObject,
-    service_pubkey:string, customer_required: BuyRequiredEnum[], passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    if (!service_pubkey || !customer_required) return false;
-    
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('required_set_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, service), txb.pure(BCS_CONVERT.ser_vector_vector_u8(array_unique(customer_required))), txb.pure(service_pubkey, 'vector<u8>'), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })         
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('required_set') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), txb.pure(BCS_CONVERT.ser_vector_vector_u8(array_unique(customer_required))), txb.pure(service_pubkey, 'vector<u8>'), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })         
-    }
-    return true
-}
-export function service_remove_customer_required(pay_type:string, txb:TransactionBlock, service:ServiceObject, 
-    permission:PermissionObject, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('required_none_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, service), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-         })  
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('required_none') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-         })  
-    }       
-    return true
-}
-export function service_change_required_pubkey(pay_type:string, txb:TransactionBlock, service:ServiceObject, 
-    permission:PermissionObject, service_pubkey:string, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    if (!service_pubkey) return false;
-
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('required_pubkey_set_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, service), txb.pure(service_pubkey, 'vector<u8>'), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })    
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('required_pubkey_set') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), txb.pure(service_pubkey, 'vector<u8>'), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })    
-    }     
-    return true
-}
-export function service_change_order_required_pubkey(pay_type:string, txb:TransactionBlock, service:ServiceObject, 
-    permission:PermissionObject, order:OrderObject, service_pubkey:string, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission, order])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    if (!service_pubkey) return false;
-
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('order_pubkey_update_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, service), TXB_OBJECT(txb, order), txb.pure(service_pubkey, 'vector<u8>'), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })   
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('order_pubkey_update') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), TXB_OBJECT(txb, order), txb.pure(service_pubkey, 'vector<u8>'), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-        })   
-    }    
-    return true  
-}
-export function service_pause(pay_type:string, txb:TransactionBlock, service:ServiceObject, permission:PermissionObject, 
-    pause:boolean, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-
-    if (passport) {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('pause_with_passport') as FnCallType,
-            arguments:[passport, TXB_OBJECT(txb, service), txb.pure(pause, BCS.BOOL), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-         })     
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('pause') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), txb.pure(pause, BCS.BOOL), TXB_OBJECT(txb, permission)],
-            typeArguments:[pay_type]
-         })     
-    }    
-    return true
-}
-export function customer_refund(pay_type:string, txb:TransactionBlock, service:ServiceObject, 
-    order:OrderObject, passport?:PassportObject) : boolean {
-    if (!IsValidObjects([service, order])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-
-    if (passport) {
-        txb.moveCall({
-        target:PROTOCOL.ServiceFn('refund_with_passport') as FnCallType,
-        arguments:[TXB_OBJECT(txb, service), TXB_OBJECT(txb, order), passport],
-        typeArguments:[pay_type]
-        })               
-    } else {
-        txb.moveCall({
-            target:PROTOCOL.ServiceFn('refund') as FnCallType,
-            arguments:[TXB_OBJECT(txb, service), TXB_OBJECT(txb, order)],
-            typeArguments:[pay_type]
-        })            
-    }
-    return true
-}
 export type Service_Buy = {
     item: string;
     max_price: number;
     count: number;
 }
 
-export function update_order_required_info(pay_type:string, txb:TransactionBlock, service:ServiceObject,
-    order:OrderObject, customer_info_crypto: Customer_RequiredInfo) : boolean {
-    if (!IsValidObjects([service, order])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    if (!customer_info_crypto.service_pubkey || !customer_info_crypto.customer_info_crypt) return false;
-
-    txb.moveCall({
-        target:PROTOCOL.ServiceFn('order_required_info_update') as FnCallType,
-        arguments:[TXB_OBJECT(txb, service), TXB_OBJECT(txb, order), 
-            txb.pure(customer_info_crypto.service_pubkey, 'vector<u8>'), 
-            txb.pure(customer_info_crypto.customer_pubkey, 'vector<u8>'), 
-            txb.pure(BCS_CONVERT.ser_vector_vector_u8(array_unique(customer_info_crypto.customer_info_crypt)))],
-        typeArguments:[pay_type]
-    })    
-    return true
+export type DicountDispatch = {
+    receiver: string;
+    count: number;
+    discount: Service_Discount;
 }
-export function buy(pay_type:string, txb:TransactionBlock, service:ServiceObject, buy_items:Service_Buy[], coin:CoinObject, discount?:DiscountObject, 
-    service_machine?:MachineObject, customer_info_crypto?: Customer_RequiredInfo, passport?:PassportObject) : OrderAddress | boolean {
-    if (!IsValidObjects([service])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    if (!buy_items) return false;
 
-    let bValid = true; let names:string[]  = [];
-    buy_items.forEach((v) => {
-        if (!IsValidName(v.item)) bValid = false;
-        if (!IsValidInt(v.max_price)) bValid = false;
-        if (!IsValidUint(v.count)) bValid = false;
-        if (names.includes(v.item)) bValid = false;
-        names.push(v.item)
+export class Service {
+    protected pay_type;
+    protected permission;
+    protected object : TxbObject;
+    protected protocol;
+
+    get_pay_type() {  return this.pay_type }
+    get_object() { return this.object }
+    private constructor(protocol: Protocol, pay_type:string, permission:PermissionObject) {
+        this.pay_type = pay_type
+        this.protocol = protocol
+        this.permission = permission
+        this.object = ''
+    }
+    static From(protocol: Protocol, pay_type:string, permission:PermissionObject, object:TxbObject) : Service {
+        let s = new Service(protocol, pay_type, permission);
+        s.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object);
+        return s
+    }
+    static New(protocol: Protocol, pay_type:string, permission:PermissionObject, description:string, 
+        payee_address:string, endpoint?:string, passport?:PassportObject) : Service {
+        let s = new Service(protocol, pay_type, permission);
+        if (!Protocol.IsValidObjects([permission])) {
+            ERROR(Errors.IsValidObjects)
+        }
+        if (!IsValidArgType(pay_type)) {
+            ERROR(Errors.IsValidArgType, 'this.pay_type')
+        }
+        if (!IsValidDesription(description)) {
+            ERROR(Errors.IsValidDesription)
+        }
+        if (!IsValidAddress(payee_address)) {
+            ERROR(Errors.IsValidAddress, 'payee_address')
+        }
+
+        if (endpoint && !IsValidEndpoint(endpoint)) {
+            ERROR(Errors.IsValidEndpoint)
+        }
+
+        let txb = protocol.CurrentSession();
+        let ep = endpoint? txb.pure(BCS_CONVERT.ser_option_string(endpoint)) : OptionNone(txb);
+        
+        if (passport) {
+            s.object = txb.moveCall({
+                target:protocol.ServiceFn('new_with_passport') as FnCallType,
+                arguments:[passport, txb.pure(description), txb.pure(payee_address, BCS.ADDRESS), ep, Protocol.TXB_OBJECT(txb, permission)],
+                typeArguments:[pay_type],
+            })
+        } else {
+            s.object = txb.moveCall({
+                target:protocol.ServiceFn('new') as FnCallType,
+                arguments:[txb.pure(description), txb.pure(payee_address, BCS.ADDRESS), ep, Protocol.TXB_OBJECT(txb, permission)],
+                typeArguments:[pay_type],
+            })
+        }
+        return s
+    }
+
+    launch() : ServiceAddress  {
+        let txb = this.protocol.CurrentSession();
+        return txb.moveCall({
+            target:this.protocol.ServiceFn('create') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(txb, this.object)],
+            typeArguments:[this.pay_type]
     })
-    if (!bValid) return false;
-
-    let name:string[] = []; let price:number[] = [];    let stock:number[] = []; let order;
-    buy_items.forEach((b) => { name.push(b.item); price.push(b.max_price); stock.push(b.count)})
-
-    if (passport) {
-        if (discount) {
-            order = txb.moveCall({
-                target:PROTOCOL.ServiceFn('dicount_buy_with_passport') as FnCallType,
-                arguments: [passport, TXB_OBJECT(txb, service), txb.pure(BCS_CONVERT.ser_vector_string(name)), txb.pure(BCS_CONVERT.ser_vector_u64(price)), 
-                    txb.pure(BCS_CONVERT.ser_vector_u64(stock)), TXB_OBJECT(txb, coin), TXB_OBJECT(txb, discount), txb.object(CLOCK_OBJECT)],                   
-                typeArguments:[pay_type]            
-        })} else {
-            order = txb.moveCall({
-                target:PROTOCOL.ServiceFn('buy_with_passport') as FnCallType,
-                arguments: [passport, TXB_OBJECT(txb, service), txb.pure(BCS_CONVERT.ser_vector_string(name)), txb.pure(BCS_CONVERT.ser_vector_u64(price)), 
-                    txb.pure(BCS_CONVERT.ser_vector_u64(stock)), TXB_OBJECT(txb, coin)],
-                typeArguments:[pay_type]            
-        })}             
-    } else {
-        if (discount) {
-            order = txb.moveCall({
-                target:PROTOCOL.ServiceFn('disoucnt_buy') as FnCallType,
-                arguments: [TXB_OBJECT(txb, service), txb.pure(BCS_CONVERT.ser_vector_string(name)), txb.pure(BCS_CONVERT.ser_vector_u64(price)), 
-                    txb.pure(BCS_CONVERT.ser_vector_u64(stock)), TXB_OBJECT(txb, coin), TXB_OBJECT(txb, discount), txb.object(CLOCK_OBJECT)],                
-                typeArguments:[pay_type]            
-        })} else {
-            order = txb.moveCall({
-                target:PROTOCOL.ServiceFn('buy') as FnCallType,
-                arguments: [TXB_OBJECT(txb, service), txb.pure(BCS_CONVERT.ser_vector_string(name)), txb.pure(BCS_CONVERT.ser_vector_u64(price)), 
-                    txb.pure(BCS_CONVERT.ser_vector_u64(stock)), TXB_OBJECT(txb, coin)],
-                typeArguments:[pay_type]            
-        })}           
-    }
-
-    if (customer_info_crypto) {
-        update_order_required_info(pay_type, txb, service, order, customer_info_crypto);
-    }
-
-    if (service_machine) {
-        return txb.moveCall({
-            target:PROTOCOL.ServiceFn('order_create_with_machine') as FnCallType,
-            arguments: [TXB_OBJECT(txb, service), TXB_OBJECT(txb, order), TXB_OBJECT(txb, service_machine)],
-            typeArguments:[pay_type]            
-        })        
-    } else {
-        return txb.moveCall({
-            target:PROTOCOL.ServiceFn('order_create') as FnCallType,
-            arguments: [TXB_OBJECT(txb, service), TXB_OBJECT(txb, order)],
-            typeArguments:[pay_type]            
-        })  
-    }
 }
+    destroy() {
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target:this.protocol.ServiceFn('destroy') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(txb, this.object)],
+            typeArguments:[this.pay_type]
+        })   
+    }
+    set_description(description:string, passport?:PassportObject)  {
+        if (!IsValidDesription(description)) {
+            ERROR(Errors.IsValidDesription)
+        }
+        
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('description_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(description), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })
+        } else {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('description_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(description), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })
+        }
+    }
+    set_price(item:string, price:number, bNotFoundAssert:boolean=true, passport?:PassportObject) {
+        if (!IsValidInt(price)) {
+            ERROR(Errors.IsValidInt, 'price')
+        } 
+        if (!IsValidName(item)) {
+            ERROR(Errors.IsValidName, 'item')
+        }
 
-export function order_bind_service_machine(pay_type:string, txb:TransactionBlock, service:ServiceObject, 
-    order:OrderObject, service_machine:MachineObject) : boolean {
-    if (!IsValidObjects([service, order, service_machine])) return false;
-    if (!IsValidArgType(pay_type)) return false;
-    
-    txb.moveCall({
-        target:PROTOCOL.ServiceFn('order_create_with_machine') as FnCallType,
-        arguments: [TXB_OBJECT(txb, service), TXB_OBJECT(txb, order), TXB_OBJECT(txb, service_machine)],
-        typeArguments:[pay_type]            
-    })    
-    return true
-}
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('price_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(price, BCS.U64), 
+                    txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })
+        } else {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('price_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(price, BCS.U64), 
+                    txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })
+        }
+    }
+    set_stock(item:string, stock:number, bNotFoundAssert:boolean=true, passport?:PassportObject)  {
+        if (!IsValidName(item)) {
+            ERROR(Errors.IsValidName, 'item')
+        }
+        if (!IsValidInt(stock)) {
+            ERROR(Errors.IsValidInt, 'stock')
+        }
 
-export function change_permission(pay_type:string, txb:TransactionBlock, service:ServiceObject, 
-    old_permission:PermissionObject, new_permission:PermissionObject) : boolean {
-    if (!IsValidObjects([service, old_permission, new_permission])) return false;
-    if (!IsValidArgType(pay_type)) return false;
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('stock_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(stock, BCS.U64), 
+                    txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })
+        } else {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('stock_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(stock, BCS.U64), 
+                    txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })
+        }
+    }
+    add_stock(item:string, stock_add:number, bNotFoundAssert:boolean=true, passport?:PassportObject)  {
+        if (!IsValidName(item)) {
+            ERROR(Errors.IsValidName, 'item')
+        }
+        if (!IsValidUint(stock_add)) {
+            ERROR(Errors.IsValidUint, 'stock_add')
+        }
 
-    txb.moveCall({
-        target:PROTOCOL.ServiceFn('permission_set') as FnCallType,
-        arguments: [TXB_OBJECT(txb, service), TXB_OBJECT(txb, old_permission), TXB_OBJECT(txb, new_permission)],
-        typeArguments:[pay_type]            
-    })    
-    return true
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('stock_add_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(stock_add, BCS.U64), 
+                    txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })  
+        } else {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('stock_add') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(stock_add, BCS.U64), 
+                    txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })        
+        }
+    }
+    reduce_stock(item:string, stock_reduce:number, bNotFoundAssert:boolean=true, passport?:PassportObject)  {
+        if (!IsValidName(item)) {
+            ERROR(Errors.IsValidName, 'item')
+        }
+        if (!IsValidUint(stock_reduce)) {
+            ERROR(Errors.IsValidUint, 'stock_reduce')
+        }
+
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('stock_reduce_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(stock_reduce, BCS.U64), 
+                    txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })
+        } else {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('stock_reduce') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(stock_reduce, BCS.U64), 
+                    txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })
+        }
+    }
+    set_payee(payee:string, passport?:PassportObject)  {
+        if (!IsValidAddress(payee)) {
+            ERROR(Errors.IsValidAddress, 'payee');
+        }
+
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('payee_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(payee, BCS.ADDRESS), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })
+        } else {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('payee_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(payee, BCS.ADDRESS), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })
+        }
+    }
+    repository_add(repository:RepositoryObject, passport?:PassportObject) {
+        if (!Protocol.IsValidObjects([this.object, this.permission, repository])) return false;
+        if (!IsValidArgType(this.pay_type)) return false;
+
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('repository_add_with_passport') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, repository), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })
+        } else {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('repository_add') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, repository), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })
+        }
+        
+    }
+    repository_remove(repository_address?:string[], removeall?:boolean, passport?:PassportObject) {
+        if (!removeall && !repository_address) {
+            ERROR(Errors.AllInvalid,  'removeall & repository_address');
+        }
+        if (repository_address && !IsValidArray(repository_address, IsValidAddress)) {
+            ERROR(Errors.IsValidArray,  'repository_address');
+        }
+
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            if (removeall) {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('repository_remove_all_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })
+            } else {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('repository_remove_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(repository_address!), 'vector<address>'), 
+                        Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })                    
+            }
+        } else {
+            if (removeall) {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('repository_remove_all') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })
+            } else {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('repository_remove') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(repository_address!), 'vector<address>'), 
+                        Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })                       
+            }
+        }
+    }
+
+    add_withdraw_guards(guards:Service_Guard_Percent[], passport?:PassportObject) {
+        let bValid = true;
+        guards.forEach((v) => {
+            if (!Protocol.IsValidObjects([v.guard])) bValid  = false;
+            if (!IsValidPercent(v.percent)) bValid =  false;
+        })
+        if (!bValid) {
+            ERROR(Errors.InvalidParam, 'guards')
+        }
+
+        let txb = this.protocol.CurrentSession();
+        guards.forEach((guard) => { 
+            if (passport) {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('withdraw_guard_add_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard.guard), 
+                        txb.pure(guard.percent, BCS.U8), Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]            
+                    })
+            } else {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('withdraw_guard_add') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard.guard), txb.pure(guard.percent, BCS.U8), 
+                        Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]            
+                    })
+            }
+        })
+    }
+    remove_withdraw_guards(guard_address?:string[], removeall?:boolean, passport?:PassportObject) {
+        if (!removeall && !guard_address) {
+            ERROR(Errors.AllInvalid, 'guard_address & removeall')
+        }
+
+        if (guard_address && !IsValidArray(guard_address, IsValidAddress)) {
+            ERROR(Errors.IsValidArray, 'guard_address')
+        }
+
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            if (removeall) {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('withdraw_guard_remove_all_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })    
+            } else {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('withdraw_guard_remove_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(guard_address!), 'vector<address>'), 
+                        Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })            
+            }
+        } else {
+            if (removeall) {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('withdraw_guard_remove_all') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })     
+            } else {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('withdraw_guard_remove') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(guard_address!), 'vector<address>'), 
+                        Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })            
+            }
+        }
+    }
+    add_refund_guards(guards:Service_Guard_Percent[], passport?:PassportObject) {
+        let bValid = true;
+        guards.forEach((v) => {
+            if (!Protocol.IsValidObjects([v.guard])) bValid = false;
+            if (!IsValidPercent(v.percent)) bValid = false;
+        })
+        if (!bValid) {
+            ERROR(Errors.InvalidParam, 'guards')
+        }
+
+        let txb = this.protocol.CurrentSession();
+        guards.forEach((guard) => { 
+            if (passport) {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('refund_guard_add_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard.guard), 
+                        txb.pure(guard.percent, BCS.U8), Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]            
+                })                
+            } else {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('refund_guard_add') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard.guard), txb.pure(guard.percent, BCS.U8), 
+                        Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]            
+                })
+            }
+        })
+    }
+    remove_refund_guards(guard_address?:string[], removeall?:boolean, passport?:PassportObject) {
+        if (!guard_address && !removeall) {
+            ERROR(Errors.AllInvalid, 'guard_address & removeall');
+        }
+        if (guard_address && !IsValidArray(guard_address, IsValidAddress)) {
+            ERROR(Errors.InvalidParam, 'guard_address')
+        }
+
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            if (removeall) {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('refund_guard_remove_all_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })
+            } else {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('refund_guard_remove_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(guard_address!), 'vector<address>'),
+                        Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })
+            }
+        } else {
+            if (removeall) {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('refund_guard_remove_all') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })
+            } else {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('refund_guard_remove') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(guard_address!), 'vector<address>'),
+                        Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })
+            }
+        }
+    }
+
+    is_valid_sale(sales:Service_Sale[]) {
+        let bValid = true; let names:string[]  = [];
+        sales.forEach((v) => {
+            if (!IsValidName(v.item)) bValid = false;
+            if (!IsValidInt(v.price)) bValid = false;
+            if (!IsValidUint(v.stock)) bValid = false;
+            if (names.includes(v.item)) bValid = false;
+            names.push(v.item)
+        })
+        return bValid
+    }
+
+    add_sale(sales:Service_Sale[], passport?:PassportObject) {
+        if (!sales || !this.is_valid_sale(sales)) {
+            ERROR(Errors.InvalidParam, 'Service_Sale')
+        }
+        
+        let names: string[]  = []; let price: number[] = []; let stock: number[] = [];
+        sales.forEach((s) => {
+            names.push(s.item); price.push(s.price); stock.push(s.stock);
+        })
+
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('sales_add_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(BCS_CONVERT.ser_vector_string(names)), 
+                    txb.pure(BCS_CONVERT.ser_vector_u64(price)), txb.pure(BCS_CONVERT.ser_vector_u64(stock)), 
+                    Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })
+        } else {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('sales_add') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(BCS_CONVERT.ser_vector_string(names)), 
+                    txb.pure(BCS_CONVERT.ser_vector_u64(price)), txb.pure(BCS_CONVERT.ser_vector_u64(stock)), 
+                    Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })
+        }
+        
+    }
+    remove_sales(sales?:string[], removeall?:boolean, passport?:PassportObject) {
+        if (!removeall && !sales) {
+            ERROR(Errors.AllInvalid, 'sales & removeall')
+        }
+        if (sales && !IsValidArray(sales, IsValidName)) {
+            ERROR(Errors.IsValidArray, 'sales')
+        }
+
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            if (removeall) {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('sales_remove_all_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })    
+            } else {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('sales_remove_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(BCS_CONVERT.ser_vector_string(array_unique(sales!))), 
+                        Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })            
+            }
+        } else {
+            if (removeall) {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('sales_remove_all') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })      
+            } else {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('sales_remove') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(BCS_CONVERT.ser_vector_string(array_unique(sales!))), 
+                        Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })            
+            }
+        }     
+    }
+
+    discount_transfer(discount_dispatch:DicountDispatch[], passport?:PassportObject) {
+        if (!discount_dispatch || discount_dispatch.length > Service.MAX_DISCOUNT_RECEIVER_COUNT) {
+            ERROR(Errors.InvalidParam, 'discount_dispatch')
+        }
+
+        let bValid = true;
+        discount_dispatch.forEach((v) => {
+            if (!IsValidAddress(v.receiver)) bValid = false;
+            if (!IsValidUint(v.count) || v.count > Service.MAX_DISCOUNT_COUNT_ONCE) bValid = false;
+            if (!IsValidName_AllowEmpty(v.discount.name)) bValid = false;
+            if (v.discount.type == Service_Discount_Type.ratio && !IsValidPercent(v.discount.off)) bValid = false;
+            if (!IsValidUint(v.discount.duration_minutes)) bValid = false;
+            if (v.discount?.time_start && !IsValidUint(v.discount.time_start)) bValid = false;
+            if (v.discount?.price_greater && !IsValidInt(v.discount.price_greater))  bValid = false;
+        })
+        if (!bValid) {
+            ERROR(Errors.InvalidParam, 'discount_dispatch')
+        }
+
+        let txb = this.protocol.CurrentSession();
+        discount_dispatch.forEach((discount) => {
+            let price_greater = discount.discount?.price_greater ? 
+                txb.pure(BCS_CONVERT.ser_option_u64(discount.discount.price_greater)) : OptionNone(txb);
+            let time_start = discount.discount?.time_start ? 
+                txb.pure(BCS_CONVERT.ser_option_u64(discount.discount.time_start)) : OptionNone(txb);
+
+            if (passport) {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('dicscount_create_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(discount.discount.name), 
+                        txb.pure(discount.discount.type, BCS.U8), 
+                        txb.pure(discount.discount.off, BCS.U64), price_greater, time_start, 
+                        txb.pure(discount.discount.duration_minutes, BCS.U64), txb.pure(discount.count, BCS.U64), 
+                        Protocol.TXB_OBJECT(txb, this.permission), txb.pure(discount.receiver, BCS.ADDRESS), txb.object(Protocol.CLOCK_OBJECT)],
+                    typeArguments:[this.pay_type]
+                });
+            } else {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('dicscount_create') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(discount.discount.name), 
+                        txb.pure(discount.discount.type, BCS.U8), 
+                        txb.pure(discount.discount.off, BCS.U64), price_greater, time_start, 
+                        txb.pure(discount.discount.duration_minutes, BCS.U64), txb.pure(discount.count, BCS.U64), 
+                        Protocol.TXB_OBJECT(txb, this.permission), txb.pure(discount.receiver, BCS.ADDRESS), txb.object(Protocol.CLOCK_OBJECT)],
+                    typeArguments:[this.pay_type]
+                })
+            }
+        });
+    }
+
+    // 同时支持withdraw guard和permission guard
+    withdraw(order:OrderObject, passport?:PassportObject) {
+        if (!Protocol.IsValidObjects([order]))  {
+            ERROR(Errors.IsValidObjects, 'order')
+        }
+
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('withdraw_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })        
+        } else {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('withdraw') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })               
+        }
+        
+    }
+    set_buy_guard(guard?:GuardObject, passport?:PassportObject) {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            if (guard) {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('buy_guard_set_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard), Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })        
+            } else {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('buy_guard_none_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })   
+            }
+        } else {
+            if (guard) {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('buy_guard_set') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard), Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })        
+            } else {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('buy_guard_none') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })   
+            }
+        }
+    }
+    set_machine(machine?:MachineObject, passport?:PassportObject) {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            if (machine) {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('machine_set_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, machine), Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })        
+            } else {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('machine_none_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })   
+            }
+        } else {
+            if (machine) {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('machine_set') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, machine), Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })        
+            } else {
+                txb.moveCall({
+                    target:this.protocol.ServiceFn('machine_none') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                    typeArguments:[this.pay_type]
+                })   
+            }
+        }
+    }
+
+    set_endpoint(endpoint?:string, passport?:PassportObject) {
+        if (endpoint && !IsValidEndpoint(endpoint)) {
+            ERROR(Errors.IsValidEndpoint);
+        }
+
+        let txb = this.protocol.CurrentSession();
+        let ep = endpoint? txb.pure(BCS_CONVERT.ser_option_string(endpoint)) : OptionNone(txb);
+        
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('endpoint_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), ep, Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })      
+        } else {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('endpoint_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), ep, Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })      
+        }   
+    }
+    publish(passport?:PassportObject) {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('publish_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })   
+        } else {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('publish') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })   
+        }      
+        
+    }
+    clone(passport?:PassportObject) : ServiceObject  {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            return txb.moveCall({
+                target:this.protocol.ServiceFn('clone_withpassport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })    
+        } else {
+            return txb.moveCall({
+                target:this.protocol.ServiceFn('clone') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })    
+        }  
+    }
+
+    set_customer_required(pubkey:string, customer_required: BuyRequiredEnum[], passport?:PassportObject) {
+        if (!pubkey) {
+            ERROR(Errors.InvalidParam, 'pubkey')
+        } 
+        if(!customer_required) {
+            ERROR(Errors.InvalidParam, 'customer_required')
+        }
+
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('required_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), 
+                    txb.pure(BCS_CONVERT.ser_vector_vector_u8(array_unique(customer_required))), 
+                    txb.pure(pubkey, 'vector<u8>'), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })         
+        } else {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('required_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), 
+                    txb.pure(BCS_CONVERT.ser_vector_vector_u8(array_unique(customer_required))), 
+                    txb.pure(pubkey, 'vector<u8>'), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })         
+        }
+    }
+    remove_customer_required(passport?:PassportObject) {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('required_none_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })  
+        } else {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('required_none') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })  
+        }       
+    }
+    change_required_pubkey(pubkey:string, passport?:PassportObject) {
+        if (!pubkey) {
+            ERROR(Errors.InvalidParam, 'pubkey')
+        }
+
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('required_pubkey_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(pubkey, 'vector<u8>'), 
+                    Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })    
+        } else {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('required_pubkey_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(pubkey, 'vector<u8>'), 
+                    Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })    
+        }     
+    }
+    change_order_required_pubkey(order:OrderObject, pubkey:string, passport?:PassportObject) {
+        if (!Protocol.IsValidObjects([order])) {
+            ERROR(Errors.IsValidObjects, 'order')
+        }
+        if (!pubkey) {
+            ERROR(Errors.InvalidParam, 'pubkey')
+        }
+
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('order_pubkey_update_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), txb.pure(pubkey, 'vector<u8>'), 
+                    Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })   
+        } else {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('order_pubkey_update') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), txb.pure(pubkey, 'vector<u8>'), 
+                    Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })   
+        }    
+    }
+    pause(pause:boolean, passport?:PassportObject) {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('pause_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(pause, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })     
+        } else {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('pause') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(pause, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments:[this.pay_type]
+            })     
+        }    
+        
+    }
+    customer_refund(order:OrderObject, passport?:PassportObject) {
+        if (!Protocol.IsValidObjects([order])) {
+            ERROR(Errors.IsValidObjects, 'order')
+        }
+
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+            target:this.protocol.ServiceFn('refund_with_passport') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), passport],
+            typeArguments:[this.pay_type]
+            })               
+        } else {
+            txb.moveCall({
+                target:this.protocol.ServiceFn('refund') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order)],
+                typeArguments:[this.pay_type]
+            })            
+        }
+    }
+
+    update_order_required_info(order:OrderObject, customer_info_crypto: Customer_RequiredInfo) {
+        if (!Protocol.IsValidObjects([order])) {
+            ERROR(Errors.IsValidObjects, 'order')
+        }
+        if (!customer_info_crypto.pubkey || !customer_info_crypto.customer_info_crypt) {
+            ERROR(Errors.InvalidParam, 'customer_info_crypto')
+        }
+
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target:this.protocol.ServiceFn('order_required_info_update') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), 
+                txb.pure(customer_info_crypto.pubkey, 'vector<u8>'), 
+                txb.pure(customer_info_crypto.customer_pubkey, 'vector<u8>'), 
+                txb.pure(BCS_CONVERT.ser_vector_vector_u8(array_unique(customer_info_crypto.customer_info_crypt)))],
+            typeArguments:[this.pay_type]
+        })    
+        
+    }
+    buy(buy_items:Service_Buy[], coin:CoinObject, discount?:DiscountObject, machine?:MachineObject, 
+        customer_info_crypto?: Customer_RequiredInfo, passport?:PassportObject) : OrderAddress {
+        if (!buy_items) {
+            ERROR(Errors.InvalidParam, 'buy_items')
+        }
+
+        let bValid = true; let names:string[]  = [];
+        buy_items.forEach((v) => {
+            if (!IsValidName(v.item)) bValid = false;
+            if (!IsValidInt(v.max_price)) bValid = false;
+            if (!IsValidUint(v.count)) bValid = false;
+            if (names.includes(v.item)) bValid = false;
+            names.push(v.item)
+        })
+        if (!bValid) {
+            ERROR(Errors.InvalidParam, 'buy_items')
+        }
+
+        let name:string[] = []; let price:number[] = [];    let stock:number[] = []; let order;
+        buy_items.forEach((b) => { name.push(b.item); price.push(b.max_price); stock.push(b.count)})
+
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            if (discount) {
+                order = txb.moveCall({
+                    target:this.protocol.ServiceFn('dicount_buy_with_passport') as FnCallType,
+                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(BCS_CONVERT.ser_vector_string(name)), 
+                        txb.pure(BCS_CONVERT.ser_vector_u64(price)), txb.pure(BCS_CONVERT.ser_vector_u64(stock)), 
+                        Protocol.TXB_OBJECT(txb, coin), Protocol.TXB_OBJECT(txb, discount), txb.object(Protocol.CLOCK_OBJECT)],                   
+                    typeArguments:[this.pay_type]            
+            })} else {
+                order = txb.moveCall({
+                    target:this.protocol.ServiceFn('buy_with_passport') as FnCallType,
+                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(BCS_CONVERT.ser_vector_string(name)), 
+                        txb.pure(BCS_CONVERT.ser_vector_u64(price)), 
+                        txb.pure(BCS_CONVERT.ser_vector_u64(stock)), 
+                        Protocol.TXB_OBJECT(txb, coin)],
+                    typeArguments:[this.pay_type]            
+            })}             
+        } else {
+            if (discount) {
+                order = txb.moveCall({
+                    target:this.protocol.ServiceFn('disoucnt_buy') as FnCallType,
+                    arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(BCS_CONVERT.ser_vector_string(name)), 
+                        txb.pure(BCS_CONVERT.ser_vector_u64(price)), 
+                        txb.pure(BCS_CONVERT.ser_vector_u64(stock)), 
+                        Protocol.TXB_OBJECT(txb, coin), 
+                        Protocol.TXB_OBJECT(txb, discount), txb.object(Protocol.CLOCK_OBJECT)],                
+                    typeArguments:[this.pay_type]            
+            })} else {
+                order = txb.moveCall({
+                    target:this.protocol.ServiceFn('buy') as FnCallType,
+                    arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(BCS_CONVERT.ser_vector_string(name)), 
+                        txb.pure(BCS_CONVERT.ser_vector_u64(price)), 
+                        txb.pure(BCS_CONVERT.ser_vector_u64(stock)), 
+                        Protocol.TXB_OBJECT(txb, coin)],
+                    typeArguments:[this.pay_type]            
+            })}           
+        }
+
+        if (customer_info_crypto) {
+            this.update_order_required_info(order, customer_info_crypto);
+        }
+
+        if (machine) {
+            return txb.moveCall({
+                target:this.protocol.ServiceFn('order_create_with_machine') as FnCallType,
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), Protocol.TXB_OBJECT(txb, machine)],
+                typeArguments:[this.pay_type]            
+            })        
+        } else {
+            return txb.moveCall({
+                target:this.protocol.ServiceFn('order_create') as FnCallType,
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order)],
+                typeArguments:[this.pay_type]            
+            })  
+        }
+    }
+
+    order_bind_machine(order:OrderObject, machine:MachineObject) {
+        if (!Protocol.IsValidObjects([order, machine])) {
+            ERROR(Errors.IsValidObjects, 'order & machine');
+        }
+
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target:this.protocol.ServiceFn('order_create_with_machine') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), Protocol.TXB_OBJECT(txb, machine)],
+            typeArguments:[this.pay_type]            
+        })    
+    }
+
+    change_permission(new_permission:PermissionObject) {
+        if (!Protocol.IsValidObjects([new_permission])) {
+            ERROR(Errors.IsValidObjects)
+        }
+
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target:this.protocol.ServiceFn('permission_set') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), Protocol.TXB_OBJECT(txb, new_permission)],
+            typeArguments:[this.pay_type]            
+        })    
+    }
+
+    static MAX_DISCOUNT_COUNT_ONCE = 200;
+    static MAX_DISCOUNT_RECEIVER_COUNT = 200;
 }

@@ -1,6 +1,5 @@
-import { SuiTransactionBlockResponse, SuiObjectChange } from '@mysten/sui.js/client';
 import { bcs, BCS, toHEX, fromHEX, getSuiMoveConfig, TypeName, StructTypeDefinition } from '@mysten/bcs';
-import { PROTOCOL, MODULES, OBJECTS_TYPE } from './protocol';
+import { TransactionBlock, Inputs, TransactionResult, TransactionArgument } from '@mysten/sui.js/transactions';
 
 export const ulebDecode = (arr: number[] | Uint8Array) : {value: number, length: number} => {
 	let total = 0;
@@ -123,41 +122,6 @@ export class Bcs {
 export const BCS_CONVERT = new Bcs();
 
 
-export const Object_Type_Extra = () => {
-    let names = (Object.keys(MODULES) as Array<keyof typeof MODULES>).map((key) => { return key + '::' + capitalize(key); });
-    names.push('order::Discount');
-    return names;
-}
-
-export const objectids_from_response = (response:SuiTransactionBlockResponse, concat_result?:Map<string, string[]>): Map<string, string[]> => {
-    let ret = new Map<string, string[]>();
-    if (response?.objectChanges) {
-        response.objectChanges.forEach((change) => {
-            Object_Type_Extra().forEach((name) => {
-                let type = PROTOCOL.Package() + '::' + name;
-                if (change.type == 'created' && change.objectType.includes(type)) {
-                    if (ret.has(name)) {
-                        ret.get(name)?.push(change.objectId);
-                    } else {
-                        ret.set(name, [change.objectId]);
-                    }
-                }                    
-            })
-        });    
-    }
-    if (concat_result) {
-        ret.forEach((value, key) => {
-            if (concat_result.has(key)) {
-                concat_result.set(key, concat_result.get(key)!.concat(value));
-            } else {
-                concat_result.set(key, value);
-            }
-        })
-    }
-    return ret;
-}
-
-
 export function stringToUint8Array(str:string) : Uint8Array {
     var arr = [];
     for (var i = 0, j = str.length; i < j; ++i) {
@@ -202,3 +166,30 @@ export const deepClone = <T>(origin: T, target?: Record<string, any> | T ): T =>
 
     return tar as T
 }
+
+export const MAX_DESCRIPTION_LENGTH = 1024;
+export const MAX_NAME_LENGTH = 64;
+export const MAX_ENDPOINT_LENGTH = 1024;
+// export const OptionNone = (txb:TransactionBlock) : TransactionArgument => { return txb.pure([], BCS.U8) };
+
+export const IsValidDesription = (description:string) : boolean => { return description?.length <= MAX_DESCRIPTION_LENGTH }
+export const IsValidName = (name:string) : boolean => { if(!name) return false; return name.length <= MAX_NAME_LENGTH && name.length != 0 }
+export const IsValidName_AllowEmpty = (name:string) : boolean => { return name.length <= MAX_NAME_LENGTH }
+export const IsValidEndpoint = (endpoint:string) : boolean => { if (!endpoint) return false; return endpoint.length <= MAX_ENDPOINT_LENGTH }
+export const IsValidAddress = (addr:string) : boolean => { if (!addr) return false; return true}
+export const IsValidArgType = (argType: string) : boolean => { if (!argType) return false; return argType.length != 0 }
+export const IsValidUint = (value: number) : boolean => { return Number.isSafeInteger(value) && value != 0 }
+export const IsValidInt = (value: number) : boolean => { return Number.isSafeInteger(value) }
+export const IsValidPercent = (value: number) : boolean => { return Number.isSafeInteger(value) && value > 0 && value <= 100 }
+export const IsValidArray = (arr: any[], validFunc:any) : boolean => {
+    let bValid = true;
+    arr.forEach((v) => {
+        if (!validFunc(v)) {
+            bValid = false; 
+        }
+    })
+    return bValid;
+}
+
+export const OptionNone = (txb:TransactionBlock) : TransactionArgument => { return txb.pure([], BCS.U8) };
+

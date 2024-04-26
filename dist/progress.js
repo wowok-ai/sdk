@@ -1,236 +1,261 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.hold = exports.next = exports.progress_parent = exports.progress_unhold = exports.progress_set_context_repository = exports.progress_bind_task = exports.progress_set_namedOperator = exports.destroy = exports.launch_as_child = exports.launch = exports.progress = exports.MAX_NAMED_OPERATOR_COUNT = void 0;
-const bcs_1 = require("@mysten/bcs");
-const protocol_1 = require("./protocol");
-const utils_1 = require("./utils");
-exports.MAX_NAMED_OPERATOR_COUNT = 100;
-function progress(txb, machine, permission, passport) {
-    if (!(0, protocol_1.IsValidObjects)([machine, permission]))
-        return false;
-    if (passport) {
+import { BCS } from '@mysten/bcs';
+import { Protocol } from './protocol.js';
+import { BCS_CONVERT, array_unique, IsValidName, IsValidAddress, IsValidArray, OptionNone, IsValidInt } from './utils.js';
+import { ERROR, Errors } from './exception.js';
+export class Progress {
+    permission;
+    machine;
+    object;
+    protocol;
+    get_object() { return this.object; }
+    constructor(protocol, machine, permission) {
+        this.permission = permission;
+        this.protocol = protocol;
+        this.machine = machine;
+        this.object = '';
+    }
+    static From(protocol, machine, permission, object) {
+        let p = new Progress(protocol, machine, permission);
+        p.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object);
+        return p;
+    }
+    static New(protocol, machine, permission, passport) {
+        let p = new Progress(protocol, machine, permission);
+        if (!Protocol.IsValidObjects([machine, permission])) {
+            ERROR(Errors.IsValidObjects, 'machine & permission');
+        }
+        let txb = protocol.CurrentSession();
+        if (passport) {
+            p.object = txb.moveCall({
+                target: protocol.ProgressFn('new_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, machine), Protocol.TXB_OBJECT(txb, permission)],
+            });
+        }
+        else {
+            p.object = txb.moveCall({
+                target: protocol.ProgressFn('new'),
+                arguments: [Protocol.TXB_OBJECT(txb, machine), Protocol.TXB_OBJECT(txb, permission)],
+            });
+        }
+        return p;
+    }
+    launch() {
+        let txb = this.protocol.CurrentSession();
         return txb.moveCall({
-            target: protocol_1.PROTOCOL.ProgressFn('new_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, machine), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            target: this.protocol.ProgressFn('create'),
+            arguments: [Protocol.TXB_OBJECT(txb, this.object)],
         });
     }
-    else {
+    launch_as_child(parent, parent_next) {
+        if (!Protocol.IsValidObjects([parent])) {
+            ERROR(Errors.IsValidObjects, 'parent');
+        }
+        if (!Progress.IsValidProgressNext(parent_next)) {
+            ERROR(Errors.InvalidParam, 'parent_next');
+        }
+        let txb = this.protocol.CurrentSession();
         return txb.moveCall({
-            target: protocol_1.PROTOCOL.ProgressFn('new'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, machine), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            target: this.protocol.ProgressFn('create_as_child'),
+            arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, parent),
+                txb.pure(parent_next.next_node_name), txb.pure(parent_next.forward)],
         });
     }
-}
-exports.progress = progress;
-function launch(txb, progress) {
-    if (!(0, protocol_1.IsValidObjects)([progress]))
-        return false;
-    return txb.moveCall({
-        target: protocol_1.PROTOCOL.ProgressFn('create'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, progress)],
-    });
-}
-exports.launch = launch;
-function launch_as_child(txb, progress, parent, parent_next) {
-    if (!(0, protocol_1.IsValidObjects)([progress, parent]))
-        return false;
-    if (!IsValidProgressNext(parent_next))
-        return false;
-    return txb.moveCall({
-        target: protocol_1.PROTOCOL.ProgressFn('create_as_child'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, parent), txb.pure(parent_next.next_node_name), txb.pure(parent_next.forward)],
-    });
-}
-exports.launch_as_child = launch_as_child;
-function destroy(txb, progress) {
-    if (!(0, protocol_1.IsValidObjects)([progress]))
-        return false;
-    txb.moveCall({
-        target: protocol_1.PROTOCOL.ProgressFn('destroy'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, progress)],
-    });
-    return true;
-}
-exports.destroy = destroy;
-function progress_set_namedOperator(txb, machine, permission, progress, name, addresses, passport) {
-    if (!(0, protocol_1.IsValidObjects)([machine, permission, progress]))
-        return false;
-    if (!(0, protocol_1.IsValidName)(name))
-        return false;
-    if (!addresses || addresses.length > exports.MAX_NAMED_OPERATOR_COUNT)
-        return false;
-    if (!(0, protocol_1.IsValidArray)(addresses, protocol_1.IsValidAddress))
-        return false;
-    if (passport) {
+    destroy() {
+        let txb = this.protocol.CurrentSession();
         txb.moveCall({
-            target: protocol_1.PROTOCOL.ProgressFn('namedOperator_set_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, progress), txb.pure(name, bcs_1.BCS.STRING), txb.pure((0, utils_1.array_unique)(addresses), 'vector<address>'),
-                (0, protocol_1.TXB_OBJECT)(txb, machine), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            target: this.protocol.ProgressFn('destroy'),
+            arguments: [Protocol.TXB_OBJECT(txb, this.object)],
         });
     }
-    else {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.ProgressFn('namedOperator_set'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, progress), txb.pure(name, bcs_1.BCS.STRING), txb.pure((0, utils_1.array_unique)(addresses), 'vector<address>'),
-                (0, protocol_1.TXB_OBJECT)(txb, machine), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-        });
-    }
-    return true;
-}
-exports.progress_set_namedOperator = progress_set_namedOperator;
-function progress_bind_task(txb, machine, permission, progress, task_address, passport) {
-    if (!(0, protocol_1.IsValidObjects)([machine, permission, progress]))
-        return false;
-    if (!(0, protocol_1.IsValidAddress)(task_address))
-        return false;
-    if (passport) {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.ProgressFn('task_set_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, progress), txb.pure(task_address, bcs_1.BCS.ADDRESS), (0, protocol_1.TXB_OBJECT)(txb, machine), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-        });
-    }
-    else {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.ProgressFn('task_set'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, progress), txb.pure(task_address, bcs_1.BCS.ADDRESS), (0, protocol_1.TXB_OBJECT)(txb, machine), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-        });
-    }
-    return true;
-}
-exports.progress_bind_task = progress_bind_task;
-function progress_set_context_repository(txb, machine, permission, progress, repository, passport) {
-    if (!(0, protocol_1.IsValidObjects)([machine, permission, progress]))
-        return false;
-    if (passport) {
-        if (repository) {
+    set_namedOperator(name, addresses, passport) {
+        if (!IsValidName(name)) {
+            ERROR(Errors.IsValidName, 'name');
+        }
+        if (!addresses || addresses.length > Progress.MAX_NAMED_OPERATOR_COUNT || !IsValidArray(addresses, IsValidAddress)) {
+            ERROR(Errors.InvalidParam, 'addresses');
+        }
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
             txb.moveCall({
-                target: protocol_1.PROTOCOL.ProgressFn('context_repository_set_with_passport'),
-                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, repository), (0, protocol_1.TXB_OBJECT)(txb, machine), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+                target: this.protocol.ProgressFn('namedOperator_set_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(name, BCS.STRING),
+                    txb.pure(array_unique(addresses), 'vector<address>'),
+                    Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
             });
         }
         else {
             txb.moveCall({
-                target: protocol_1.PROTOCOL.ProgressFn('context_repository_none_with_passport'),
-                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, machine), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+                target: this.protocol.ProgressFn('namedOperator_set'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(name, BCS.STRING),
+                    txb.pure(array_unique(addresses), 'vector<address>'),
+                    Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
             });
         }
     }
-    else {
-        if (repository) {
+    bind_task(task_address, passport) {
+        if (!IsValidAddress(task_address)) {
+            ERROR(Errors.IsValidAddress);
+        }
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
             txb.moveCall({
-                target: protocol_1.PROTOCOL.ProgressFn('context_repository_set'),
-                arguments: [(0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, repository), (0, protocol_1.TXB_OBJECT)(txb, machine), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+                target: this.protocol.ProgressFn('task_set_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object),
+                    txb.pure(task_address, BCS.ADDRESS), Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
             });
         }
         else {
             txb.moveCall({
-                target: protocol_1.PROTOCOL.ProgressFn('context_repository_none'),
-                arguments: [(0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, machine), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+                target: this.protocol.ProgressFn('task_set'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(task_address, BCS.ADDRESS),
+                    Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
             });
         }
     }
-    return true;
-}
-exports.progress_set_context_repository = progress_set_context_repository;
-function progress_unhold(txb, machine, permission, progress, next, passport) {
-    if (!(0, protocol_1.IsValidObjects)([machine, permission, progress]))
-        return false;
-    if (!IsValidProgressNext(next))
-        return false;
-    if (passport) {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.ProgressFn('unhold_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, machine), txb.pure(next.next_node_name), txb.pure(next.forward), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-        });
+    set_context_repository(repository, passport) {
+        if (repository && !Protocol.IsValidObjects([repository])) {
+            ERROR(Errors.IsValidObjects, 'repository');
+        }
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            if (repository) {
+                txb.moveCall({
+                    target: this.protocol.ProgressFn('context_repository_set_with_passport'),
+                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, repository),
+                        Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
+                });
+            }
+            else {
+                txb.moveCall({
+                    target: this.protocol.ProgressFn('context_repository_none_with_passport'),
+                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object),
+                        Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
+                });
+            }
+        }
+        else {
+            if (repository) {
+                txb.moveCall({
+                    target: this.protocol.ProgressFn('context_repository_set'),
+                    arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, repository),
+                        Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
+                });
+            }
+            else {
+                txb.moveCall({
+                    target: this.protocol.ProgressFn('context_repository_none'),
+                    arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
+                });
+            }
+        }
     }
-    else {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.ProgressFn('unhold'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, machine), txb.pure(next.next_node_name), txb.pure(next.forward), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-        });
-    }
-    return true;
-}
-exports.progress_unhold = progress_unhold;
-function progress_parent(txb, machine, permission, progress, parent_progress, passport) {
-    if (!(0, protocol_1.IsValidObjects)([machine, permission, progress]))
-        return false;
-    if (parent_progress && (!(0, protocol_1.IsValidAddress)(parent_progress.parent_progress_id) || !(0, protocol_1.IsValidInt)(parent_progress.parent_session_id)))
-        return false;
-    if (passport) {
-        if (parent_progress) {
+    unhold(next, passport) {
+        if (!Progress.IsValidProgressNext(next)) {
+            ERROR(Errors.InvalidParam, 'next');
+        }
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
             txb.moveCall({
-                target: protocol_1.PROTOCOL.ProgressFn('parent_set_with_passport'),
-                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, machine), txb.pure(parent_progress.parent_progress_id, bcs_1.BCS.ADDRESS),
-                    txb.pure(parent_progress.parent_session_id, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+                target: this.protocol.ProgressFn('unhold_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object),
+                    Protocol.TXB_OBJECT(txb, this.machine), txb.pure(next.next_node_name),
+                    txb.pure(next.forward), Protocol.TXB_OBJECT(txb, this.permission)],
             });
         }
         else {
             txb.moveCall({
-                target: protocol_1.PROTOCOL.ProgressFn('parent_none_with_passport'),
-                arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, machine), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+                target: this.protocol.ProgressFn('unhold'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine),
+                    txb.pure(next.next_node_name), txb.pure(next.forward),
+                    Protocol.TXB_OBJECT(txb, this.permission)],
             });
         }
     }
-    else {
-        if (parent_progress) {
+    parent(parent, passport) {
+        if (!IsValidAddress(parent.parent_id) || !IsValidInt(parent.parent_session_id)) {
+            ERROR(Errors.InvalidParam, 'parent');
+        }
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            if (parent.parent_id) {
+                txb.moveCall({
+                    target: this.protocol.ProgressFn('parent_set_with_passport'),
+                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine),
+                        txb.pure(parent.parent_id, BCS.ADDRESS),
+                        txb.pure(parent.parent_session_id, BCS.U64),
+                        Protocol.TXB_OBJECT(txb, this.permission)],
+                });
+            }
+            else {
+                txb.moveCall({
+                    target: this.protocol.ProgressFn('parent_none_with_passport'),
+                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object),
+                        Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
+                });
+            }
+        }
+        else {
+            if (parent.parent_id) {
+                txb.moveCall({
+                    target: this.protocol.ProgressFn('parent_set'),
+                    arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine),
+                        txb.pure(parent.parent_id, BCS.ADDRESS),
+                        txb.pure(parent.parent_session_id, BCS.U64),
+                        Protocol.TXB_OBJECT(txb, this.permission)],
+                });
+            }
+            else {
+                txb.moveCall({
+                    target: this.protocol.ProgressFn('parent_none'),
+                    arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine),
+                        Protocol.TXB_OBJECT(txb, this.permission)],
+                });
+            }
+        }
+    }
+    next(next, deliverables_address, sub_id, passport) {
+        if (!Progress.IsValidProgressNext(next)) {
+            ERROR(Errors.InvalidParam, 'next');
+        }
+        if (deliverables_address && !IsValidAddress(deliverables_address)) {
+            ERROR(Errors.IsValidAddress, 'deliverables_address');
+        }
+        if (sub_id && !IsValidAddress(sub_id)) {
+            ERROR(Errors.IsValidAddress, 'sub_id');
+        }
+        let txb = this.protocol.CurrentSession();
+        let diliverable = deliverables_address ? txb.pure(BCS_CONVERT.ser_option_address(deliverables_address)) : OptionNone(txb);
+        let sub = sub_id ? txb.pure(BCS_CONVERT.ser_option_address(sub_id)) : OptionNone(txb);
+        if (passport) {
             txb.moveCall({
-                target: protocol_1.PROTOCOL.ProgressFn('parent_set'),
-                arguments: [(0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, machine), txb.pure(parent_progress.parent_progress_id, bcs_1.BCS.ADDRESS),
-                    txb.pure(parent_progress.parent_session_id, bcs_1.BCS.U64), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+                target: this.protocol.ProgressFn('next_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine),
+                    txb.pure(next.next_node_name, BCS.STRING),
+                    txb.pure(next.forward, BCS.STRING), diliverable, sub,
+                    Protocol.TXB_OBJECT(txb, this.permission)],
             });
         }
         else {
             txb.moveCall({
-                target: protocol_1.PROTOCOL.ProgressFn('parent_none'),
-                arguments: [(0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, machine), (0, protocol_1.TXB_OBJECT)(txb, permission)],
+                target: this.protocol.ProgressFn('next'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine), txb.pure(next.next_node_name, BCS.STRING),
+                    txb.pure(next.forward, BCS.STRING), diliverable, sub, Protocol.TXB_OBJECT(txb, this.permission)],
             });
         }
     }
-    return true;
-}
-exports.progress_parent = progress_parent;
-function IsValidProgressNext(next) {
-    return (0, protocol_1.IsValidName)(next.forward) && (0, protocol_1.IsValidName)(next.next_node_name);
-}
-function next(txb, machine, permission, progress, next, deliverables_address, sub_progress_id, passport) {
-    if (!(0, protocol_1.IsValidObjects)([machine, permission, progress]))
-        return false;
-    if (!IsValidProgressNext(next))
-        return false;
-    if (deliverables_address && !(0, protocol_1.IsValidAddress)(deliverables_address))
-        return false;
-    if (sub_progress_id && !(0, protocol_1.IsValidAddress)(sub_progress_id))
-        return false;
-    let diliverable = deliverables_address ? txb.pure(utils_1.BCS_CONVERT.ser_option_address(deliverables_address)) : (0, protocol_1.OptionNone)(txb);
-    let sub = sub_progress_id ? txb.pure(utils_1.BCS_CONVERT.ser_option_address(sub_progress_id)) : (0, protocol_1.OptionNone)(txb);
-    if (passport) {
+    hold(next, hold) {
+        if (!Progress.IsValidProgressNext(next)) {
+            ERROR(Errors.InvalidParam, 'next');
+        }
+        let txb = this.protocol.CurrentSession();
         txb.moveCall({
-            target: protocol_1.PROTOCOL.ProgressFn('next_with_passport'),
-            arguments: [passport, (0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, machine), txb.pure(next.next_node_name, bcs_1.BCS.STRING),
-                txb.pure(next.forward, bcs_1.BCS.STRING), diliverable, sub, (0, protocol_1.TXB_OBJECT)(txb, permission)],
+            target: this.protocol.ProgressFn('hold'),
+            arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine), txb.pure(next.next_node_name),
+                txb.pure(next.forward), txb.pure(hold, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
         });
     }
-    else {
-        txb.moveCall({
-            target: protocol_1.PROTOCOL.ProgressFn('next'),
-            arguments: [(0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, machine), txb.pure(next.next_node_name, bcs_1.BCS.STRING),
-                txb.pure(next.forward, bcs_1.BCS.STRING), diliverable, sub, (0, protocol_1.TXB_OBJECT)(txb, permission)],
-        });
-    }
-    return true;
+    static MAX_NAMED_OPERATOR_COUNT = 100;
+    static IsValidProgressNext = (next) => {
+        return IsValidName(next.forward) && IsValidName(next.next_node_name);
+    };
 }
-exports.next = next;
-function hold(txb, machine, permission, progress, next, hold) {
-    if (!(0, protocol_1.IsValidObjects)([machine, permission, progress]))
-        return false;
-    if (!IsValidProgressNext(next))
-        return false;
-    txb.moveCall({
-        target: protocol_1.PROTOCOL.ProgressFn('hold'),
-        arguments: [(0, protocol_1.TXB_OBJECT)(txb, progress), (0, protocol_1.TXB_OBJECT)(txb, machine), txb.pure(next.next_node_name),
-            txb.pure(next.forward), txb.pure(hold, bcs_1.BCS.BOOL), (0, protocol_1.TXB_OBJECT)(txb, permission)],
-    });
-    return true;
-}
-exports.hold = hold;
