@@ -1,6 +1,6 @@
 import { SuiObjectResponse, SuiObjectDataOptions, SuiTransactionBlockResponseOptions, SuiTransactionBlockResponse } from '@mysten/sui.js/client';
 import { TransactionBlock, TransactionResult } from '@mysten/sui.js/transactions';
-import { VariableType } from './guard.js';
+import { VariableType } from './guard';
 export declare enum MODULES {
     machine = "machine",
     node = "node",
@@ -97,7 +97,7 @@ export declare class Protocol {
     protected signer: string;
     protected everyone_guard: string;
     protected graphql: string;
-    protected txb: any;
+    protected txb: TransactionBlock | undefined;
     constructor(network: ENTRYPOINT, signer_address: string);
     UseNetwork(network?: ENTRYPOINT): void;
     Package(): string;
@@ -123,7 +123,27 @@ export declare class Protocol {
     CurrentSession: () => TransactionBlock;
     SignExcute: (exes: ((protocol: Protocol, param: any) => void)[], priv_key: string, param?: any, options?: SuiTransactionBlockResponseOptions) => Promise<SuiTransactionBlockResponse>;
     static SUI_COIN_TYPE: string;
-    static CLOCK_OBJECT: Infer<any>;
+    static CLOCK_OBJECT: {
+        Object: {
+            ImmOrOwned: {
+                digest: string;
+                objectId: string;
+                version: string | number | bigint;
+            };
+        } | {
+            Shared: {
+                objectId: string;
+                initialSharedVersion: string | number;
+                mutable: boolean;
+            };
+        } | {
+            Receiving: {
+                digest: string;
+                objectId: string;
+                version: string | number | bigint;
+            };
+        };
+    };
     static TXB_OBJECT(txb: TransactionBlock, arg: TxbObject): TransactionResult;
     static IsValidObjects: (arr: TxbObject[]) => boolean;
     WOWOK_COIN_TYPE: () => string;
@@ -132,7 +152,7 @@ export declare class Protocol {
 }
 export declare class RpcResultParser {
     static Object_Type_Extra: () => string[];
-    static objectids_from_response: (protocol: Protocol, response: SuiTransactionBlockResponse, concat_result?: Map<string, string[]>) => Map<string, string[]>;
+    static objectids_from_response: (protocol: Protocol, response: SuiTransactionBlockResponse, concat_result?: Map<string, TxbObject[]>) => Map<string, TxbObject[]>;
 }
 export type Query_Param = {
     protocol: Protocol;

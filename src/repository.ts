@@ -1,8 +1,8 @@
 import { BCS } from '@mysten/bcs';
-import { Protocol, FnCallType, ValueType, RepositoryObject, RepositoryAddress, PermissionObject, PassportObject, TxbObject} from './protocol.js';
-import { PermissionIndexType, Permission } from './permission.js'
-import { BCS_CONVERT, array_unique, IsValidDesription, IsValidAddress, IsValidArray, OptionNone,  } from './utils.js';
-import { ERROR, Errors } from './exception.js';
+import { Protocol, FnCallType, ValueType, RepositoryObject, RepositoryAddress, PermissionObject, PassportObject, TxbObject} from './protocol';
+import { PermissionIndexType, Permission } from './permission'
+import { BCS_CONVERT, array_unique, IsValidDesription, IsValidAddress, IsValidArray, OptionNone,  } from './utils';
+import { ERROR, Errors } from './exception';
 
 export enum Repository_Policy_Mode {
     POLICY_MODE_FREE = 0,
@@ -319,7 +319,8 @@ export class Repository {
             target:this.protocol.RepositoryFn('permission_set') as FnCallType,
             arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), Protocol.TXB_OBJECT(txb, new_permission)],
             typeArguments:[]            
-        })    
+        })  
+        this.permission = new_permission  
     }
 
     static MAX_POLICY_COUNT = 1000;

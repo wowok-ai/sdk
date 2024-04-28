@@ -2,7 +2,7 @@ import { SuiClient } from '@mysten/sui.js/client';
 import { Ed25519Keypair } from '@mysten/sui.js/keypairs/ed25519';
 import { fromHEX } from '@mysten/bcs';
 import { TransactionBlock, Inputs } from '@mysten/sui.js/transactions';
-import { capitalize, IsValidArray } from './utils.js';
+import { capitalize, IsValidArray } from './utils';
 export var MODULES;
 (function (MODULES) {
     MODULES["machine"] = "machine";
@@ -104,7 +104,7 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0xf4233055f40a9f301c85c020496b58ad761fdd2cd6a5d82da7a912adb4608f7f";
+                this.package = "0xe94429391a305594a1359ec32ba6dcc53cf7fb1e7e939732a039a8fcfb01214f";
                 this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
@@ -161,18 +161,18 @@ export class Protocol {
         this.txb = new TransactionBlock();
         return this.txb;
     };
-    CurrentSession = () => { return this.txb; };
+    CurrentSession = () => { return this.txb ? this.txb : this.NewSession(); };
     SignExcute = async (exes, priv_key, param, options = { showObjectChanges: true }) => {
         const client = new SuiClient({ url: this.NetworkUrl() });
-        const txb = new TransactionBlock();
         exes.forEach((e) => { e(this, param); });
         const privkey = fromHEX(priv_key);
         const keypair = Ed25519Keypair.fromSecretKey(privkey);
         const response = await client.signAndExecuteTransactionBlock({
-            transactionBlock: txb,
+            transactionBlock: this.CurrentSession(),
             signer: keypair,
             options,
         });
+        this.txb = undefined; // reset the txb to undefine
         return response;
     };
     static SUI_COIN_TYPE = '0x2::coin::Coin<0x2::sui::SUI>';

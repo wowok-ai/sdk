@@ -1,8 +1,8 @@
 import { TransactionBlock, type TransactionResult } from '@mysten/sui.js/transactions';
 import { BCS} from '@mysten/bcs';
-import { FnCallType, GuardObject, PassportObject, PermissionObject, RewardAddress, Protocol, TxbObject, } from './protocol.js';
-import { array_unique, IsValidAddress, IsValidArgType, IsValidArray, IsValidDesription,  IsValidUint, } from './utils.js';
-import { ERROR, Errors } from './exception.js';
+import { FnCallType, GuardObject, PassportObject, PermissionObject, RewardAddress, Protocol, TxbObject, } from './protocol';
+import { array_unique, IsValidAddress, IsValidArgType, IsValidArray, IsValidDesription,  IsValidUint, } from './utils';
+import { ERROR, Errors } from './exception';
 
 export type CoinReward = TransactionResult;
 export type RewardGuardPortions = {
@@ -299,6 +299,7 @@ export class Reward {
             arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), Protocol.TXB_OBJECT(txb, new_permission)],
             typeArguments:[this.earnest_type]            
         })    
+        this.permission = new_permission
     }
 
     static MAX_PORTIONS_COUNT = 255;

@@ -1,5 +1,5 @@
 import { BCS, TypeName, StructTypeDefinition } from '@mysten/bcs';
-import { TransactionBlock } from '@mysten/sui.js/transactions';
+import { TransactionBlock, TransactionArgument } from '@mysten/sui.js/transactions';
 export declare const ulebDecode: (arr: number[] | Uint8Array) => {
     value: number;
     length: number;
@@ -44,24 +44,5 @@ export declare const IsValidUint: (value: number) => boolean;
 export declare const IsValidInt: (value: number) => boolean;
 export declare const IsValidPercent: (value: number) => boolean;
 export declare const IsValidArray: (arr: any[], validFunc: any) => boolean;
-export declare const OptionNone: (txb: TransactionBlock) => Infer<Struct<{
-    index: number;
-    kind: "Input";
-    value?: any;
-    type?: "object" | undefined;
-} | {
-    index: number;
-    kind: "Input";
-    type: "pure";
-    value?: any;
-} | {
-    kind: "GasCoin";
-} | {
-    index: number;
-    kind: "Result";
-} | {
-    index: number;
-    resultIndex: number;
-    kind: "NestedResult";
-}, null>>;
+export declare const OptionNone: (txb: TransactionBlock) => TransactionArgument;
 //# sourceMappingURL=utils.d.ts.map

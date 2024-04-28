@@ -1,8 +1,8 @@
 import { BCS } from '@mysten/bcs';
-import { Protocol } from './protocol.js';
-import { IsValidInt, IsValidUint, BCS_CONVERT, array_unique, IsValidArray, IsValidAddress, IsValidName, IsValidName_AllowEmpty, IsValidEndpoint, OptionNone, IsValidDesription } from './utils.js';
-import { Permission } from './permission.js';
-import { Errors, ERROR } from './exception.js';
+import { Protocol } from './protocol';
+import { IsValidInt, IsValidUint, BCS_CONVERT, array_unique, IsValidArray, IsValidAddress, IsValidName, IsValidName_AllowEmpty, IsValidEndpoint, OptionNone, IsValidDesription } from './utils';
+import { Permission } from './permission';
+import { Errors, ERROR } from './exception';
 export class Machine {
     protocol;
     object;
@@ -320,6 +320,7 @@ export class Machine {
             arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), Protocol.TXB_OBJECT(txb, new_permission)],
             typeArguments: []
         });
+        this.permission = new_permission;
     }
     static INITIAL_NODE_NAME = '';
     static OPERATOR_ORDER_PAYER = 'order payer';

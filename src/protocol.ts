@@ -3,8 +3,8 @@ import { SuiClient, SuiObjectResponse, SuiObjectDataOptions, SuiTransactionBlock
 import { Ed25519Keypair } from '@mysten/sui.js/keypairs/ed25519';
 import { BCS, getSuiMoveConfig, toHEX, fromHEX, BcsReader } from '@mysten/bcs';
 import { TransactionBlock, Inputs, TransactionResult, TransactionArgument } from '@mysten/sui.js/transactions';
-import { capitalize, IsValidArray } from './utils.js'
-import { VariableType } from './guard.js';
+import { capitalize, IsValidArray } from './utils'
+import { VariableType } from './guard';
 
 
 export enum MODULES {
@@ -126,7 +126,7 @@ export class Protocol {
     protected signer = '';
     protected everyone_guard = '';
     protected graphql = '';
-    protected txb:any;
+    protected txb: TransactionBlock | undefined;
 
     constructor(network:ENTRYPOINT, signer_address:string) {
         this.signer = signer_address;
@@ -143,7 +143,7 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0xf4233055f40a9f301c85c020496b58ad761fdd2cd6a5d82da7a912adb4608f7f";
+                this.package = "0x142a896540e7bb2858ca8a3ec6194511e409a7d81225abddf84ae58fd4764735";
                 this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
@@ -191,7 +191,7 @@ export class Protocol {
         let ret:any[] = [];
         for (let i = 0; i < res.length; i ++ ) {
             objects.forEach((object) => {
-                object.callback(res[i], object, options);
+                object.callback(this, res[i], object, options);
             })
         }   
         return res;
@@ -200,26 +200,33 @@ export class Protocol {
         this.txb = new  TransactionBlock();
         return this.txb
     }
-    CurrentSession = () : TransactionBlock => { return this.txb }
+    CurrentSession = () : TransactionBlock => { return this.txb ? this.txb : this.NewSession() }
 
     SignExcute = async (exes: ((protocol:Protocol, param:any) => void)[], priv_key:string, param?:any, options:SuiTransactionBlockResponseOptions={showObjectChanges:true}) : Promise<SuiTransactionBlockResponse> => {
         const client =  new SuiClient({ url: this.NetworkUrl() });  
-        const txb = new TransactionBlock();
-
         exes.forEach((e) => { e(this, param) });
 
         const privkey = fromHEX(priv_key);
         const keypair = Ed25519Keypair.fromSecretKey(privkey);
-    
+
         const response = await client.signAndExecuteTransactionBlock({
-            transactionBlock: txb, 
+            transactionBlock: this.CurrentSession(), 
             signer: keypair,
             options,
             
         });
+        this.txb = undefined; // reset the txb to undefine
         return response;
     }
-    static SUI_COIN_TYPE = '0x2::coin::Coin<0x2::sui::SUI>';
+
+    // used in service, discount, order, because service has COIN wrapper for TOKEN
+    static SUI_TOKEN_TYPE = '0x2::sui::SUI'; // TOKEN_TYPE
+    // used in demand, reward, ...
+    static SUI_COIN_TYPE = '0x2::coin::Coin<0x2::sui::SUI>'; // COIN TYPE
+    WOWOK_TOKEN_TYPE = () => { return this.package + '::wowok::WOWOK' }
+    WOWOK_COIN_TYPE = () => {  return '0x2::coin::Coin<' + this.package + '::wowok::WOWOK>'}
+
+
     static CLOCK_OBJECT = Inputs.SharedObjectRef({
         objectId:"0x6",
         mutable: false,
@@ -235,8 +242,6 @@ export class Protocol {
             return true
         })
     }  
-
-    WOWOK_COIN_TYPE = () => {return '0x2::coin::Coin<' + this.package + '::wowok::WOWOK'}
     WOWOK_OBJECTS_TYPE = () => (Object.keys(MODULES) as Array<keyof typeof MODULES>).map((key) => 
         { let i = this.package + '::' + key + '::';  return i + capitalize(key); })
     WOWOK_OBJECTS_PREFIX_TYPE = () => (Object.keys(MODULES) as Array<keyof typeof MODULES>).map((key) => 
@@ -249,7 +254,7 @@ export class RpcResultParser {
         names.push('order::Discount');
         return names;
     }
-    static objectids_from_response = (protocol:Protocol, response:SuiTransactionBlockResponse, concat_result?:Map<string, string[]>): Map<string, string[]> => {
+    static objectids_from_response = (protocol:Protocol, response:SuiTransactionBlockResponse, concat_result?:Map<string, TxbObject[]>): Map<string, TxbObject[]> => {
         let ret = new Map<string, string[]>();
         if (response?.objectChanges) {
             response.objectChanges.forEach((change) => {
@@ -279,9 +284,8 @@ export class RpcResultParser {
 }
 
 export type Query_Param = {
-    protocol: Protocol;
     objectid: string;
-    callback: (response:SuiObjectResponse, param:Query_Param, option:SuiObjectDataOptions)=>void;
+    callback: (protocol:Protocol, response:SuiObjectResponse, param:Query_Param, option:SuiObjectDataOptions)=>void;
     parser?: (result:any[], guardid: string, chain_sense_bsc:Uint8Array, variable?:VariableType)  => boolean;
     data?: any; // response data filted by callback
     variables?: VariableType;

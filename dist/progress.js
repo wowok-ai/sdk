@@ -1,7 +1,7 @@
 import { BCS } from '@mysten/bcs';
-import { Protocol } from './protocol.js';
-import { BCS_CONVERT, array_unique, IsValidName, IsValidAddress, IsValidArray, OptionNone, IsValidInt } from './utils.js';
-import { ERROR, Errors } from './exception.js';
+import { Protocol } from './protocol';
+import { BCS_CONVERT, array_unique, IsValidName, IsValidAddress, IsValidArray, OptionNone, IsValidInt } from './utils';
+import { ERROR, Errors } from './exception';
 export class Progress {
     permission;
     machine;

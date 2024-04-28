@@ -1,9 +1,9 @@
 import { Inputs } from '@mysten/sui.js/transactions';
-import { Protocol, ContextType, OperatorType, ValueType, } from './protocol.js';
-import { parse_object_type, array_unique, BCS_CONVERT, ulebDecode } from './utils.js';
-import { Guard } from './guard.js';
+import { Protocol, ContextType, OperatorType, ValueType, } from './protocol';
+import { parse_object_type, array_unique, BCS_CONVERT, ulebDecode } from './utils';
+import { Guard } from './guard';
 import { BCS } from '@mysten/bcs';
-import { ERROR, Errors } from './exception.js';
+import { ERROR, Errors } from './exception';
 export class GuardParser {
     // from guards: get objects to fill FUTURE value by singer 
     static guard_futures = async (protocol, guards) => {

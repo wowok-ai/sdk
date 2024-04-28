@@ -1,4 +1,4 @@
-import { Protocol, GuardAddress, Data_Type, MODULES, ContextType, ValueType, OperatorType } from './protocol.js';
+import { Protocol, GuardAddress, Data_Type, MODULES, ContextType, ValueType, OperatorType } from './protocol';
 export declare enum Guard_Sense_Binder {
     AND = 0,
     OR = 1

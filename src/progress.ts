@@ -1,9 +1,9 @@
 import { BCS } from '@mysten/bcs';
 import { FnCallType, PermissionObject, RepositoryObject, PassportObject, MachineObject, 
     ProgressObject, ProgressAddress, Protocol,
-    TxbObject} from './protocol.js';
-import { BCS_CONVERT, array_unique,IsValidName, IsValidAddress, IsValidArray, OptionNone, IsValidInt  } from './utils.js'
-import { ERROR, Errors } from './exception.js';
+    TxbObject} from './protocol';
+import { BCS_CONVERT, array_unique,IsValidName, IsValidAddress, IsValidArray, OptionNone, IsValidInt  } from './utils'
+import { ERROR, Errors } from './exception';
 
 export type ProgressNext = {
     next_node_name: string;

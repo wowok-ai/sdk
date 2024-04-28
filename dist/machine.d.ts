@@ -1,6 +1,6 @@
 import { type TransactionResult } from '@mysten/sui.js/transactions';
-import { Protocol, PermissionObject, RepositoryObject, PassportObject, MachineObject, MachineAddress, GuardObject, TxbObject } from './protocol.js';
-import { PermissionIndexType } from './permission.js';
+import { Protocol, PermissionObject, RepositoryObject, PassportObject, MachineObject, MachineAddress, GuardObject, TxbObject } from './protocol';
+import { PermissionIndexType } from './permission';
 export type MachineNodeObject = TransactionResult | String;
 export type Machine_Forward = {
     name: string;
@@ -22,8 +22,8 @@ export type Machine_Node = {
 export declare class Machine {
     protected protocol: Protocol;
     protected object: TxbObject;
-    protected permission: any;
-    get_object(): any;
+    protected permission: PermissionObject;
+    get_object(): TxbObject;
     static From(protocol: Protocol, permission: PermissionObject, object: TxbObject): Machine;
     private constructor();
     static New(protocol: Protocol, permission: PermissionObject, description: string, endpoint?: string, passport?: PassportObject): Machine;

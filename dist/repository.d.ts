@@ -1,5 +1,5 @@
-import { Protocol, ValueType, RepositoryAddress, PermissionObject, PassportObject, TxbObject } from './protocol.js';
-import { PermissionIndexType } from './permission.js';
+import { Protocol, ValueType, RepositoryAddress, PermissionObject, PassportObject, TxbObject } from './protocol';
+import { PermissionIndexType } from './permission';
 export declare enum Repository_Policy_Mode {
     POLICY_MODE_FREE = 0,
     POLICY_MODE_STRICT = 1
@@ -20,10 +20,10 @@ export type Repository_Value = {
     bcsBytes: Uint8Array;
 };
 export declare class Repository {
-    protected permission: any;
+    protected permission: PermissionObject;
     protected object: TxbObject;
     protected protocol: Protocol;
-    get_object(): any;
+    get_object(): TxbObject;
     private constructor();
     static From(protocol: Protocol, permission: PermissionObject, object: TxbObject): Repository;
     static New(protocol: Protocol, permission: PermissionObject, description: string, policy_mode: Repository_Policy_Mode, passport?: PassportObject): Repository;

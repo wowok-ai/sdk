@@ -1,9 +1,9 @@
 import { type TransactionResult } from '@mysten/sui.js/transactions';
 import { BCS } from '@mysten/bcs';
-import { FnCallType, Protocol, PassportObject, PermissionObject, GuardObject, DemandAddress, TxbObject} from './protocol.js';
-import { IsValidDesription, IsValidUint, IsValidAddress, IsValidArgType, } from './utils.js'
-import { Errors, ERROR}  from './exception.js'
-import { Service } from './service.js'
+import { FnCallType, Protocol, PassportObject, PermissionObject, GuardObject, DemandAddress, TxbObject} from './protocol';
+import { IsValidDesription, IsValidUint, IsValidAddress, IsValidArgType, } from './utils'
+import { Errors, ERROR}  from './exception'
+import { Service } from './service'
 
 
 export class Demand {
@@ -174,11 +174,10 @@ export class Demand {
                 typeArguments:[this.earnest_type],
             })    
         }
-        return true
     }
     
-    yes(service_id:string, passport?:PassportObject) {
-        if (!IsValidAddress(service_id)) {
+    yes(service_address:string, passport?:PassportObject) {
+        if (!IsValidAddress(service_address)) {
             ERROR(Errors.IsValidAddress)
         }
     
@@ -186,14 +185,16 @@ export class Demand {
         if (passport) {
             txb.moveCall({
                 target:this.protocol.DemandFn('yes_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(service_id, BCS.ADDRESS), 
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), 
+                    txb.pure(service_address, BCS.ADDRESS), 
                     Protocol.TXB_OBJECT(txb, this.permission)],
                 typeArguments:[this.earnest_type],
             })    
         } else {
             txb.moveCall({
                 target:this.protocol.DemandFn('yes') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(service_id, BCS.ADDRESS), 
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), 
+                    txb.pure(service_address, BCS.ADDRESS), 
                     Protocol.TXB_OBJECT(txb, this.permission)],
                 typeArguments:[this.earnest_type],
             })    
@@ -213,28 +214,33 @@ export class Demand {
         })    
     }
     
-    present(service: Service, tips:string, passport?:PassportObject) : boolean {
+    present(service_address: string, service_pay_type:string, tips:string, passport?:PassportObject) {
         if (!IsValidDesription(tips)) {
             ERROR(Errors.IsValidDesription, 'tips')
+        }
+        if (!IsValidAddress(service_address)) {
+            ERROR(Errors.IsValidAddress, 'service_address')
+        }
+        if (!IsValidArgType(service_pay_type)) {
+            ERROR(Errors.IsValidArgType, 'service_pay_type')
         }
 
         let txb = this.protocol.CurrentSession();
         if (passport) {
             txb.moveCall({
                 target:this.protocol.DemandFn('present_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, service.get_object()), 
-                    txb.pure(tips, BCS.STRING), ],
-                typeArguments:[this.earnest_type, service.get_pay_type()],
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, service_address), 
+                    txb.pure(tips, BCS.STRING)],
+                typeArguments:[this.earnest_type, service_pay_type],
             })   
         } else {
             txb.moveCall({
                 target:this.protocol.DemandFn('present') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, service.get_object()), 
-                    txb.pure(tips, BCS.STRING), ],
-                typeArguments:[this.earnest_type, service.get_pay_type()],
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, service_address), 
+                    txb.pure(tips, BCS.STRING)],
+                typeArguments:[this.earnest_type, service_pay_type],
             })   
         } 
-        return true
     }
     change_permission(new_permission:PermissionObject)  {
         if (!Protocol.IsValidObjects([new_permission])) {
@@ -247,7 +253,7 @@ export class Demand {
             arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), Protocol.TXB_OBJECT(txb, new_permission)],
             typeArguments:[this.earnest_type]            
         })    
-        return true
+        this.permission = new_permission
     }
 
     static MAX_EARNEST_COUNT = 200;

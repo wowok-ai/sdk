@@ -1,7 +1,7 @@
 import { BCS } from '@mysten/bcs';
-import { FnCallType, PassportObject, PermissionObject, GuardObject, VoteAddress, Protocol, TxbObject} from './protocol.js';
-import { IsValidDesription, IsValidUint, IsValidAddress, OptionNone, BCS_CONVERT, array_unique, IsValidArray, IsValidName } from './utils.js';
-import { ERROR, Errors } from './exception.js';
+import { FnCallType, PassportObject, PermissionObject, GuardObject, VoteAddress, Protocol, TxbObject} from './protocol';
+import { IsValidDesription, IsValidUint, IsValidAddress, OptionNone, BCS_CONVERT, array_unique, IsValidArray, IsValidName } from './utils';
+import { ERROR, Errors } from './exception';
 
 export const MAX_AGREES_COUNT = 200;
 export const MAX_CHOICE_COUNT = 200;
@@ -381,5 +381,6 @@ export class Vote {
             target:this.protocol.VoteFn('this.permission_set') as FnCallType,
             arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb,this.permission), Protocol.TXB_OBJECT(txb, new_permission)],         
         })    
+        this.permission = new_permission
     }
 }

@@ -1,4 +1,4 @@
-import { PermissionObject, RepositoryObject, PassportObject, MachineObject, ProgressObject, ProgressAddress, Protocol, TxbObject } from './protocol.js';
+import { PermissionObject, RepositoryObject, PassportObject, MachineObject, ProgressObject, ProgressAddress, Protocol, TxbObject } from './protocol';
 export type ProgressNext = {
     next_node_name: string;
     forward: string;
@@ -8,11 +8,11 @@ export type ParentProgress = {
     parent_session_id: number;
 };
 export declare class Progress {
-    protected permission: any;
-    protected machine: any;
+    protected permission: PermissionObject;
+    protected machine: MachineObject;
     protected object: TxbObject;
     protected protocol: Protocol;
-    get_object(): any;
+    get_object(): TxbObject;
     private constructor();
     static From(protocol: Protocol, machine: MachineObject, permission: PermissionObject, object: TxbObject): Progress;
     static New(protocol: Protocol, machine: MachineObject, permission: PermissionObject, passport?: PassportObject): Progress;

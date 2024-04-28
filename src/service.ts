@@ -1,10 +1,10 @@
 import { bcs, BCS, toHEX, fromHEX, getSuiMoveConfig } from '@mysten/bcs';
 import { IsValidArray, IsValidPercent, IsValidName_AllowEmpty, BCS_CONVERT, array_unique, IsValidArgType, IsValidDesription, 
-    IsValidAddress, IsValidEndpoint, OptionNone, IsValidUint, IsValidInt, IsValidName, } from './utils.js'
+    IsValidAddress, IsValidEndpoint, OptionNone, IsValidUint, IsValidInt, IsValidName, } from './utils'
 import { FnCallType, GuardObject, PassportObject, PermissionObject, RepositoryObject, MachineObject, ServiceAddress, 
     ServiceObject, DiscountObject, OrderObject, OrderAddress, CoinObject, Protocol, 
-    TxbObject} from './protocol.js';
-import { ERROR, Errors } from './exception.js';
+    TxbObject} from './protocol';
+import { ERROR, Errors } from './exception';
 
 export type Service_Guard_Percent = {
     guard:GuardObject;
@@ -56,32 +56,32 @@ export type DicountDispatch = {
 }
 
 export class Service {
-    protected pay_type;
+    protected pay_token_type;
     protected permission;
     protected object : TxbObject;
     protected protocol;
 
-    get_pay_type() {  return this.pay_type }
+    get_pay_type() {  return this.pay_token_type }
     get_object() { return this.object }
-    private constructor(protocol: Protocol, pay_type:string, permission:PermissionObject) {
-        this.pay_type = pay_type
+    private constructor(protocol: Protocol, pay_token_type:string, permission:PermissionObject) {
+        this.pay_token_type = pay_token_type
         this.protocol = protocol
         this.permission = permission
         this.object = ''
     }
-    static From(protocol: Protocol, pay_type:string, permission:PermissionObject, object:TxbObject) : Service {
-        let s = new Service(protocol, pay_type, permission);
+    static From(protocol: Protocol, pay_token_type:string, permission:PermissionObject, object:TxbObject) : Service {
+        let s = new Service(protocol, pay_token_type, permission);
         s.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object);
         return s
     }
-    static New(protocol: Protocol, pay_type:string, permission:PermissionObject, description:string, 
+    static New(protocol: Protocol, pay_token_type:string, permission:PermissionObject, description:string, 
         payee_address:string, endpoint?:string, passport?:PassportObject) : Service {
-        let s = new Service(protocol, pay_type, permission);
+        let s = new Service(protocol, pay_token_type, permission);
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects)
         }
-        if (!IsValidArgType(pay_type)) {
-            ERROR(Errors.IsValidArgType, 'this.pay_type')
+        if (!IsValidArgType(pay_token_type)) {
+            ERROR(Errors.IsValidArgType, 'this.pay_token_type')
         }
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription)
@@ -101,13 +101,13 @@ export class Service {
             s.object = txb.moveCall({
                 target:protocol.ServiceFn('new_with_passport') as FnCallType,
                 arguments:[passport, txb.pure(description), txb.pure(payee_address, BCS.ADDRESS), ep, Protocol.TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type],
+                typeArguments:[pay_token_type],
             })
         } else {
             s.object = txb.moveCall({
                 target:protocol.ServiceFn('new') as FnCallType,
                 arguments:[txb.pure(description), txb.pure(payee_address, BCS.ADDRESS), ep, Protocol.TXB_OBJECT(txb, permission)],
-                typeArguments:[pay_type],
+                typeArguments:[pay_token_type],
             })
         }
         return s
@@ -118,7 +118,7 @@ export class Service {
         return txb.moveCall({
             target:this.protocol.ServiceFn('create') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(txb, this.object)],
-            typeArguments:[this.pay_type]
+            typeArguments:[this.pay_token_type]
     })
 }
     destroy() {
@@ -126,7 +126,7 @@ export class Service {
         txb.moveCall({
             target:this.protocol.ServiceFn('destroy') as FnCallType,
             arguments: [Protocol.TXB_OBJECT(txb, this.object)],
-            typeArguments:[this.pay_type]
+            typeArguments:[this.pay_token_type]
         })   
     }
     set_description(description:string, passport?:PassportObject)  {
@@ -139,13 +139,13 @@ export class Service {
             txb.moveCall({
                 target:this.protocol.ServiceFn('description_set_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(description), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })
         } else {
             txb.moveCall({
                 target:this.protocol.ServiceFn('description_set') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(description), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })
         }
     }
@@ -163,14 +163,14 @@ export class Service {
                 target:this.protocol.ServiceFn('price_set_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(price, BCS.U64), 
                     txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })
         } else {
             txb.moveCall({
                 target:this.protocol.ServiceFn('price_set') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(price, BCS.U64), 
                     txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })
         }
     }
@@ -188,14 +188,14 @@ export class Service {
                 target:this.protocol.ServiceFn('stock_set_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(stock, BCS.U64), 
                     txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })
         } else {
             txb.moveCall({
                 target:this.protocol.ServiceFn('stock_set') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(stock, BCS.U64), 
                     txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })
         }
     }
@@ -213,14 +213,14 @@ export class Service {
                 target:this.protocol.ServiceFn('stock_add_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(stock_add, BCS.U64), 
                     txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })  
         } else {
             txb.moveCall({
                 target:this.protocol.ServiceFn('stock_add') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(stock_add, BCS.U64), 
                     txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })        
         }
     }
@@ -238,14 +238,14 @@ export class Service {
                 target:this.protocol.ServiceFn('stock_reduce_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(stock_reduce, BCS.U64), 
                     txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })
         } else {
             txb.moveCall({
                 target:this.protocol.ServiceFn('stock_reduce') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(stock_reduce, BCS.U64), 
                     txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })
         }
     }
@@ -259,32 +259,32 @@ export class Service {
             txb.moveCall({
                 target:this.protocol.ServiceFn('payee_set_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(payee, BCS.ADDRESS), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })
         } else {
             txb.moveCall({
                 target:this.protocol.ServiceFn('payee_set') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(payee, BCS.ADDRESS), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })
         }
     }
     repository_add(repository:RepositoryObject, passport?:PassportObject) {
         if (!Protocol.IsValidObjects([this.object, this.permission, repository])) return false;
-        if (!IsValidArgType(this.pay_type)) return false;
+        if (!IsValidArgType(this.pay_token_type)) return false;
 
         let txb = this.protocol.CurrentSession();
         if (passport) {
             txb.moveCall({
                 target:this.protocol.ServiceFn('repository_add_with_passport') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, repository), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })
         } else {
             txb.moveCall({
                 target:this.protocol.ServiceFn('repository_add') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, repository), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })
         }
         
@@ -303,14 +303,14 @@ export class Service {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('repository_remove_all_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })
             } else {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('repository_remove_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(repository_address!), 'vector<address>'), 
                         Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })                    
             }
         } else {
@@ -318,14 +318,14 @@ export class Service {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('repository_remove_all') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })
             } else {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('repository_remove') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(repository_address!), 'vector<address>'), 
                         Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })                       
             }
         }
@@ -348,14 +348,14 @@ export class Service {
                     target:this.protocol.ServiceFn('withdraw_guard_add_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard.guard), 
                         txb.pure(guard.percent, BCS.U8), Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]            
+                    typeArguments:[this.pay_token_type]            
                     })
             } else {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('withdraw_guard_add') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard.guard), txb.pure(guard.percent, BCS.U8), 
                         Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]            
+                    typeArguments:[this.pay_token_type]            
                     })
             }
         })
@@ -375,14 +375,14 @@ export class Service {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('withdraw_guard_remove_all_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })    
             } else {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('withdraw_guard_remove_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(guard_address!), 'vector<address>'), 
                         Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })            
             }
         } else {
@@ -390,14 +390,14 @@ export class Service {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('withdraw_guard_remove_all') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })     
             } else {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('withdraw_guard_remove') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(guard_address!), 'vector<address>'), 
                         Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })            
             }
         }
@@ -419,14 +419,14 @@ export class Service {
                     target:this.protocol.ServiceFn('refund_guard_add_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard.guard), 
                         txb.pure(guard.percent, BCS.U8), Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]            
+                    typeArguments:[this.pay_token_type]            
                 })                
             } else {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('refund_guard_add') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard.guard), txb.pure(guard.percent, BCS.U8), 
                         Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]            
+                    typeArguments:[this.pay_token_type]            
                 })
             }
         })
@@ -445,14 +445,14 @@ export class Service {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('refund_guard_remove_all_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })
             } else {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('refund_guard_remove_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(guard_address!), 'vector<address>'),
                         Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })
             }
         } else {
@@ -460,14 +460,14 @@ export class Service {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('refund_guard_remove_all') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })
             } else {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('refund_guard_remove') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(guard_address!), 'vector<address>'),
                         Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })
             }
         }
@@ -502,7 +502,7 @@ export class Service {
                 arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(BCS_CONVERT.ser_vector_string(names)), 
                     txb.pure(BCS_CONVERT.ser_vector_u64(price)), txb.pure(BCS_CONVERT.ser_vector_u64(stock)), 
                     Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })
         } else {
             txb.moveCall({
@@ -510,7 +510,7 @@ export class Service {
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(BCS_CONVERT.ser_vector_string(names)), 
                     txb.pure(BCS_CONVERT.ser_vector_u64(price)), txb.pure(BCS_CONVERT.ser_vector_u64(stock)), 
                     Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })
         }
         
@@ -529,14 +529,14 @@ export class Service {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('sales_remove_all_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })    
             } else {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('sales_remove_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(BCS_CONVERT.ser_vector_string(array_unique(sales!))), 
                         Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })            
             }
         } else {
@@ -544,14 +544,14 @@ export class Service {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('sales_remove_all') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })      
             } else {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('sales_remove') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(BCS_CONVERT.ser_vector_string(array_unique(sales!))), 
                         Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })            
             }
         }     
@@ -591,7 +591,7 @@ export class Service {
                         txb.pure(discount.discount.off, BCS.U64), price_greater, time_start, 
                         txb.pure(discount.discount.duration_minutes, BCS.U64), txb.pure(discount.count, BCS.U64), 
                         Protocol.TXB_OBJECT(txb, this.permission), txb.pure(discount.receiver, BCS.ADDRESS), txb.object(Protocol.CLOCK_OBJECT)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 });
             } else {
                 txb.moveCall({
@@ -601,7 +601,7 @@ export class Service {
                         txb.pure(discount.discount.off, BCS.U64), price_greater, time_start, 
                         txb.pure(discount.discount.duration_minutes, BCS.U64), txb.pure(discount.count, BCS.U64), 
                         Protocol.TXB_OBJECT(txb, this.permission), txb.pure(discount.receiver, BCS.ADDRESS), txb.object(Protocol.CLOCK_OBJECT)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })
             }
         });
@@ -618,13 +618,13 @@ export class Service {
             txb.moveCall({
                 target:this.protocol.ServiceFn('withdraw_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })        
         } else {
             txb.moveCall({
                 target:this.protocol.ServiceFn('withdraw') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })               
         }
         
@@ -636,13 +636,13 @@ export class Service {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('buy_guard_set_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard), Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })        
             } else {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('buy_guard_none_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })   
             }
         } else {
@@ -650,13 +650,13 @@ export class Service {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('buy_guard_set') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard), Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })        
             } else {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('buy_guard_none') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })   
             }
         }
@@ -668,13 +668,13 @@ export class Service {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('machine_set_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, machine), Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })        
             } else {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('machine_none_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })   
             }
         } else {
@@ -682,13 +682,13 @@ export class Service {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('machine_set') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, machine), Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })        
             } else {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('machine_none') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments:[this.pay_type]
+                    typeArguments:[this.pay_token_type]
                 })   
             }
         }
@@ -706,13 +706,13 @@ export class Service {
             txb.moveCall({
                 target:this.protocol.ServiceFn('endpoint_set_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), ep, Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })      
         } else {
             txb.moveCall({
                 target:this.protocol.ServiceFn('endpoint_set') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), ep, Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })      
         }   
     }
@@ -722,13 +722,13 @@ export class Service {
             txb.moveCall({
                 target:this.protocol.ServiceFn('publish_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })   
         } else {
             txb.moveCall({
                 target:this.protocol.ServiceFn('publish') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })   
         }      
         
@@ -739,13 +739,13 @@ export class Service {
             return txb.moveCall({
                 target:this.protocol.ServiceFn('clone_withpassport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })    
         } else {
             return txb.moveCall({
                 target:this.protocol.ServiceFn('clone') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })    
         }  
     }
@@ -765,7 +765,7 @@ export class Service {
                 arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), 
                     txb.pure(BCS_CONVERT.ser_vector_vector_u8(array_unique(customer_required))), 
                     txb.pure(pubkey, 'vector<u8>'), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })         
         } else {
             txb.moveCall({
@@ -773,7 +773,7 @@ export class Service {
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), 
                     txb.pure(BCS_CONVERT.ser_vector_vector_u8(array_unique(customer_required))), 
                     txb.pure(pubkey, 'vector<u8>'), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })         
         }
     }
@@ -783,13 +783,13 @@ export class Service {
             txb.moveCall({
                 target:this.protocol.ServiceFn('required_none_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })  
         } else {
             txb.moveCall({
                 target:this.protocol.ServiceFn('required_none') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })  
         }       
     }
@@ -804,14 +804,14 @@ export class Service {
                 target:this.protocol.ServiceFn('required_pubkey_set_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(pubkey, 'vector<u8>'), 
                     Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })    
         } else {
             txb.moveCall({
                 target:this.protocol.ServiceFn('required_pubkey_set') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(pubkey, 'vector<u8>'), 
                     Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })    
         }     
     }
@@ -829,14 +829,14 @@ export class Service {
                 target:this.protocol.ServiceFn('order_pubkey_update_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), txb.pure(pubkey, 'vector<u8>'), 
                     Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })   
         } else {
             txb.moveCall({
                 target:this.protocol.ServiceFn('order_pubkey_update') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), txb.pure(pubkey, 'vector<u8>'), 
                     Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })   
         }    
     }
@@ -846,13 +846,13 @@ export class Service {
             txb.moveCall({
                 target:this.protocol.ServiceFn('pause_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(pause, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })     
         } else {
             txb.moveCall({
                 target:this.protocol.ServiceFn('pause') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(pause, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })     
         }    
         
@@ -867,13 +867,13 @@ export class Service {
             txb.moveCall({
             target:this.protocol.ServiceFn('refund_with_passport') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), passport],
-            typeArguments:[this.pay_type]
+            typeArguments:[this.pay_token_type]
             })               
         } else {
             txb.moveCall({
                 target:this.protocol.ServiceFn('refund') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order)],
-                typeArguments:[this.pay_type]
+                typeArguments:[this.pay_token_type]
             })            
         }
     }
@@ -893,10 +893,11 @@ export class Service {
                 txb.pure(customer_info_crypto.pubkey, 'vector<u8>'), 
                 txb.pure(customer_info_crypto.customer_pubkey, 'vector<u8>'), 
                 txb.pure(BCS_CONVERT.ser_vector_vector_u8(array_unique(customer_info_crypto.customer_info_crypt)))],
-            typeArguments:[this.pay_type]
+            typeArguments:[this.pay_token_type]
         })    
         
     }
+    
     buy(buy_items:Service_Buy[], coin:CoinObject, discount?:DiscountObject, machine?:MachineObject, 
         customer_info_crypto?: Customer_RequiredInfo, passport?:PassportObject) : OrderAddress {
         if (!buy_items) {
@@ -926,7 +927,7 @@ export class Service {
                     arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(BCS_CONVERT.ser_vector_string(name)), 
                         txb.pure(BCS_CONVERT.ser_vector_u64(price)), txb.pure(BCS_CONVERT.ser_vector_u64(stock)), 
                         Protocol.TXB_OBJECT(txb, coin), Protocol.TXB_OBJECT(txb, discount), txb.object(Protocol.CLOCK_OBJECT)],                   
-                    typeArguments:[this.pay_type]            
+                    typeArguments:[this.pay_token_type]            
             })} else {
                 order = txb.moveCall({
                     target:this.protocol.ServiceFn('buy_with_passport') as FnCallType,
@@ -934,7 +935,7 @@ export class Service {
                         txb.pure(BCS_CONVERT.ser_vector_u64(price)), 
                         txb.pure(BCS_CONVERT.ser_vector_u64(stock)), 
                         Protocol.TXB_OBJECT(txb, coin)],
-                    typeArguments:[this.pay_type]            
+                    typeArguments:[this.pay_token_type]            
             })}             
         } else {
             if (discount) {
@@ -945,7 +946,7 @@ export class Service {
                         txb.pure(BCS_CONVERT.ser_vector_u64(stock)), 
                         Protocol.TXB_OBJECT(txb, coin), 
                         Protocol.TXB_OBJECT(txb, discount), txb.object(Protocol.CLOCK_OBJECT)],                
-                    typeArguments:[this.pay_type]            
+                    typeArguments:[this.pay_token_type]            
             })} else {
                 order = txb.moveCall({
                     target:this.protocol.ServiceFn('buy') as FnCallType,
@@ -953,7 +954,7 @@ export class Service {
                         txb.pure(BCS_CONVERT.ser_vector_u64(price)), 
                         txb.pure(BCS_CONVERT.ser_vector_u64(stock)), 
                         Protocol.TXB_OBJECT(txb, coin)],
-                    typeArguments:[this.pay_type]            
+                    typeArguments:[this.pay_token_type]            
             })}           
         }
 
@@ -965,13 +966,13 @@ export class Service {
             return txb.moveCall({
                 target:this.protocol.ServiceFn('order_create_with_machine') as FnCallType,
                 arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), Protocol.TXB_OBJECT(txb, machine)],
-                typeArguments:[this.pay_type]            
+                typeArguments:[this.pay_token_type]            
             })        
         } else {
             return txb.moveCall({
                 target:this.protocol.ServiceFn('order_create') as FnCallType,
                 arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order)],
-                typeArguments:[this.pay_type]            
+                typeArguments:[this.pay_token_type]            
             })  
         }
     }
@@ -985,7 +986,7 @@ export class Service {
         txb.moveCall({
             target:this.protocol.ServiceFn('order_create_with_machine') as FnCallType,
             arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), Protocol.TXB_OBJECT(txb, machine)],
-            typeArguments:[this.pay_type]            
+            typeArguments:[this.pay_token_type]            
         })    
     }
 
@@ -998,8 +999,9 @@ export class Service {
         txb.moveCall({
             target:this.protocol.ServiceFn('permission_set') as FnCallType,
             arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), Protocol.TXB_OBJECT(txb, new_permission)],
-            typeArguments:[this.pay_type]            
+            typeArguments:[this.pay_token_type]            
         })    
+        this.permission = new_permission
     }
 
     static MAX_DISCOUNT_COUNT_ONCE = 200;

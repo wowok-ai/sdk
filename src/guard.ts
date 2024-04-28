@@ -1,9 +1,9 @@
 
 import { BCS } from '@mysten/bcs';
-import { Protocol, GuardAddress, FnCallType, Data_Type, MODULES, ContextType, ValueType,  OperatorType} from './protocol.js';
-import { concatenate, array_equal } from './utils.js';
-import { IsValidDesription, BCS_CONVERT, IsValidInt, IsValidAddress } from './utils.js';
-import { ERROR, Errors } from './exception.js';
+import { Protocol, GuardAddress, FnCallType, Data_Type, MODULES, ContextType, ValueType,  OperatorType} from './protocol';
+import { concatenate, array_equal } from './utils';
+import { IsValidDesription, BCS_CONVERT, IsValidInt, IsValidAddress } from './utils';
+import { ERROR, Errors } from './exception';
 
 export enum Guard_Sense_Binder {
     AND = 0, // first sense of guard always AND; for combining other guards

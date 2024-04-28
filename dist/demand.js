@@ -1,7 +1,7 @@
 import { BCS } from '@mysten/bcs';
-import { Protocol } from './protocol.js';
-import { IsValidDesription, IsValidUint, IsValidAddress, IsValidArgType, } from './utils.js';
-import { Errors, ERROR } from './exception.js';
+import { Protocol } from './protocol';
+import { IsValidDesription, IsValidUint, IsValidAddress, IsValidArgType, } from './utils';
+import { Errors, ERROR } from './exception';
 export class Demand {
     earnest_type;
     permission;
@@ -163,7 +163,6 @@ export class Demand {
                 typeArguments: [this.earnest_type],
             });
         }
-        return true;
     }
     yes(service_id, passport) {
         if (!IsValidAddress(service_id)) {
@@ -219,7 +218,6 @@ export class Demand {
                 typeArguments: [this.earnest_type, service.get_pay_type()],
             });
         }
-        return true;
     }
     change_permission(new_permission) {
         if (!Protocol.IsValidObjects([new_permission])) {
@@ -231,7 +229,7 @@ export class Demand {
             arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), Protocol.TXB_OBJECT(txb, new_permission)],
             typeArguments: [this.earnest_type]
         });
-        return true;
+        this.permission = new_permission;
     }
     static MAX_EARNEST_COUNT = 200;
     static MAX_PRESENTERS_COUNT = 200;

@@ -1,7 +1,7 @@
 import { BCS } from '@mysten/bcs';
-import { IsValidArray, IsValidPercent, IsValidName_AllowEmpty, BCS_CONVERT, array_unique, IsValidArgType, IsValidDesription, IsValidAddress, IsValidEndpoint, OptionNone, IsValidUint, IsValidInt, IsValidName, } from './utils.js';
-import { Protocol } from './protocol.js';
-import { ERROR, Errors } from './exception.js';
+import { IsValidArray, IsValidPercent, IsValidName_AllowEmpty, BCS_CONVERT, array_unique, IsValidArgType, IsValidDesription, IsValidAddress, IsValidEndpoint, OptionNone, IsValidUint, IsValidInt, IsValidName, } from './utils';
+import { Protocol } from './protocol';
+import { ERROR, Errors } from './exception';
 export var Service_Discount_Type;
 (function (Service_Discount_Type) {
     Service_Discount_Type[Service_Discount_Type["ratio"] = 0] = "ratio";
@@ -920,11 +920,12 @@ export class Service {
         }
         else {
             if (discount) {
+                console.log(name);
+                console.log(price);
+                console.log(stock);
                 order = txb.moveCall({
                     target: this.protocol.ServiceFn('disoucnt_buy'),
-                    arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(BCS_CONVERT.ser_vector_string(name)),
-                        txb.pure(BCS_CONVERT.ser_vector_u64(price)),
-                        txb.pure(BCS_CONVERT.ser_vector_u64(stock)),
+                    arguments: [Protocol.TXB_OBJECT(txb, this.object),
                         Protocol.TXB_OBJECT(txb, coin),
                         Protocol.TXB_OBJECT(txb, discount), txb.object(Protocol.CLOCK_OBJECT)],
                     typeArguments: [this.pay_type]
@@ -980,6 +981,7 @@ export class Service {
             arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), Protocol.TXB_OBJECT(txb, new_permission)],
             typeArguments: [this.pay_type]
         });
+        this.permission = new_permission;
     }
     static MAX_DISCOUNT_COUNT_ONCE = 200;
     static MAX_DISCOUNT_RECEIVER_COUNT = 200;

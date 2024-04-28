@@ -1,7 +1,7 @@
 import { BCS } from '@mysten/bcs';
-import { Protocol } from './protocol.js';
-import { array_unique, IsValidAddress, IsValidArray, IsValidDesription, IsValidUint, BCS_CONVERT } from './utils.js';
-import { ERROR, Errors } from './exception.js';
+import { Protocol } from './protocol';
+import { array_unique, IsValidAddress, IsValidArray, IsValidDesription, IsValidUint, BCS_CONVERT } from './utils';
+import { ERROR, Errors } from './exception';
 export var PermissionIndex;
 (function (PermissionIndex) {
     PermissionIndex[PermissionIndex["repository"] = 100] = "repository";

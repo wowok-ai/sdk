@@ -1,7 +1,7 @@
 import { BCS } from '@mysten/bcs';
-import { Protocol } from './protocol.js';
-import { IsValidDesription, IsValidUint, IsValidAddress, OptionNone, BCS_CONVERT, array_unique, IsValidArray, IsValidName } from './utils.js';
-import { ERROR, Errors } from './exception.js';
+import { Protocol } from './protocol';
+import { IsValidDesription, IsValidUint, IsValidAddress, OptionNone, BCS_CONVERT, array_unique, IsValidArray, IsValidName } from './utils';
+import { ERROR, Errors } from './exception';
 export const MAX_AGREES_COUNT = 200;
 export const MAX_CHOICE_COUNT = 200;
 export class Vote {
@@ -361,5 +361,6 @@ export class Vote {
             target: this.protocol.VoteFn('this.permission_set'),
             arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), Protocol.TXB_OBJECT(txb, new_permission)],
         });
+        this.permission = new_permission;
     }
 }

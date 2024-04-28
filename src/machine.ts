@@ -1,10 +1,10 @@
 import { TransactionBlock, Inputs, type TransactionResult } from '@mysten/sui.js/transactions';
 import { BCS } from '@mysten/bcs';
-import { Protocol, FnCallType, PermissionObject, RepositoryObject,  PassportObject, MachineObject, MachineAddress,  GuardObject, TxbObject} from './protocol.js';
+import { Protocol, FnCallType, PermissionObject, RepositoryObject,  PassportObject, MachineObject, MachineAddress,  GuardObject, TxbObject} from './protocol';
 import { IsValidInt, IsValidUint, BCS_CONVERT, array_unique, IsValidArray, IsValidAddress, IsValidName, IsValidName_AllowEmpty, 
-    IsValidEndpoint, OptionNone, IsValidDesription} from './utils.js'
-import { Permission, PermissionIndexType } from './permission.js';
-import { Errors, ERROR}  from './exception.js'
+    IsValidEndpoint, OptionNone, IsValidDesription} from './utils'
+import { Permission, PermissionIndexType } from './permission';
+import { Errors, ERROR}  from './exception'
 
 
 export type MachineNodeObject = TransactionResult | String;
@@ -341,7 +341,8 @@ export class Machine {
             target:this.protocol.MachineFn('permission_set') as FnCallType,
             arguments: [Protocol.TXB_OBJECT(txb,  this.object), Protocol.TXB_OBJECT(txb, this.permission), Protocol.TXB_OBJECT(txb, new_permission)],
             typeArguments:[]            
-        })      
+        })   
+        this.permission = new_permission;   
     }
 
     static INITIAL_NODE_NAME = '';

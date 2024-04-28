@@ -1,8 +1,8 @@
 import { BCS } from '@mysten/bcs';
-import { Protocol } from './protocol.js';
-import { Permission } from './permission.js';
-import { BCS_CONVERT, array_unique, IsValidDesription, IsValidAddress, IsValidArray, OptionNone, } from './utils.js';
-import { ERROR, Errors } from './exception.js';
+import { Protocol } from './protocol';
+import { Permission } from './permission';
+import { BCS_CONVERT, array_unique, IsValidDesription, IsValidAddress, IsValidArray, OptionNone, } from './utils';
+import { ERROR, Errors } from './exception';
 export var Repository_Policy_Mode;
 (function (Repository_Policy_Mode) {
     Repository_Policy_Mode[Repository_Policy_Mode["POLICY_MODE_FREE"] = 0] = "POLICY_MODE_FREE";
@@ -290,6 +290,7 @@ export class Repository {
             arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), Protocol.TXB_OBJECT(txb, new_permission)],
             typeArguments: []
         });
+        this.permission = new_permission;
     }
     static MAX_POLICY_COUNT = 1000;
     static MAX_KEY_LENGTH = 128;

@@ -1,5 +1,5 @@
 import { type TransactionResult } from '@mysten/sui.js/transactions';
-import { GuardObject, PassportObject, PermissionObject, RewardAddress, Protocol, TxbObject } from './protocol.js';
+import { GuardObject, PassportObject, PermissionObject, RewardAddress, Protocol, TxbObject } from './protocol';
 export type CoinReward = TransactionResult;
 export type RewardGuardPortions = {
     guard: GuardObject;
@@ -7,11 +7,11 @@ export type RewardGuardPortions = {
 };
 export declare class Reward {
     protected earnest_type: string;
-    protected permission: any;
+    protected permission: PermissionObject;
     protected object: TxbObject;
     protected protocol: Protocol;
     get_earnest_type(): string;
-    get_object(): any;
+    get_object(): TxbObject;
     private constructor();
     static From(protocol: Protocol, earnest_type: string, permission: PermissionObject, object: TxbObject): Reward;
     static New(protocol: Protocol, earnest_type: string, permission: PermissionObject, description: string, minutes_duration: number, passport?: PassportObject): Reward;

@@ -1,4 +1,4 @@
-import { PassportObject, PermissionObject, GuardObject, VoteAddress, Protocol, TxbObject } from './protocol.js';
+import { PassportObject, PermissionObject, GuardObject, VoteAddress, Protocol, TxbObject } from './protocol';
 export declare const MAX_AGREES_COUNT = 200;
 export declare const MAX_CHOICE_COUNT = 200;
 export type VoteOption = {
@@ -6,10 +6,10 @@ export type VoteOption = {
     reference_address?: string;
 };
 export declare class Vote {
-    protected permission: any;
+    protected permission: PermissionObject;
     protected object: TxbObject;
     protected protocol: Protocol;
-    get_object(): any;
+    get_object(): TxbObject;
     private constructor();
     static From(protocol: Protocol, permission: PermissionObject, object: TxbObject): Vote;
     static New(protocol: Protocol, permission: PermissionObject, description: string, minutes_duration: number, max_choice_count?: number, reference_address?: string, passport?: PassportObject): Vote;

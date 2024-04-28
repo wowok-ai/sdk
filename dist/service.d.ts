@@ -1,4 +1,4 @@
-import { GuardObject, PassportObject, PermissionObject, RepositoryObject, MachineObject, ServiceAddress, ServiceObject, DiscountObject, OrderObject, OrderAddress, CoinObject, Protocol, TxbObject } from './protocol.js';
+import { GuardObject, PassportObject, PermissionObject, RepositoryObject, MachineObject, ServiceAddress, ServiceObject, DiscountObject, OrderObject, OrderAddress, CoinObject, Protocol, TxbObject } from './protocol';
 export type Service_Guard_Percent = {
     guard: GuardObject;
     percent: number;
@@ -47,11 +47,11 @@ export type DicountDispatch = {
 };
 export declare class Service {
     protected pay_type: string;
-    protected permission: any;
+    protected permission: PermissionObject;
     protected object: TxbObject;
     protected protocol: Protocol;
     get_pay_type(): string;
-    get_object(): any;
+    get_object(): TxbObject;
     private constructor();
     static From(protocol: Protocol, pay_type: string, permission: PermissionObject, object: TxbObject): Service;
     static New(protocol: Protocol, pay_type: string, permission: PermissionObject, description: string, payee_address: string, endpoint?: string, passport?: PassportObject): Service;

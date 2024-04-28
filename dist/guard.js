@@ -1,8 +1,8 @@
 import { BCS } from '@mysten/bcs';
-import { MODULES, ContextType, ValueType, OperatorType } from './protocol.js';
-import { concatenate, array_equal } from './utils.js';
-import { IsValidDesription, BCS_CONVERT, IsValidInt, IsValidAddress } from './utils.js';
-import { ERROR, Errors } from './exception.js';
+import { MODULES, ContextType, ValueType, OperatorType } from './protocol';
+import { concatenate, array_equal } from './utils';
+import { IsValidDesription, BCS_CONVERT, IsValidInt, IsValidAddress } from './utils';
+import { ERROR, Errors } from './exception';
 export var Guard_Sense_Binder;
 (function (Guard_Sense_Binder) {
     Guard_Sense_Binder[Guard_Sense_Binder["AND"] = 0] = "AND";

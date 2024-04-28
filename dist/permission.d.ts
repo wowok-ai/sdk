@@ -1,4 +1,4 @@
-import { TxbObject, PermissionAddress, GuardObject, Protocol } from './protocol.js';
+import { TxbObject, PermissionAddress, GuardObject, Protocol } from './protocol';
 export declare enum PermissionIndex {
     repository = 100,
     repository_set_description_set = 101,
