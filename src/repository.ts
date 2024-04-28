@@ -1,7 +1,7 @@
 import { BCS } from '@mysten/bcs';
 import { Protocol, FnCallType, ValueType, RepositoryObject, RepositoryAddress, PermissionObject, PassportObject, TxbObject} from './protocol';
 import { PermissionIndexType, Permission } from './permission'
-import { BCS_CONVERT, array_unique, IsValidDesription, IsValidAddress, IsValidArray, OptionNone,  } from './utils';
+import { Bcs, array_unique, IsValidDesription, IsValidAddress, IsValidArray, OptionNone,  } from './utils';
 import { ERROR, Errors } from './exception';
 
 export enum Repository_Policy_Mode {
@@ -157,7 +157,7 @@ export class Repository {
 
         let txb = this.protocol.CurrentSession();
         policies.forEach((policy) => {
-            let permission_index = policy?.permission ? txb.pure(BCS_CONVERT.ser_option_u64(policy.permission)) : OptionNone(txb);
+            let permission_index = policy?.permission ? txb.pure(Bcs.getInstance().ser_option_u64(policy.permission)) : OptionNone(txb);
             if (passport) {
                 txb.moveCall({
                     target:this.protocol.RepositoryFn('policy_add_with_passport') as FnCallType,
@@ -199,7 +199,7 @@ export class Repository {
                 txb.moveCall({
                     target:this.protocol.RepositoryFn('policy_remove_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), 
-                        txb.pure(BCS_CONVERT.ser_vector_string(array_unique(policy_keys))), 
+                        txb.pure(Bcs.getInstance().ser_vector_string(array_unique(policy_keys))), 
                         Protocol.TXB_OBJECT(txb, this.permission)]
                 })                
             }
@@ -213,7 +213,7 @@ export class Repository {
                 txb.moveCall({
                     target:this.protocol.RepositoryFn('policy_remove') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(txb, this.object), 
-                        txb.pure(BCS_CONVERT.ser_vector_string(array_unique(policy_keys))), 
+                        txb.pure(Bcs.getInstance().ser_vector_string(array_unique(policy_keys))), 
                         Protocol.TXB_OBJECT(txb, this.permission)]
                 })                
             }
@@ -293,7 +293,7 @@ export class Repository {
             if(!Permission.IsValidPermissionIndex(permission_index)) {
                 ERROR(Errors.IsValidPermissionIndex)
             }
-            index = txb.pure(BCS_CONVERT.ser_option_u64(permission_index));
+            index = txb.pure(Bcs.getInstance().ser_option_u64(permission_index));
         }
 
         if (passport) {

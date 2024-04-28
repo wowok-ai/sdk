@@ -246,6 +246,16 @@ export class Protocol {
         { let i = this.package + '::' + key + '::';  return i + capitalize(key); })
     WOWOK_OBJECTS_PREFIX_TYPE = () => (Object.keys(MODULES) as Array<keyof typeof MODULES>).map((key) => 
         { return this.package + '::' + key + '::'; })
+    object_name_from_type_repr = (type_repr:string) : string => {
+        let i = type_repr.indexOf('::');
+        if (i > 0 && type_repr.slice(0, i).includes(this.package)) {
+            let n = type_repr.lastIndexOf('::');
+            if (n > 0) {
+                return type_repr.slice(n+2);
+            }
+        }
+        return ''
+    }
 }
 
 export class RpcResultParser {

@@ -3,7 +3,7 @@ import { TransactionBlock, type TransactionObjectInput, Inputs } from '@mysten/s
 import { FnCallType, Query_Param, PassportObject, GuardObject, Protocol, ContextType, OperatorType, Data_Type,
     ValueType, MODULES,
 } from './protocol';
-import { parse_object_type, array_unique, BCS_CONVERT, ulebDecode } from './utils';
+import { parse_object_type, array_unique, Bcs, ulebDecode } from './utils';
 import { VariableType, Guard, Guard_Vriable} from './guard';
 import { bcs, BCS, toHEX, fromHEX, getSuiMoveConfig, TypeName, StructTypeDefinition } from '@mysten/bcs';
 import { ERROR, Errors } from './exception';
@@ -80,7 +80,7 @@ export class GuardParser {
                 let witness = Guard.get_variable_witness(variable, identifer[0], type as OperatorType) ;
                 if (!witness)  return false;
                 result.push({guardid:guardid, identifier:identifer[0], type:type, value:'',
-                    witness:'0x' + BCS_CONVERT.de(BCS.ADDRESS, Uint8Array.from(witness as Uint8Array))} as FutureValueRequest);
+                    witness:'0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(witness as Uint8Array))} as FutureValueRequest);
                 break;
             case ContextType.TYPE_CONTEXT_address:
             case ContextType.TYPE_CONTEXT_bool:
@@ -219,7 +219,7 @@ export class GuardParser {
                 arr.splice(0, value+length);
                 break;     
             case OperatorType.TYPE_QUERY:
-                result.push('0x' + BCS_CONVERT.de(BCS.ADDRESS, Uint8Array.from(arr)).toString());
+                result.push('0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(arr)).toString());
                 arr.splice(0, 33); // address + cmd
                 break;
             case OperatorType.TYPE_QUERY_FROM_CONTEXT: 
@@ -228,7 +228,7 @@ export class GuardParser {
                 if (variable) {
                     let v = Guard.get_variable_value(variable, identifer[0], type as OperatorType) ;
                     if (v)  {
-                        result.push('0x' + BCS_CONVERT.de(BCS.ADDRESS, Uint8Array.from(v as Uint8Array)).toString());
+                        result.push('0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(v as Uint8Array)).toString());
                         arr.splice(0, 1); // splice cmd  
                         break;
                     }
@@ -353,7 +353,7 @@ export class Passport {
         result.forEach((v, k) => {
             txb.moveCall({
                 target:protocol.PassportFn('futures_set') as FnCallType,
-                arguments:[this.passport, txb.pure(BCS_CONVERT.ser_address(k)), txb.pure(BCS_CONVERT.ser_vector_u8(v.identifier)), 
+                arguments:[this.passport, txb.pure(Bcs.getInstance().ser_address(k)), txb.pure(Bcs.getInstance().ser_vector_u8(v.identifier)), 
                     txb.pure(v.real_address, 'vector<address>')]
             })
         })
