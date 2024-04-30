@@ -1,6 +1,6 @@
 import { BCS } from '@mysten/bcs';
 import { Protocol } from './protocol';
-import { BCS_CONVERT, array_unique, IsValidName, IsValidAddress, IsValidArray, OptionNone, IsValidInt } from './utils';
+import { Bcs, array_unique, IsValidName, IsValidAddress, IsValidArray, OptionNone, IsValidInt } from './utils';
 import { ERROR, Errors } from './exception';
 export class Progress {
     permission;
@@ -224,8 +224,8 @@ export class Progress {
             ERROR(Errors.IsValidAddress, 'sub_id');
         }
         let txb = this.protocol.CurrentSession();
-        let diliverable = deliverables_address ? txb.pure(BCS_CONVERT.ser_option_address(deliverables_address)) : OptionNone(txb);
-        let sub = sub_id ? txb.pure(BCS_CONVERT.ser_option_address(sub_id)) : OptionNone(txb);
+        let diliverable = deliverables_address ? txb.pure(Bcs.getInstance().ser_option_address(deliverables_address)) : OptionNone(txb);
+        let sub = sub_id ? txb.pure(Bcs.getInstance().ser_option_address(sub_id)) : OptionNone(txb);
         if (passport) {
             txb.moveCall({
                 target: this.protocol.ProgressFn('next_with_passport'),

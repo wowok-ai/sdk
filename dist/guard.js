@@ -1,7 +1,7 @@
 import { BCS } from '@mysten/bcs';
 import { MODULES, ContextType, ValueType, OperatorType } from './protocol';
 import { concatenate, array_equal } from './utils';
-import { IsValidDesription, BCS_CONVERT, IsValidInt, IsValidAddress } from './utils';
+import { IsValidDesription, Bcs, IsValidInt, IsValidAddress } from './utils';
 import { ERROR, Errors } from './exception';
 export var Guard_Sense_Binder;
 (function (Guard_Sense_Binder) {
@@ -55,8 +55,8 @@ export class Guard {
                 if (variables.has(identifier)) {
                     let v = variables.get(identifier);
                     if (bNeedSerialize) {
-                        v.value = value ? BCS_CONVERT.ser_address(value) : undefined;
-                        v.witness = witness ? BCS_CONVERT.ser_address(witness) : undefined;
+                        v.value = value ? Bcs.getInstance().ser_address(value) : undefined;
+                        v.witness = witness ? Bcs.getInstance().ser_address(witness) : undefined;
                     }
                     else {
                         v.value = value ? value : undefined;
@@ -65,7 +65,7 @@ export class Guard {
                 }
                 else {
                     if (bNeedSerialize) {
-                        variables.set(identifier, { type: type, value: value ? BCS_CONVERT.ser_address(value) : undefined, witness: witness ? BCS_CONVERT.ser_address(witness) : undefined });
+                        variables.set(identifier, { type: type, value: value ? Bcs.getInstance().ser_address(value) : undefined, witness: witness ? Bcs.getInstance().ser_address(witness) : undefined });
                     }
                     else {
                         variables.set(identifier, { type: type, value: value ? value : undefined, witness: witness ? witness : undefined });
@@ -84,24 +84,24 @@ export class Guard {
             return false;
         switch (type) {
             case ContextType.TYPE_CONTEXT_bool:
-                bNeedSerialize ? variables.set(identifier, { type: type, value: BCS_CONVERT.ser_bool(value) }) :
+                bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_bool(value) }) :
                     variables.set(identifier, { type: type, value: value });
                 return true;
             case ContextType.TYPE_CONTEXT_address:
             case OperatorType.TYPE_QUERY_FROM_CONTEXT:
-                bNeedSerialize ? variables.set(identifier, { type: type, value: BCS_CONVERT.ser_address(value) }) :
+                bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_address(value) }) :
                     variables.set(identifier, { type: type, value: value });
                 return true;
             case ContextType.TYPE_CONTEXT_u64:
-                bNeedSerialize ? variables.set(identifier, { type: type, value: BCS_CONVERT.ser_u64(value) }) :
+                bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_u64(value) }) :
                     variables.set(identifier, { type: type, value: value });
                 return true;
             case ContextType.TYPE_CONTEXT_u8:
-                bNeedSerialize ? variables.set(identifier, { type: type, value: BCS_CONVERT.ser_u8(value) }) :
+                bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_u8(value) }) :
                     variables.set(identifier, { type: type, value: value });
                 return true;
             case ContextType.TYPE_CONTEXT_vec_u8:
-                bNeedSerialize ? variables.set(identifier, { type: type, value: BCS_CONVERT.ser_string(value) }) :
+                bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_string(value) }) :
                     variables.set(identifier, { type: type, value: value });
                 return true;
         }
@@ -334,45 +334,45 @@ export class SenseMaker {
             case ValueType.TYPE_STATIC_address:
                 if (!param)
                     return false;
-                this.data.push(BCS_CONVERT.ser_u8(type));
-                this.data.push(BCS_CONVERT.ser_address(param));
+                this.data.push(Bcs.getInstance().ser_u8(type));
+                this.data.push(Bcs.getInstance().ser_address(param));
                 this.type_validator.push(type);
                 break;
             case ValueType.TYPE_STATIC_bool:
                 if (!param)
                     return false;
-                this.data.push(BCS_CONVERT.ser_u8(type));
-                this.data.push(BCS_CONVERT.ser_bool(param));
+                this.data.push(Bcs.getInstance().ser_u8(type));
+                this.data.push(Bcs.getInstance().ser_bool(param));
                 this.type_validator.push(type);
                 break;
             case ValueType.TYPE_STATIC_u8:
                 if (!param)
                     return false;
-                this.data.push(BCS_CONVERT.ser_u8(type));
-                this.data.push(BCS_CONVERT.ser_u8(param));
+                this.data.push(Bcs.getInstance().ser_u8(type));
+                this.data.push(Bcs.getInstance().ser_u8(param));
                 this.type_validator.push(type);
                 break;
             case ValueType.TYPE_STATIC_u64:
                 if (!param)
                     return false;
-                this.data.push(BCS_CONVERT.ser_u8(type));
-                this.data.push(BCS_CONVERT.ser_u64(param));
+                this.data.push(Bcs.getInstance().ser_u8(type));
+                this.data.push(Bcs.getInstance().ser_u64(param));
                 this.type_validator.push(type);
                 break;
             case ValueType.TYPE_STATIC_vec_u8:
                 if (!param)
                     return false;
-                this.data.push(BCS_CONVERT.ser_u8(type));
-                this.data.push(BCS_CONVERT.ser_string(param));
+                this.data.push(Bcs.getInstance().ser_u8(type));
+                this.data.push(Bcs.getInstance().ser_string(param));
                 this.type_validator.push(type);
                 // this.data[this.data.length-1].forEach((item : number) => console.log(item))
                 break;
             case ContextType.TYPE_CONTEXT_SIGNER:
-                this.data.push(BCS_CONVERT.ser_u8(type));
+                this.data.push(Bcs.getInstance().ser_u8(type));
                 this.type_validator.push(ValueType.TYPE_STATIC_address);
                 break;
             case ContextType.TYPE_CONTEXT_CLOCK:
-                this.data.push(BCS_CONVERT.ser_u8(type));
+                this.data.push(Bcs.getInstance().ser_u8(type));
                 this.type_validator.push(ValueType.TYPE_STATIC_u64);
                 break;
             case ContextType.TYPE_CONTEXT_bool:
@@ -389,8 +389,8 @@ export class SenseMaker {
                     return false;
                 var v = variable.get(param);
                 if (v?.type == type) {
-                    this.data.push(BCS_CONVERT.ser_u8(type));
-                    this.data.push(BCS_CONVERT.ser_u8(param));
+                    this.data.push(Bcs.getInstance().ser_u8(type));
+                    this.data.push(Bcs.getInstance().ser_u8(param));
                     if (type == ContextType.TYPE_CONTEXT_bool) {
                         this.type_validator.push(ValueType.TYPE_STATIC_bool);
                     }
@@ -443,9 +443,9 @@ export class SenseMaker {
         if (!array_equal(types, Guard.QUERIES[query_index][3])) { // type validate 
             return false;
         }
-        this.data.push(BCS_CONVERT.ser_u8(OperatorType.TYPE_FUTURE_QUERY)); // TYPE
-        this.data.push(BCS_CONVERT.ser_u8(identifier)); // variable identifier
-        this.data.push(BCS_CONVERT.ser_u8(Guard.QUERIES[query_index][2])); // cmd
+        this.data.push(Bcs.getInstance().ser_u8(OperatorType.TYPE_FUTURE_QUERY)); // TYPE
+        this.data.push(Bcs.getInstance().ser_u8(identifier)); // variable identifier
+        this.data.push(Bcs.getInstance().ser_u8(Guard.QUERIES[query_index][2])); // cmd
         this.type_validator.splice(offset, Guard.QUERIES[query_index][3].length); // delete type stack
         this.type_validator.push(Guard.QUERIES[query_index][4]); // add the return value type to type stack
         // console.log(this.type_validator)
@@ -473,14 +473,14 @@ export class SenseMaker {
             return false;
         }
         if (typeof (object_address_from) == 'string') {
-            this.data.push(BCS_CONVERT.ser_u8(OperatorType.TYPE_QUERY)); // TYPE
-            this.data.push(BCS_CONVERT.ser_address(object_address_from)); // object address            
+            this.data.push(Bcs.getInstance().ser_u8(OperatorType.TYPE_QUERY)); // TYPE
+            this.data.push(Bcs.getInstance().ser_address(object_address_from)); // object address            
         }
         else {
-            this.data.push(BCS_CONVERT.ser_u8(OperatorType.TYPE_QUERY_FROM_CONTEXT)); // TYPE
-            this.data.push(BCS_CONVERT.ser_u8(object_address_from)); // object identifer in variables
+            this.data.push(Bcs.getInstance().ser_u8(OperatorType.TYPE_QUERY_FROM_CONTEXT)); // TYPE
+            this.data.push(Bcs.getInstance().ser_u8(object_address_from)); // object identifer in variables
         }
-        this.data.push(BCS_CONVERT.ser_u8(Guard.QUERIES[query_index][2])); // cmd
+        this.data.push(Bcs.getInstance().ser_u8(Guard.QUERIES[query_index][2])); // cmd
         this.type_validator.splice(offset, Guard.QUERIES[query_index][3].length); // delete type stack
         this.type_validator.push(Guard.QUERIES[query_index][4]); // add the return value type to type stack
         // console.log(this.type_validator)
@@ -512,7 +512,7 @@ export class SenseMaker {
             default:
                 return false;
         }
-        this.data.push(BCS_CONVERT.ser_u8(type)); // TYPE     
+        this.data.push(Bcs.getInstance().ser_u8(type)); // TYPE     
         this.type_validator.splice(this.type_validator.length - 2); // delete type stack   
         this.type_validator.push(ValueType.TYPE_STATIC_bool); // add bool to type stack
         return true;

@@ -1,6 +1,5 @@
 import { type TransactionResult } from '@mysten/sui.js/transactions';
 import { Protocol, PassportObject, PermissionObject, GuardObject, DemandAddress, TxbObject } from './protocol';
-import { Service } from './service';
 export declare class Demand {
     protected earnest_type: string;
     protected permission: PermissionObject;
@@ -17,9 +16,9 @@ export declare class Demand {
     expand_time(minutes_duration: number, passport?: PassportObject): void;
     set_guard(guard?: GuardObject, passport?: PassportObject): void;
     set_description(description: string, passport?: PassportObject): void;
-    yes(service_id: string, passport?: PassportObject): void;
+    yes(service_address: string, passport?: PassportObject): void;
     deposit(earnest: TxbObject): void;
-    present(service: Service, tips: string, passport?: PassportObject): void;
+    present(service_address: string, service_pay_type: string, tips: string, passport?: PassportObject): void;
     change_permission(new_permission: PermissionObject): void;
     static MAX_EARNEST_COUNT: number;
     static MAX_PRESENTERS_COUNT: number;

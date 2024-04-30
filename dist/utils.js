@@ -62,11 +62,19 @@ export function parse_object_type(object_data) {
 }
 export class Bcs {
     bcs = new BCS(getSuiMoveConfig());
+    static _instance;
     constructor() {
         this.bcs.registerEnumType('Option<T>', {
             'none': null,
             'some': 'T',
         });
+    }
+    static getInstance() {
+        if (!Bcs._instance) {
+            Bcs._instance = new Bcs();
+        }
+        ;
+        return Bcs._instance;
     }
     ser_option_string(data) {
         return this.bcs.ser('Option<string>', { 'some': data }).toBytes();
@@ -108,7 +116,6 @@ export class Bcs {
         return this.bcs.de(type, data);
     }
 }
-export const BCS_CONVERT = new Bcs();
 export function stringToUint8Array(str) {
     var arr = [];
     for (var i = 0, j = str.length; i < j; ++i) {

@@ -122,7 +122,10 @@ export declare class Protocol {
     NewSession: () => TransactionBlock;
     CurrentSession: () => TransactionBlock;
     SignExcute: (exes: ((protocol: Protocol, param: any) => void)[], priv_key: string, param?: any, options?: SuiTransactionBlockResponseOptions) => Promise<SuiTransactionBlockResponse>;
+    static SUI_TOKEN_TYPE: string;
     static SUI_COIN_TYPE: string;
+    WOWOK_TOKEN_TYPE: () => string;
+    WOWOK_COIN_TYPE: () => string;
     static CLOCK_OBJECT: {
         Object: {
             ImmOrOwned: {
@@ -146,18 +149,17 @@ export declare class Protocol {
     };
     static TXB_OBJECT(txb: TransactionBlock, arg: TxbObject): TransactionResult;
     static IsValidObjects: (arr: TxbObject[]) => boolean;
-    WOWOK_COIN_TYPE: () => string;
     WOWOK_OBJECTS_TYPE: () => string[];
     WOWOK_OBJECTS_PREFIX_TYPE: () => string[];
+    object_name_from_type_repr: (type_repr: string) => string;
 }
 export declare class RpcResultParser {
     static Object_Type_Extra: () => string[];
     static objectids_from_response: (protocol: Protocol, response: SuiTransactionBlockResponse, concat_result?: Map<string, TxbObject[]>) => Map<string, TxbObject[]>;
 }
 export type Query_Param = {
-    protocol: Protocol;
     objectid: string;
-    callback: (response: SuiObjectResponse, param: Query_Param, option: SuiObjectDataOptions) => void;
+    callback: (protocol: Protocol, response: SuiObjectResponse, param: Query_Param, option: SuiObjectDataOptions) => void;
     parser?: (result: any[], guardid: string, chain_sense_bsc: Uint8Array, variable?: VariableType) => boolean;
     data?: any;
     variables?: VariableType;

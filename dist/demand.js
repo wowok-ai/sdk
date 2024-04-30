@@ -164,15 +164,16 @@ export class Demand {
             });
         }
     }
-    yes(service_id, passport) {
-        if (!IsValidAddress(service_id)) {
+    yes(service_address, passport) {
+        if (!IsValidAddress(service_address)) {
             ERROR(Errors.IsValidAddress);
         }
         let txb = this.protocol.CurrentSession();
         if (passport) {
             txb.moveCall({
                 target: this.protocol.DemandFn('yes_with_passport'),
-                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(service_id, BCS.ADDRESS),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object),
+                    txb.pure(service_address, BCS.ADDRESS),
                     Protocol.TXB_OBJECT(txb, this.permission)],
                 typeArguments: [this.earnest_type],
             });
@@ -180,7 +181,8 @@ export class Demand {
         else {
             txb.moveCall({
                 target: this.protocol.DemandFn('yes'),
-                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(service_id, BCS.ADDRESS),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object),
+                    txb.pure(service_address, BCS.ADDRESS),
                     Protocol.TXB_OBJECT(txb, this.permission)],
                 typeArguments: [this.earnest_type],
             });
@@ -197,25 +199,31 @@ export class Demand {
             typeArguments: [this.earnest_type],
         });
     }
-    present(service, tips, passport) {
+    present(service_address, service_pay_type, tips, passport) {
         if (!IsValidDesription(tips)) {
             ERROR(Errors.IsValidDesription, 'tips');
+        }
+        if (!IsValidAddress(service_address)) {
+            ERROR(Errors.IsValidAddress, 'service_address');
+        }
+        if (!IsValidArgType(service_pay_type)) {
+            ERROR(Errors.IsValidArgType, 'service_pay_type');
         }
         let txb = this.protocol.CurrentSession();
         if (passport) {
             txb.moveCall({
                 target: this.protocol.DemandFn('present_with_passport'),
-                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, service.get_object()),
-                    txb.pure(tips, BCS.STRING),],
-                typeArguments: [this.earnest_type, service.get_pay_type()],
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, service_address),
+                    txb.pure(tips, BCS.STRING)],
+                typeArguments: [this.earnest_type, service_pay_type],
             });
         }
         else {
             txb.moveCall({
                 target: this.protocol.DemandFn('present'),
-                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, service.get_object()),
-                    txb.pure(tips, BCS.STRING),],
-                typeArguments: [this.earnest_type, service.get_pay_type()],
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, service_address),
+                    txb.pure(tips, BCS.STRING)],
+                typeArguments: [this.earnest_type, service_pay_type],
             });
         }
     }

@@ -1,6 +1,6 @@
 import { Inputs } from '@mysten/sui.js/transactions';
 import { Protocol, ContextType, OperatorType, ValueType, } from './protocol';
-import { parse_object_type, array_unique, BCS_CONVERT, ulebDecode } from './utils';
+import { parse_object_type, array_unique, Bcs, ulebDecode } from './utils';
 import { Guard } from './guard';
 import { BCS } from '@mysten/bcs';
 import { ERROR, Errors } from './exception';
@@ -50,8 +50,8 @@ export class GuardParser {
                     let witness = Guard.get_variable_witness(variable, identifer[0], type);
                     if (!witness)
                         return false;
-                    result.push({ guardid: guardid, identifier: identifer[0], type: type,
-                        witness: '0x' + BCS_CONVERT.de(BCS.ADDRESS, Uint8Array.from(witness)) });
+                    result.push({ guardid: guardid, identifier: identifer[0], type: type, value: '',
+                        witness: '0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(witness)) });
                     break;
                 case ContextType.TYPE_CONTEXT_address:
                 case ContextType.TYPE_CONTEXT_bool:
@@ -185,7 +185,7 @@ export class GuardParser {
                     arr.splice(0, value + length);
                     break;
                 case OperatorType.TYPE_QUERY:
-                    result.push('0x' + BCS_CONVERT.de(BCS.ADDRESS, Uint8Array.from(arr)).toString());
+                    result.push('0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(arr)).toString());
                     arr.splice(0, 33); // address + cmd
                     break;
                 case OperatorType.TYPE_QUERY_FROM_CONTEXT:
@@ -194,7 +194,7 @@ export class GuardParser {
                     if (variable) {
                         let v = Guard.get_variable_value(variable, identifer[0], type);
                         if (v) {
-                            result.push('0x' + BCS_CONVERT.de(BCS.ADDRESS, Uint8Array.from(v)).toString());
+                            result.push('0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(v)).toString());
                             arr.splice(0, 1); // splice cmd  
                             break;
                         }
@@ -211,17 +211,17 @@ export class GuardParser {
         return true;
     }
     // callback  to  parse guard's object-queries into Guard_Query_Object[]
-    static rpc_sense_objects_fn = (response, param, option) => {
+    static rpc_sense_objects_fn = (protocol, response, param, option) => {
         if (!response.error) {
             let c = response?.data?.content;
-            let index = param.protocol.WOWOK_OBJECTS_TYPE().findIndex(v => v.includes('guard::Guard') && v == c.type);
+            let index = protocol.WOWOK_OBJECTS_TYPE().findIndex(v => v.includes('guard::Guard') && v == c.type);
             if (index >= 0 && c.fields.id.id == param.objectid) { // GUARD OBJECT
                 if (!param?.variables) {
                     let v = new Map();
                     for (let i = 0; i < c.fields.variables.length; i++) {
                         let variable = c.fields.variables[i];
                         let bret;
-                        if (variable.type == (param.protocol.WOWOK_OBJECTS_PREFIX_TYPE()[index] + 'Variable')) { // ...::guard::Variable
+                        if (variable.type == (protocol.WOWOK_OBJECTS_PREFIX_TYPE()[index] + 'Variable')) { // ...::guard::Variable
                             if (variable.fields.type == OperatorType.TYPE_FUTURE_QUERY || variable.fields.type == ContextType.TYPE_CONTEXT_FUTURE_ID) {
                                 bret = Guard.add_future_variable(v, variable.fields.identifier, variable.fields.type, variable.fields?.value ? Uint8Array.from(variable.fields.value) : undefined, undefined, false);
                             }
@@ -239,7 +239,7 @@ export class GuardParser {
                 }
                 for (let i = 0; i < c.fields.senses.length; i++) {
                     let sense = c.fields.senses[i];
-                    if (sense.type == (param.protocol.WOWOK_OBJECTS_PREFIX_TYPE()[index] + 'Sense')) { // ...::guard::Sense    
+                    if (sense.type == (protocol.WOWOK_OBJECTS_PREFIX_TYPE()[index] + 'Sense')) { // ...::guard::Sense    
                         let result = [];
                         if (param?.parser && param.parser(result, param.objectid, Uint8Array.from(sense.fields.input.fields.bytes), param.variables)) {
                             param.data = param.data.concat(result); // DONT array_unique senses                  
@@ -250,11 +250,11 @@ export class GuardParser {
         }
     };
     // construct Guard_Query_Object of wowok objects for passport verify
-    static rpc_query_cmd_fn = (response, param, option) => {
+    static rpc_query_cmd_fn = (protocol, response, param, option) => {
         if (!response.error && response.data?.objectId == param.objectid && response.data?.type) {
-            for (let k = 0; k < param.protocol.WOWOK_OBJECTS_TYPE().length; k++) {
-                if (response?.data?.type.includes(param.protocol.WOWOK_OBJECTS_TYPE()[k])) { // type: pack::m::Object<...>
-                    param.data = { target: param.protocol.WOWOK_OBJECTS_PREFIX_TYPE()[k] + 'guard_query',
+            for (let k = 0; k < protocol.WOWOK_OBJECTS_TYPE().length; k++) {
+                if (response?.data?.type.includes(protocol.WOWOK_OBJECTS_TYPE()[k])) { // type: pack::m::Object<...>
+                    param.data = { target: protocol.WOWOK_OBJECTS_PREFIX_TYPE()[k] + 'guard_query',
                         object: Inputs.SharedObjectRef({
                             objectId: response.data.objectId,
                             mutable: false,
@@ -282,7 +282,7 @@ export class Passport {
         }
         this.protocol = protocol;
         let txb = protocol.CurrentSession();
-        var passport = txb.moveCall({
+        this.passport = txb.moveCall({
             target: protocol.PassportFn('new'),
             arguments: []
         });
@@ -290,31 +290,41 @@ export class Passport {
         guards.forEach((guard) => {
             txb.moveCall({
                 target: protocol.PassportFn('guard_add'),
-                arguments: [passport, Protocol.TXB_OBJECT(txb, guard)]
+                arguments: [this.passport, Protocol.TXB_OBJECT(txb, guard)]
             });
         });
+        let result = new Map();
         future_values?.forEach((v) => {
+            if (result.has(v.guardid)) {
+                result.get(v.guardid)?.identifier.push(v.identifier);
+                result.get(v.guardid)?.real_address.push(v.value);
+            }
+            else {
+                result.set(v.guardid, { identifier: [v.identifier], real_address: [v.value] });
+            }
+        });
+        result.forEach((v, k) => {
             txb.moveCall({
-                target: protocol.PassportFn('future_set'),
-                arguments: [passport, txb.pure(BCS_CONVERT.ser_address(v.guardid)), txb.pure(BCS_CONVERT.ser_u8(v.identifier)),
-                    txb.pure(BCS_CONVERT.ser_address(v.value))]
+                target: protocol.PassportFn('futures_set'),
+                arguments: [this.passport, txb.pure(Bcs.getInstance().ser_address(k)), txb.pure(Bcs.getInstance().ser_vector_u8(v.identifier)),
+                    txb.pure(v.real_address, 'vector<address>')]
             });
         });
         // rules: 'verify' & 'query' in turns；'verify' at final end.
         for (let i = 0; i < guard_queries.length; i++) {
             let res = txb.moveCall({
                 target: protocol.PassportFn('passport_verify'),
-                arguments: [passport, txb.object(Protocol.CLOCK_OBJECT),]
+                arguments: [this.passport, txb.object(Protocol.CLOCK_OBJECT),]
             });
             txb.moveCall({
                 target: guard_queries[i].target,
-                arguments: [txb.object(guard_queries[i].object), passport, res],
+                arguments: [txb.object(guard_queries[i].object), this.passport, res],
                 typeArguments: guard_queries[i].types,
             });
         }
-        this.passport = txb.moveCall({
+        txb.moveCall({
             target: protocol.PassportFn('passport_verify'),
-            arguments: [passport, txb.object(Protocol.CLOCK_OBJECT)]
+            arguments: [this.passport, txb.object(Protocol.CLOCK_OBJECT)]
         });
     }
     destroy() {

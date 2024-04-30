@@ -11,7 +11,9 @@ export declare function capitalize(s: string): string;
 export declare function parse_object_type(object_data: string): string[];
 export declare class Bcs {
     bcs: BCS;
-    constructor();
+    private static _instance;
+    private constructor();
+    static getInstance(): Bcs;
     ser_option_string(data: string): Uint8Array;
     ser_option_u64(data: number): Uint8Array;
     ser_option_address(data: string): Uint8Array;
@@ -26,7 +28,6 @@ export declare class Bcs {
     ser_string(data: string): Uint8Array;
     de(type: TypeName | StructTypeDefinition, data: Uint8Array): any;
 }
-export declare const BCS_CONVERT: Bcs;
 export declare function stringToUint8Array(str: string): Uint8Array;
 export declare function numToUint8Array(num: number): Uint8Array;
 export declare const isArr: (origin: any) => boolean;

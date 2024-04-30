@@ -46,15 +46,15 @@ export type DicountDispatch = {
     discount: Service_Discount;
 };
 export declare class Service {
-    protected pay_type: string;
+    protected pay_token_type: string;
     protected permission: PermissionObject;
     protected object: TxbObject;
     protected protocol: Protocol;
     get_pay_type(): string;
     get_object(): TxbObject;
     private constructor();
-    static From(protocol: Protocol, pay_type: string, permission: PermissionObject, object: TxbObject): Service;
-    static New(protocol: Protocol, pay_type: string, permission: PermissionObject, description: string, payee_address: string, endpoint?: string, passport?: PassportObject): Service;
+    static From(protocol: Protocol, pay_token_type: string, permission: PermissionObject, object: TxbObject): Service;
+    static New(protocol: Protocol, pay_token_type: string, permission: PermissionObject, description: string, payee_address: string, endpoint?: string, passport?: PassportObject): Service;
     launch(): ServiceAddress;
     destroy(): void;
     set_description(description: string, passport?: PassportObject): void;
