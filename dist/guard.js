@@ -3,13 +3,8 @@ import { MODULES, ContextType, ValueType, OperatorType } from './protocol';
 import { concatenate, array_equal } from './utils';
 import { IsValidDesription, Bcs, IsValidInt, IsValidAddress } from './utils';
 import { ERROR, Errors } from './exception';
-export var Guard_Sense_Binder;
-(function (Guard_Sense_Binder) {
-    Guard_Sense_Binder[Guard_Sense_Binder["AND"] = 0] = "AND";
-    Guard_Sense_Binder[Guard_Sense_Binder["OR"] = 1] = "OR";
-})(Guard_Sense_Binder || (Guard_Sense_Binder = {}));
 export class Guard {
-    static MAX_SENSE_COUNT = 16;
+    static MAX_INPUT_LENGTH = 2048;
     static IsValidGuardVirableType = (type) => {
         if (type == OperatorType.TYPE_FUTURE_QUERY || type == ContextType.TYPE_CONTEXT_FUTURE_ID || type == OperatorType.TYPE_QUERY_FROM_CONTEXT ||
             type == ContextType.TYPE_CONTEXT_bool || type == ContextType.TYPE_CONTEXT_address || type == ContextType.TYPE_CONTEXT_u64 ||
@@ -111,17 +106,10 @@ export class Guard {
         if (!IsValidDesription(creation.description)) {
             ERROR(Errors.IsValidDesription);
         }
-        if (creation.senses.length == 0 || creation.senses.length > Guard.MAX_SENSE_COUNT) {
-            ERROR(Errors.InvalidParam, 'creation.senses');
+        if (creation.input.length == 0 || creation.input.length > Guard.MAX_INPUT_LENGTH) {
+            ERROR(Errors.InvalidParam, 'creation.input');
         }
         let bValid = true;
-        creation.senses.forEach((v) => {
-            if (!v.input || v.input.length == 0)
-                bValid = false;
-        });
-        if (!bValid) {
-            ERROR(Errors.InvalidParam, 'creation.senses');
-        }
         creation?.variables?.forEach((v, k) => {
             if (!Guard.IsValidIndentifier(k))
                 bValid = false;
@@ -134,18 +122,10 @@ export class Guard {
             ERROR(Errors.InvalidParam, 'creation.variables');
         }
         let txb = protocol.CurrentSession();
+        // reserve the  bytes for guard
         let guard = txb.moveCall({
             target: protocol.GuardFn('new'),
-            arguments: [txb.pure(creation.description, BCS.STRING)],
-        });
-        creation.senses.forEach((sense) => {
-            txb.moveCall({
-                target: protocol.GuardFn('sense_add'),
-                arguments: [guard, txb.pure([].slice.call(sense.input)),
-                    txb.pure(sense.notAfterSense, BCS.BOOL),
-                    txb.pure(sense.binder, BCS.U8),
-                ]
-            });
+            arguments: [txb.pure(creation.description, BCS.STRING), txb.pure([].slice.call(creation.input.reverse()))],
         });
         creation?.variables?.forEach((v, k) => {
             if (v.type == OperatorType.TYPE_FUTURE_QUERY || v.type == ContextType.TYPE_CONTEXT_FUTURE_ID) {
@@ -206,6 +186,8 @@ export class Guard {
         [MODULES.repository, 'value', 9, [ValueType.TYPE_STATIC_address, ValueType.TYPE_STATIC_vec_u8], ValueType.TYPE_STATIC_vec_u8],
         [MODULES.repository, 'type', 10, [], ValueType.TYPE_STATIC_u8],
         [MODULES.repository, 'policy_mode', 11, [], ValueType.TYPE_STATIC_u8],
+        [MODULES.repository, 'reference_count', 12, [], ValueType.TYPE_STATIC_u64],
+        [MODULES.repository, 'has_reference', 13, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_bool],
         [MODULES.machine, 'permission', 1, [], ValueType.TYPE_STATIC_address],
         [MODULES.machine, 'has_paused', 2, [], ValueType.TYPE_STATIC_bool],
         [MODULES.machine, 'has_published', 3, [], ValueType.TYPE_STATIC_bool],
@@ -324,7 +306,7 @@ export const graphql_query_objects = (protocol: Protocol, nodes:any) : Guard_Que
     })
     return ret
 } */
-export class SenseMaker {
+export class GuardInputMaker {
     data = [];
     type_validator = [];
     constructor() { }
@@ -381,12 +363,12 @@ export class SenseMaker {
             case ContextType.TYPE_CONTEXT_vec_u8:
             case ContextType.TYPE_CONTEXT_address:
             case ContextType.TYPE_CONTEXT_FUTURE_ID:
-                if (!variable || !param)
-                    return false;
-                if (typeof (param) != 'number')
-                    return false;
-                if (!IsValidInt(param) || param > 255)
-                    return false;
+                if (!variable || !param) {
+                    ERROR(Errors.InvalidParam, 'variable or param');
+                }
+                if (typeof (param) != 'number' || !IsValidInt(param) || param > 255) {
+                    ERROR(Errors.InvalidParam, 'param');
+                }
                 var v = variable.get(param);
                 if (v?.type == type) {
                     this.data.push(Bcs.getInstance().ser_u8(type));
@@ -412,12 +394,11 @@ export class SenseMaker {
                     break;
                 }
                 ;
-                return false;
+                ERROR(Errors.InvalidParam, 'variable');
             default:
-                return false;
+                ERROR(Errors.InvalidParam, 'type');
         }
         ;
-        return true;
     }
     static query_index(module, query_name) {
         for (let i = 0; i < Guard.QUERIES.length; i++) {
@@ -428,20 +409,23 @@ export class SenseMaker {
         return -1;
     }
     add_future_query(identifier, module, query_name, variable) {
-        let query_index = SenseMaker.query_index(module, query_name);
-        if (!Guard.IsValidIndentifier(identifier) || query_index == -1)
-            return false;
-        if (module != MODULES.order && module != MODULES.progress)
-            return false;
-        if (!variable || variable.get(identifier)?.type != OperatorType.TYPE_FUTURE_QUERY)
-            return false;
+        let query_index = GuardInputMaker.query_index(module, query_name);
+        if (!Guard.IsValidIndentifier(identifier) || query_index == -1) {
+            ERROR(Errors.InvalidParam, 'identifier or query_name');
+        }
+        if (module != MODULES.order && module != MODULES.progress) {
+            ERROR(Errors.InvalidParam, 'module');
+        }
+        if (!variable || variable.get(identifier)?.type != OperatorType.TYPE_FUTURE_QUERY) {
+            ERROR(Errors.InvalidParam, 'variable');
+        }
         let offset = this.type_validator.length - Guard.QUERIES[query_index][3].length;
         if (offset < 0) {
-            return false;
+            ERROR(Errors.InvalidParam, 'query_name');
         }
         let types = this.type_validator.slice(offset);
         if (!array_equal(types, Guard.QUERIES[query_index][3])) { // type validate 
-            return false;
+            ERROR(Errors.Fail, 'array_equal');
         }
         this.data.push(Bcs.getInstance().ser_u8(OperatorType.TYPE_FUTURE_QUERY)); // TYPE
         this.data.push(Bcs.getInstance().ser_u8(identifier)); // variable identifier
@@ -449,28 +433,30 @@ export class SenseMaker {
         this.type_validator.splice(offset, Guard.QUERIES[query_index][3].length); // delete type stack
         this.type_validator.push(Guard.QUERIES[query_index][4]); // add the return value type to type stack
         // console.log(this.type_validator)
-        return true;
     }
     // object_address_from: string for static address; number as identifier  for variable
     add_query(module, query_name, object_address_from) {
-        let query_index = SenseMaker.query_index(module, query_name); // query_index: index(from 0) of array Guard.QUERIES 
-        if (query_index == -1)
-            return false;
+        let query_index = GuardInputMaker.query_index(module, query_name); // query_index: index(from 0) of array Guard.QUERIES 
+        if (query_index == -1) {
+            ERROR(Errors.InvalidParam, 'query_name');
+        }
         if (typeof (object_address_from) == 'number') {
-            if (!Guard.IsValidIndentifier(object_address_from))
-                return false;
+            if (!Guard.IsValidIndentifier(object_address_from)) {
+                ERROR(Errors.InvalidParam, 'object_address_from');
+            }
         }
         else {
-            if (!IsValidAddress(object_address_from))
-                return false;
+            if (!IsValidAddress(object_address_from)) {
+                ERROR(Errors.InvalidParam, 'object_address_from');
+            }
         }
         let offset = this.type_validator.length - Guard.QUERIES[query_index][3].length;
         if (offset < 0) {
-            return false;
+            ERROR(Errors.InvalidParam, 'query_name');
         }
         let types = this.type_validator.slice(offset);
         if (!array_equal(types, Guard.QUERIES[query_index][3])) { // type validate 
-            return false;
+            ERROR(Errors.Fail, 'array_equal');
         }
         if (typeof (object_address_from) == 'string') {
             this.data.push(Bcs.getInstance().ser_u8(OperatorType.TYPE_QUERY)); // TYPE
@@ -484,49 +470,78 @@ export class SenseMaker {
         this.type_validator.splice(offset, Guard.QUERIES[query_index][3].length); // delete type stack
         this.type_validator.push(Guard.QUERIES[query_index][4]); // add the return value type to type stack
         // console.log(this.type_validator)
-        return true;
     }
     add_logic(type) {
+        let splice_len = 2;
         switch (type) {
             case OperatorType.TYPE_LOGIC_OPERATOR_U128_GREATER:
             case OperatorType.TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL:
             case OperatorType.TYPE_LOGIC_OPERATOR_U128_LESSER:
             case OperatorType.TYPE_LOGIC_OPERATOR_U128_LESSER_EQUAL:
             case OperatorType.TYPE_LOGIC_OPERATOR_U128_EQUAL:
-                if (this.type_validator.length < 2) {
-                    return false;
+                if (this.type_validator.length < splice_len) {
+                    ERROR(Errors.Fail, 'type_validator.length');
                 }
-                if (!SenseMaker.match_u128(this.type_validator[this.type_validator.length - 1])) {
-                    return false;
+                if (!GuardInputMaker.match_u128(this.type_validator[this.type_validator.length - 1])) {
+                    ERROR(Errors.Fail, 'type_validator check');
                 }
-                if (!SenseMaker.match_u128(this.type_validator[this.type_validator.length - 2])) {
-                    return false;
+                if (!GuardInputMaker.match_u128(this.type_validator[this.type_validator.length - 2])) {
+                    ERROR(Errors.Fail, 'type_validator check');
                 }
                 break;
             case OperatorType.TYPE_LOGIC_OPERATOR_EQUAL:
+                if (this.type_validator.length < splice_len) {
+                    ERROR(Errors.Fail, 'type_validator.length');
+                }
+                break;
             case OperatorType.TYPE_LOGIC_OPERATOR_HAS_SUBSTRING:
-                if (this.type_validator.length < 2) {
-                    return false;
+                if (this.type_validator.length < splice_len) {
+                    ERROR(Errors.Fail, 'type_validator.length');
+                }
+                break;
+            case OperatorType.TYPE_LOGIC_NOT:
+                splice_len = 1;
+                if (this.type_validator.length < splice_len) {
+                    ERROR(Errors.Fail, 'type_validator.length');
+                }
+                if (this.type_validator[this.type_validator.length - 1] != ValueType.TYPE_STATIC_bool) {
+                    ERROR(Errors.Fail, 'type_validator check');
+                }
+                break;
+            case OperatorType.TYPE_LOGIC_AND:
+            case OperatorType.TYPE_LOGIC_OR:
+                if (this.type_validator.length < splice_len) {
+                    ERROR(Errors.Fail, 'type_validator.length');
+                }
+                if (this.type_validator[this.type_validator.length - 1] != ValueType.TYPE_STATIC_bool) {
+                    ERROR(Errors.Fail, 'type_validator check');
+                }
+                if (this.type_validator[this.type_validator.length - 2] != ValueType.TYPE_STATIC_bool) {
+                    ERROR(Errors.Fail, 'type_validator check');
                 }
                 break;
             default:
-                return false;
+                ERROR(Errors.InvalidParam, 'type');
         }
         this.data.push(Bcs.getInstance().ser_u8(type)); // TYPE     
-        this.type_validator.splice(this.type_validator.length - 2); // delete type stack   
+        this.type_validator.splice(this.type_validator.length - splice_len); // delete type stack   
         this.type_validator.push(ValueType.TYPE_STATIC_bool); // add bool to type stack
-        return true;
     }
-    make(bNotAfterSense = false, binder = Guard_Sense_Binder.AND) {
+    make(bNot = false) {
         //console.log(this.type_validator);
         //this.data.forEach((value:Uint8Array) => console.log(value));
         if (this.type_validator.length != 1 || this.type_validator[0] != ValueType.TYPE_STATIC_bool) {
             console.log(this.type_validator);
-            return false;
+            ERROR(Errors.Fail, 'type_validator check');
         } // ERROR
-        let input = concatenate(Uint8Array, ...this.data);
-        const sense = { input: input, notAfterSense: bNotAfterSense, binder: binder };
-        return sense;
+        if (bNot) {
+            this.add_logic(OperatorType.TYPE_LOGIC_NOT);
+        }
+        return concatenate(Uint8Array, ...this.data);
+    }
+    static combine(input1, input2, bAnd = true) {
+        let op = bAnd ? OperatorType.TYPE_LOGIC_AND : OperatorType.TYPE_LOGIC_OR;
+        return concatenate(Uint8Array, input1, input2, Bcs.getInstance().ser_u8(op));
     }
     static match_u128(type) {
         if (type == ValueType.TYPE_STATIC_u8 ||

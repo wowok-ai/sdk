@@ -17,6 +17,18 @@ export const GRAPHQL_OBJECTS_TYPE = gql(`
   }
 }
 `);
+export const GRAPHQL_CHILD_OBJECT = gql(`
+  query object($ObjectID:SuiAddress!) {
+    object(address:$ObjectID)  {
+      address
+      asMoveObject {
+        contents {
+          json
+        }
+      }
+    }
+  }
+`);
 
 export const GRAPHQL_OBJECT = gql(`
   query object($ObjectID:SuiAddress!) {
@@ -100,4 +112,12 @@ export const GRAPHQL_OBJECTS = gql(`
       }
   }
   }
+`);
+
+export const GRAPHQL_DECIMALS = gql(`
+query getTotalSupply($coinType: String!) {
+	coinMetadata(coinType: $coinType) {
+		decimals
+	}
+} 
 `);

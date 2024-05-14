@@ -15,6 +15,7 @@ export var Errors;
     Errors["InvalidParam"] = "invalid parameter";
     Errors["IsValidPermissionIndex"] = "invalid permission index";
     Errors["IsValidKey"] = "invalid key";
+    Errors["Fail"] = "fail";
 })(Errors || (Errors = {}));
 export const ERROR = (error, info) => {
     const e = error + info ? (': ' + info) : '';

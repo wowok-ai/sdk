@@ -15,6 +15,7 @@ export enum Errors {
     InvalidParam  = 'invalid parameter',
     IsValidPermissionIndex = 'invalid permission index',
     IsValidKey = 'invalid key',
+    Fail = 'fail',
 }
 
 export const ERROR = (error:Errors, info?:any) =>  {

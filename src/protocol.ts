@@ -67,7 +67,10 @@ export enum OperatorType {
     TYPE_LOGIC_OPERATOR_EQUAL = 16, // TYPE&DATA(vector<u8>) MUST BE EQUAL
     TYPE_LOGIC_OPERATOR_HAS_SUBSTRING = 17, // SUBSTRING
     TYPE_LOGIC_ALWAYS_TRUE = 18, // aways true
-}
+    TYPE_LOGIC_NOT = 19, // NOT
+    TYPE_LOGIC_AND = 20, // AND
+    TYPE_LOGIC_OR = 21, // OR
+}       
 
 export enum ContextType {
     TYPE_CONTEXT_SIGNER  = 60,
@@ -128,8 +131,7 @@ export class Protocol {
     protected graphql = '';
     protected txb: TransactionBlock | undefined;
 
-    constructor(network:ENTRYPOINT, signer_address:string) {
-        this.signer = signer_address;
+    constructor(network:ENTRYPOINT=ENTRYPOINT.testnet) {
         this.UseNetwork(network);
         this.NewSession();
     }
@@ -143,7 +145,7 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0x142a896540e7bb2858ca8a3ec6194511e409a7d81225abddf84ae58fd4764735";
+                this.package = "0xfca45168861085e920aa6e0dd0391b8dbe439fb4725004fe4e0fa5792870bae8";
                 this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
@@ -183,7 +185,6 @@ export class Protocol {
     ServiceFn = (fn: any) => { return `${this.package}::${MODULES.service}::${fn}`};
     WowokFn = (fn: any) => { return `${this.package}::${MODULES.wowok}::${fn}`};
     
-
     Query = async (objects: Query_Param[], options:SuiObjectDataOptions={showContent:true}) : Promise<SuiObjectResponse[]> => {
         const client =  new SuiClient({ url: this.NetworkUrl() });  
         const ids = objects.map((value) => value.objectid);
@@ -196,6 +197,11 @@ export class Protocol {
         }   
         return res;
     } 
+    Query_Raw = async (objects: string[], options:SuiObjectDataOptions={showContent:true}) : Promise<SuiObjectResponse[]> => {
+        const client =  new SuiClient({ url: this.NetworkUrl() });  
+        return await client.call('sui_multiGetObjects', [objects, options]) as SuiObjectResponse[];
+    }
+
     NewSession = () : TransactionBlock => {
         this.txb = new  TransactionBlock();
         return this.txb
@@ -248,7 +254,12 @@ export class Protocol {
         { return this.package + '::' + key + '::'; })
     object_name_from_type_repr = (type_repr:string) : string => {
         let i = type_repr.indexOf('::');
-        if (i > 0 && type_repr.slice(0, i).includes(this.package)) {
+        if (i > 0 && type_repr.slice(0, i) === this.package) {
+            i = type_repr.indexOf('<');
+            if (i > 0) {
+                type_repr = type_repr.slice(0, i);
+            }
+            
             let n = type_repr.lastIndexOf('::');
             if (n > 0) {
                 return type_repr.slice(n+2);

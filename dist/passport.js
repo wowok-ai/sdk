@@ -38,6 +38,9 @@ export class GuardParser {
                 case OperatorType.TYPE_LOGIC_OPERATOR_EQUAL:
                 case OperatorType.TYPE_LOGIC_OPERATOR_HAS_SUBSTRING:
                 case OperatorType.TYPE_LOGIC_ALWAYS_TRUE:
+                case OperatorType.TYPE_LOGIC_NOT:
+                case OperatorType.TYPE_LOGIC_AND:
+                case OperatorType.TYPE_LOGIC_OR:
                     break;
                 case ContextType.TYPE_CONTEXT_FUTURE_ID: // MACHINE-ID
                 case OperatorType.TYPE_FUTURE_QUERY:
@@ -153,6 +156,9 @@ export class GuardParser {
                 case OperatorType.TYPE_LOGIC_OPERATOR_EQUAL:
                 case OperatorType.TYPE_LOGIC_OPERATOR_HAS_SUBSTRING:
                 case OperatorType.TYPE_LOGIC_ALWAYS_TRUE:
+                case OperatorType.TYPE_LOGIC_NOT:
+                case OperatorType.TYPE_LOGIC_AND:
+                case OperatorType.TYPE_LOGIC_OR:
                     break;
                 case ContextType.TYPE_CONTEXT_FUTURE_ID: // MACHINE-ID
                     var v = arr.splice(0, 1);
@@ -214,6 +220,7 @@ export class GuardParser {
     static rpc_sense_objects_fn = (protocol, response, param, option) => {
         if (!response.error) {
             let c = response?.data?.content;
+            console.log(c);
             let index = protocol.WOWOK_OBJECTS_TYPE().findIndex(v => v.includes('guard::Guard') && v == c.type);
             if (index >= 0 && c.fields.id.id == param.objectid) { // GUARD OBJECT
                 if (!param?.variables) {

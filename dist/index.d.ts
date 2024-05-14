@@ -10,4 +10,5 @@ export * from './protocol';
 export * from './passport';
 export * from './machine';
 export * from './service';
+export * from './graphql';
 //# sourceMappingURL=index.d.ts.map

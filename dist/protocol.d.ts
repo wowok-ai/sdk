@@ -54,7 +54,10 @@ export declare enum OperatorType {
     TYPE_LOGIC_OPERATOR_U128_EQUAL = 15,
     TYPE_LOGIC_OPERATOR_EQUAL = 16,
     TYPE_LOGIC_OPERATOR_HAS_SUBSTRING = 17,
-    TYPE_LOGIC_ALWAYS_TRUE = 18
+    TYPE_LOGIC_ALWAYS_TRUE = 18,
+    TYPE_LOGIC_NOT = 19,
+    TYPE_LOGIC_AND = 20,
+    TYPE_LOGIC_OR = 21
 }
 export declare enum ContextType {
     TYPE_CONTEXT_SIGNER = 60,
@@ -98,7 +101,7 @@ export declare class Protocol {
     protected everyone_guard: string;
     protected graphql: string;
     protected txb: TransactionBlock | undefined;
-    constructor(network: ENTRYPOINT, signer_address: string);
+    constructor(network?: ENTRYPOINT);
     UseNetwork(network?: ENTRYPOINT): void;
     Package(): string;
     EveryoneGuard(): string;

@@ -31,6 +31,8 @@ export declare class Repository {
     destroy(): false | undefined;
     add_data(data: Repository_Policy_Data): void;
     remove(address: string, key: string): void;
+    add_reference(references: string[], passport?: PassportObject): void;
+    remove_reference(references: string[], removeall?: boolean, passport?: PassportObject): void;
     add_policies(policies: Repository_Policy[], passport?: PassportObject): void;
     remove_policies(policy_keys: string[], removeall?: boolean, passport?: PassportObject): void;
     set_description(description: string, passport?: PassportObject): void;

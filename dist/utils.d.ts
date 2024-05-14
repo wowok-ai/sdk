@@ -46,4 +46,11 @@ export declare const IsValidInt: (value: number) => boolean;
 export declare const IsValidPercent: (value: number) => boolean;
 export declare const IsValidArray: (arr: any[], validFunc: any) => boolean;
 export declare const OptionNone: (txb: TransactionBlock) => TransactionArgument;
+export type ArgType = {
+    isCoin: boolean;
+    coin: string;
+    token: string;
+};
+export declare const ParseType: (type: string) => ArgType;
+export declare function toFixed(x: number): string;
 //# sourceMappingURL=utils.d.ts.map

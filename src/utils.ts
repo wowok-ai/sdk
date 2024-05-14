@@ -197,3 +197,39 @@ export const IsValidArray = (arr: any[], validFunc:any) : boolean => {
 
 export const OptionNone = (txb:TransactionBlock) : TransactionArgument => { return txb.pure([], BCS.U8) };
 
+export type ArgType = {
+    isCoin: boolean;
+    coin: string;
+    token: string;
+}
+export const ParseType = (type:string) : ArgType => {
+    let i = type.indexOf('<');
+    if (i > 0 && type.length > 12) {
+        let c = type.slice(0, i);
+        if (c === '0x2::coin::Coin' || c === '0x0000000000000000000000000000000000000000000000000000000000000002::coin::Coin') {
+            let coin = type.slice(i+1, type.length-1); // < >>
+            let t = coin.lastIndexOf('::');
+            return {isCoin:true, coin:coin, token:coin.slice(t+2)}
+        }
+    }
+    return  {isCoin:false, coin:'', token:''}
+}
+
+export function toFixed(x:number) {
+    let res = '';
+    if (Math.abs(x) < 1.0) {
+      var e = parseInt(x.toString().split('e-')[1]);
+      if (e) {
+          x *= Math.pow(10,e-1);
+          res = '0.' + (new Array(e)).join('0') + x.toString().substring(2);
+      }
+    } else {
+      var e = parseInt(x.toString().split('+')[1]);
+      if (e > 20) {
+          e -= 20;
+          x /= Math.pow(10,e);
+          res = x + (new Array(e+1)).join('0');
+      }
+    }
+    return res;
+  }

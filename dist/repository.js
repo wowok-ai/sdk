@@ -118,6 +118,74 @@ export class Repository {
             ],
         });
     }
+    add_reference(references, passport) {
+        if (!references) {
+            ERROR(Errors.InvalidParam, 'references');
+        }
+        if (!IsValidArray(references, IsValidAddress)) {
+            ERROR(Errors.IsValidArray, 'references');
+        }
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target: this.protocol.RepositoryFn('reference_add_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object),
+                    txb.pure(array_unique(references), 'vector<address>'),
+                    Protocol.TXB_OBJECT(txb, this.permission)]
+            });
+        }
+        else {
+            txb.moveCall({
+                target: this.protocol.RepositoryFn('reference_add'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object),
+                    txb.pure(array_unique(references), 'vector<address>'),
+                    Protocol.TXB_OBJECT(txb, this.permission)]
+            });
+        }
+    }
+    remove_reference(references, removeall, passport) {
+        if (!references) {
+            ERROR(Errors.InvalidParam, 'references');
+        }
+        if (!IsValidArray(references, IsValidAddress)) {
+            ERROR(Errors.IsValidArray, 'references');
+        }
+        let txb = this.protocol.CurrentSession();
+        if (removeall) {
+            if (passport) {
+                txb.moveCall({
+                    target: this.protocol.RepositoryFn('reference_removeall_with_passport'),
+                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object),
+                        Protocol.TXB_OBJECT(txb, this.permission)]
+                });
+            }
+            else {
+                txb.moveCall({
+                    target: this.protocol.RepositoryFn('reference_removeall'),
+                    arguments: [Protocol.TXB_OBJECT(txb, this.object),
+                        Protocol.TXB_OBJECT(txb, this.permission)]
+                });
+            }
+        }
+        else {
+            if (passport) {
+                txb.moveCall({
+                    target: this.protocol.RepositoryFn('reference_remove_with_passport'),
+                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object),
+                        txb.pure(array_unique(references), 'vector<address>'),
+                        Protocol.TXB_OBJECT(txb, this.permission)]
+                });
+            }
+            else {
+                txb.moveCall({
+                    target: this.protocol.RepositoryFn('reference_remove'),
+                    arguments: [Protocol.TXB_OBJECT(txb, this.object),
+                        txb.pure(array_unique(references), 'vector<address>'),
+                        Protocol.TXB_OBJECT(txb, this.permission)]
+                });
+            }
+        }
+    }
     // add or modify the old 
     add_policies(policies, passport) {
         if (!policies) {

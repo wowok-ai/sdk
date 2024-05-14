@@ -2,23 +2,23 @@ import { type TransactionResult } from '@mysten/sui.js/transactions';
 import { Protocol, PermissionObject, RepositoryObject, PassportObject, MachineObject, MachineAddress, GuardObject, TxbObject } from './protocol';
 import { PermissionIndexType } from './permission';
 export type MachineNodeObject = TransactionResult | String;
-export type Machine_Forward = {
+export interface Machine_Forward {
     name: string;
     namedOperator?: string;
     permission?: PermissionIndexType;
     weight?: number;
     guard?: GuardObject;
-};
-export type Machine_Node_Pair = {
+}
+export interface Machine_Node_Pair {
     prior_node: string;
     forwards: Machine_Forward[];
     threshold?: number;
-};
-export type Machine_Node = {
+}
+export interface Machine_Node {
     name: string;
     description: string;
     pairs: Machine_Node_Pair[];
-};
+}
 export declare class Machine {
     protected protocol: Protocol;
     protected object: TxbObject;

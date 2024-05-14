@@ -9,19 +9,19 @@ import { Errors, ERROR}  from './exception'
 
 export type MachineNodeObject = TransactionResult | String;
 
-export type Machine_Forward = {
+export interface Machine_Forward {
     name: string; // foward name
     namedOperator?: string; // dynamic operator
     permission?: PermissionIndexType; // this.permission-index or named-operator MUST one defined.
     weight?: number;
     guard?: GuardObject;
 }
-export type Machine_Node_Pair = {
+export interface Machine_Node_Pair {
     prior_node: string;
     forwards: Machine_Forward[];
     threshold?: number;
 }
-export type Machine_Node = {
+export interface Machine_Node {
     name: string;
     description: string;
     pairs: Machine_Node_Pair[];

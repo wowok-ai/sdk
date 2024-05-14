@@ -5,139 +5,34 @@ import { concatenate, array_equal } from './utils';
 import { IsValidDesription, Bcs, IsValidInt, IsValidAddress } from './utils';
 import { ERROR, Errors } from './exception';
 
-export enum Guard_Sense_Binder {
-    AND = 0, // first sense of guard always AND; for combining other guards
-    OR = 1,
-}
-
-export type Guard_Sense = { 
-    input: Uint8Array; 
-    notAfterSense: boolean; 
-    binder:Guard_Sense_Binder ;
-};
 export type VariableType = Map<number, Guard_Vriable>;
 
-export type Guard_Vriable = {
+export interface Guard_Vriable {
     type: ContextType | OperatorType,
     value?: Uint8Array,
     witness?: Uint8Array,
 }
+
 export type Guard_Creation = {
     description: string;
     variables?: VariableType;
-    senses: Guard_Sense[];
+    input: Uint8Array; 
 }
 
 export class Guard {
-    static MAX_SENSE_COUNT = 16;
-    static IsValidGuardVirableType = (type:OperatorType | ContextType) : boolean => {
-        if (type == OperatorType.TYPE_FUTURE_QUERY || type == ContextType.TYPE_CONTEXT_FUTURE_ID || type == OperatorType.TYPE_QUERY_FROM_CONTEXT || 
-            type == ContextType.TYPE_CONTEXT_bool || type ==ContextType.TYPE_CONTEXT_address || type == ContextType.TYPE_CONTEXT_u64 || 
-            type == ContextType.TYPE_CONTEXT_u8 ||  type == ContextType.TYPE_CONTEXT_vec_u8) {
-            return true;
-        };
-        return false;
-    }
-    static IsValidIndentifier = (identifier:number) : boolean => {
-        if (!IsValidInt(identifier) || identifier > 255) return false;
-        return true
-    }
-    static get_variable_value(variables:VariableType, identifier:number, type:OperatorType | ContextType) : Uint8Array | boolean {
-        if (variables.has(identifier)) {
-            let v = variables.get(identifier);
-            if (v?.value && v.type == type) {
-                return v.value;
-            }
-        }  return false;
-    }
-    static get_variable_witness(variables:VariableType, identifier:number, type:OperatorType | ContextType) : Uint8Array | boolean {
-        if (variables.has(identifier)) {
-            let v = variables.get(identifier);
-            if (v?.witness && v.type == type) {
-                return v.witness;
-            }
-        }  return false;
-    }
-
-    static add_future_variable(variables:VariableType, identifier:number, type:OperatorType | ContextType, 
-        witness:any, value?:any, bNeedSerialize=true) : boolean {
-        if (!Guard.IsValidIndentifier(identifier)) return false;
-        if (!Guard.IsValidGuardVirableType(type)) return false;
-        if (!witness && !value) return false;
-    
-        switch (type) {
-            case OperatorType.TYPE_FUTURE_QUERY : 
-            case ContextType.TYPE_CONTEXT_FUTURE_ID :
-                if (variables.has(identifier)) {
-                    let v = (variables.get(identifier) as Guard_Vriable);
-                    if (bNeedSerialize) {
-                        v.value = value ? Bcs.getInstance().ser_address(value) : undefined;
-                        v.witness = witness ? Bcs.getInstance().ser_address(witness) : undefined;
-                    } else {
-                        v.value = value ? value : undefined; 
-                        v.witness = witness ? witness : undefined;                  
-                    }
-                } else {
-                    if (bNeedSerialize) {
-                        variables.set(identifier, {type:type, value:value ? Bcs.getInstance().ser_address(value) : undefined, witness:witness ? Bcs.getInstance().ser_address(witness) : undefined})
-                    } else {
-                        variables.set(identifier, {type:type, value:value?value:undefined, witness:witness?witness:undefined});             
-                    }                     
-                }
-                return true;
-        }
-        return false;
-    }
-    
-    static add_variable(variables:VariableType, identifier:number, type:OperatorType | ContextType, 
-        value:any, bNeedSerialize=true) : boolean {
-        if (!Guard.IsValidIndentifier(identifier)) return false;
-        if (!Guard.IsValidGuardVirableType(type)) return false;
-        if (!value) return false;
-    
-        switch (type) {
-            case ContextType.TYPE_CONTEXT_bool:
-                bNeedSerialize ? variables.set(identifier, {type:type, value:Bcs.getInstance().ser_bool(value)}) :
-                    variables.set(identifier,  {type:type, value:value})              
-                return true;   
-            case ContextType.TYPE_CONTEXT_address:
-            case OperatorType.TYPE_QUERY_FROM_CONTEXT:
-                bNeedSerialize ? variables.set(identifier, {type:type, value:Bcs.getInstance().ser_address(value)}):
-                    variables.set(identifier,  {type:type, value:value});       
-                return true;   
-            case ContextType.TYPE_CONTEXT_u64:
-                bNeedSerialize ? variables.set(identifier, {type:type, value:Bcs.getInstance().ser_u64(value)}) :
-                    variables.set(identifier,  {type:type, value:value})       
-                return true;  
-            case ContextType.TYPE_CONTEXT_u8:
-                bNeedSerialize ? variables.set(identifier, {type:type, value:Bcs.getInstance().ser_u8(value)}) :
-                    variables.set(identifier,  {type:type, value:value})    
-                return true;  
-            case ContextType.TYPE_CONTEXT_vec_u8:
-                bNeedSerialize ? variables.set(identifier, {type:type, value:Bcs.getInstance().ser_string(value)}) :
-                    variables.set(identifier,  {type:type, value:value})    
-                return true;  
-        }
-        return false;
-    }
+    static MAX_INPUT_LENGTH = 2048;
     static launch(protocol:Protocol, creation:Guard_Creation) : GuardAddress  {
         if (!IsValidDesription(creation.description)) {
             ERROR(Errors.IsValidDesription)
         }
-        if (creation.senses.length == 0 || creation.senses.length > Guard.MAX_SENSE_COUNT) {
-            ERROR(Errors.InvalidParam, 'creation.senses')
+        if (creation.input.length == 0 || creation.input.length > Guard.MAX_INPUT_LENGTH) {
+            ERROR(Errors.InvalidParam, 'creation.input')
         }
     
         let bValid = true;
-        creation.senses.forEach((v) => {
-            if (!v.input || v.input.length == 0) bValid = false;
-        })
-        if (!bValid) {
-            ERROR(Errors.InvalidParam, 'creation.senses')
-        }
         creation?.variables?.forEach((v, k) => {
-            if (!Guard.IsValidIndentifier(k)) bValid = false;
-            if (!Guard.IsValidGuardVirableType(v.type)) bValid  = false;
+            if (!GuardVariableMaker.IsValidIndentifier(k)) bValid = false;
+            if (!GuardVariableMaker.IsValidGuardVirableType(v.type)) bValid  = false;
             if (!v.value && !v.witness) bValid =  false;
         })
         if (!bValid) {
@@ -145,19 +40,14 @@ export class Guard {
         }
         
         let txb = protocol.CurrentSession();
+        let input = new  Uint8Array(creation.input); // copy new uint8array to reserve!
+
+        // reserve the  bytes for guard
         let guard = txb.moveCall({
             target: protocol.GuardFn('new') as FnCallType,
-            arguments: [txb.pure(creation.description , BCS.STRING)],  
+            arguments: [txb.pure(creation.description , BCS.STRING), txb.pure([].slice.call(input.reverse()))],  
         });
-        creation.senses.forEach((sense: Guard_Sense) => {
-            txb.moveCall({
-                target: protocol.GuardFn('sense_add') as FnCallType,
-                arguments:[guard, txb.pure([].slice.call(sense.input)),
-                    txb.pure(sense.notAfterSense, BCS.BOOL),
-                    txb.pure(sense.binder, BCS.U8),
-                ]
-            })
-        });
+
         creation?.variables?.forEach((v, k) => {
             if (v.type == OperatorType.TYPE_FUTURE_QUERY || v.type == ContextType.TYPE_CONTEXT_FUTURE_ID) {
                 if (!v.witness) {
@@ -222,7 +112,9 @@ export class Guard {
         [MODULES.repository, 'value', 9, [ValueType.TYPE_STATIC_address, ValueType.TYPE_STATIC_vec_u8], ValueType.TYPE_STATIC_vec_u8],
         [MODULES.repository, 'type', 10, [], ValueType.TYPE_STATIC_u8],   
         [MODULES.repository, 'policy_mode', 11, [], ValueType.TYPE_STATIC_u8],   
-    
+        [MODULES.repository, 'reference_count', 12, [], ValueType.TYPE_STATIC_u64],   
+        [MODULES.repository, 'has_reference', 13, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_bool],   
+
         [MODULES.machine, 'permission', 1, [], ValueType.TYPE_STATIC_address],
         [MODULES.machine, 'has_paused', 2, [], ValueType.TYPE_STATIC_bool],
         [MODULES.machine, 'has_published', 3, [], ValueType.TYPE_STATIC_bool],
@@ -350,40 +242,132 @@ export const graphql_query_objects = (protocol: Protocol, nodes:any) : Guard_Que
     return ret
 } */
 
-export class SenseMaker {
+export class GuardVariableMaker {
+    static IsValidGuardVirableType = (type:OperatorType | ContextType) : boolean => {
+        if (type == OperatorType.TYPE_FUTURE_QUERY || type == ContextType.TYPE_CONTEXT_FUTURE_ID || type == OperatorType.TYPE_QUERY_FROM_CONTEXT || 
+            type == ContextType.TYPE_CONTEXT_bool || type ==ContextType.TYPE_CONTEXT_address || type == ContextType.TYPE_CONTEXT_u64 || 
+            type == ContextType.TYPE_CONTEXT_u8 ||  type == ContextType.TYPE_CONTEXT_vec_u8) {
+            return true;
+        };
+        return false;
+    }
+    static IsValidIndentifier = (identifier:number) : boolean => {
+        if (!IsValidInt(identifier) || identifier > 255) return false;
+        return true
+    }
+    static get_variable_value(variables:VariableType, identifier:number, type:OperatorType | ContextType) : Uint8Array | boolean {
+        if (variables.has(identifier)) {
+            let v = variables.get(identifier);
+            if (v?.value && v.type == type) {
+                return v.value;
+            }
+        }  return false;
+    }
+    static get_variable_witness(variables:VariableType, identifier:number, type:OperatorType | ContextType) : Uint8Array | boolean {
+        if (variables.has(identifier)) {
+            let v = variables.get(identifier);
+            if (v?.witness && v.type == type) {
+                return v.witness;
+            }
+        }  return false;
+    }
+
+    static add_future_variable(variables:VariableType, identifier:number, type:OperatorType | ContextType, 
+        witness:any, value?:any, bNeedSerialize=true) : boolean {
+        if (!GuardVariableMaker.IsValidIndentifier(identifier)) return false;
+        if (!GuardVariableMaker.IsValidGuardVirableType(type)) return false;
+        if (!witness && !value) return false;
+    
+        switch (type) {
+            case OperatorType.TYPE_FUTURE_QUERY : 
+            case ContextType.TYPE_CONTEXT_FUTURE_ID :
+                if (variables.has(identifier)) {
+                    let v = (variables.get(identifier) as Guard_Vriable);
+                    if (bNeedSerialize) {
+                        v.value = value ? Bcs.getInstance().ser_address(value) : undefined;
+                        v.witness = witness ? Bcs.getInstance().ser_address(witness) : undefined;
+                    } else {
+                        v.value = value ? value : undefined; 
+                        v.witness = witness ? witness : undefined;                  
+                    }
+                } else {
+                    if (bNeedSerialize) {
+                        variables.set(identifier, {type:type, value:value ? Bcs.getInstance().ser_address(value) : undefined, witness:witness ? Bcs.getInstance().ser_address(witness) : undefined})
+                    } else {
+                        variables.set(identifier, {type:type, value:value?value:undefined, witness:witness?witness:undefined});             
+                    }                     
+                }
+                return true;
+        }
+        return false;
+    }
+    
+    static add_variable(variables:VariableType, identifier:number, type:OperatorType | ContextType, 
+        value:any, bNeedSerialize=true) : boolean {
+        if (!GuardVariableMaker.IsValidIndentifier(identifier)) return false;
+        if (!GuardVariableMaker.IsValidGuardVirableType(type)) return false;
+        if (!value) return false;
+    
+        switch (type) {
+            case ContextType.TYPE_CONTEXT_bool:
+                bNeedSerialize ? variables.set(identifier, {type:type, value:Bcs.getInstance().ser_bool(value)}) :
+                    variables.set(identifier,  {type:type, value:value})              
+                return true;   
+            case ContextType.TYPE_CONTEXT_address:
+            case OperatorType.TYPE_QUERY_FROM_CONTEXT:
+                bNeedSerialize ? variables.set(identifier, {type:type, value:Bcs.getInstance().ser_address(value)}):
+                    variables.set(identifier,  {type:type, value:value});       
+                return true;   
+            case ContextType.TYPE_CONTEXT_u64:
+                bNeedSerialize ? variables.set(identifier, {type:type, value:Bcs.getInstance().ser_u64(value)}) :
+                    variables.set(identifier,  {type:type, value:value})       
+                return true;  
+            case ContextType.TYPE_CONTEXT_u8:
+                bNeedSerialize ? variables.set(identifier, {type:type, value:Bcs.getInstance().ser_u8(value)}) :
+                    variables.set(identifier,  {type:type, value:value})    
+                return true;  
+            case ContextType.TYPE_CONTEXT_vec_u8:
+                bNeedSerialize ? variables.set(identifier, {type:type, value:Bcs.getInstance().ser_string(value)}) :
+                    variables.set(identifier,  {type:type, value:value})    
+                return true;  
+        }
+        return false;
+    }
+}
+export class GuardInputMaker {
     protected data : Uint8Array[] = [];
     protected type_validator : Data_Type[] = [];
     constructor() { }
 
     // serialize const & data
-    add_param(type:ValueType | ContextType, param?:any, variable?:VariableType) : boolean {
+    add_param(type:ValueType | ContextType, param?:any, variable?:VariableType)  {
         switch(type)  {
         case ValueType.TYPE_STATIC_address: 
-            if (!param) return false
+            if (!param) ERROR(Errors.InvalidParam, 'param');
             this.data.push(Bcs.getInstance().ser_u8(type));
             this.data.push(Bcs.getInstance().ser_address(param));
             this.type_validator.push(type);
             break;
         case ValueType.TYPE_STATIC_bool:
-            if (!param) return false
+            if (!param) ERROR(Errors.InvalidParam, 'param');
             this.data.push(Bcs.getInstance().ser_u8(type));
             this.data.push(Bcs.getInstance().ser_bool(param));
             this.type_validator.push(type);
             break;
         case ValueType.TYPE_STATIC_u8:
-            if (!param) return false
+            if (!param) ERROR(Errors.InvalidParam, 'param');
             this.data.push(Bcs.getInstance().ser_u8(type));
             this.data.push(Bcs.getInstance().ser_u8(param));
             this.type_validator.push(type);
             break;
         case ValueType.TYPE_STATIC_u64: 
-            if (!param) return false
+            if (!param) ERROR(Errors.InvalidParam, 'param');
             this.data.push(Bcs.getInstance().ser_u8(type));
             this.data.push(Bcs.getInstance().ser_u64(param));
             this.type_validator.push(type);
             break;
         case ValueType.TYPE_STATIC_vec_u8:
-            if (!param) return false
+            if (!param) ERROR(Errors.InvalidParam, 'param');
             this.data.push(Bcs.getInstance().ser_u8(type));
             this.data.push(Bcs.getInstance().ser_string(param));
             this.type_validator.push(type);
@@ -403,11 +387,14 @@ export class SenseMaker {
         case ContextType.TYPE_CONTEXT_vec_u8:
         case ContextType.TYPE_CONTEXT_address:
         case ContextType.TYPE_CONTEXT_FUTURE_ID:
-            if (!variable || !param) return false;
-            if (typeof(param) != 'number') return false;
-            if (!IsValidInt(param) || param > 255) return false;
+            if (!variable || !param) {
+                ERROR(Errors.InvalidParam, 'variable or param');
+            }
+            if (typeof(param) != 'number' || !IsValidInt(param) || param > 255) {
+                ERROR(Errors.InvalidParam, 'param');
+            }
             
-            var v = variable.get(param);
+            var v = variable!.get(param);
             if (v?.type == type) {
                 this.data.push(Bcs.getInstance().ser_u8(type));
                 this.data.push(Bcs.getInstance().ser_u8(param));
@@ -426,12 +413,10 @@ export class SenseMaker {
                 }
                 break;
             }; 
-            return false;
+            ERROR(Errors.InvalidParam, 'variable');
         default:
-            return false;
+            ERROR(Errors.InvalidParam, 'type');
         };
-        
-        return true;
     }
     static query_index(module:MODULES, query_name:string) : number {
         for (let i = 0; i < Guard.QUERIES.length; i++) {
@@ -441,20 +426,26 @@ export class SenseMaker {
         }
         return -1;
     }
-    add_future_query(identifier:number, module:MODULES, query_name:string, variable:VariableType) : boolean {
-        let query_index = SenseMaker.query_index(module, query_name);
-        if (!Guard.IsValidIndentifier(identifier) || query_index == -1)  return false;  
-        if (module != MODULES.order && module != MODULES.progress)    return false;
-        if (!variable  || variable.get(identifier)?.type != OperatorType.TYPE_FUTURE_QUERY) return false;
+    add_future_query(identifier:number, module:MODULES, query_name:string, variable:VariableType) {
+        let query_index = GuardInputMaker.query_index(module, query_name);
+        if (!GuardVariableMaker.IsValidIndentifier(identifier) || query_index == -1) {
+            ERROR(Errors.InvalidParam, 'identifier or query_name');
+        } 
+        if (module != MODULES.order && module != MODULES.progress){
+            ERROR(Errors.InvalidParam, 'module');
+        }
+        if (!variable  || variable.get(identifier)?.type != OperatorType.TYPE_FUTURE_QUERY) {
+            ERROR(Errors.InvalidParam, 'variable');
+        }
 
         let offset = this.type_validator.length - Guard.QUERIES[query_index][3].length;
         if (offset < 0) { 
-            return false; 
+            ERROR(Errors.InvalidParam, 'query_name');
         }
 
         let types = this.type_validator.slice(offset);
         if (!array_equal(types, Guard.QUERIES[query_index][3])) { // type validate 
-            return false; 
+            ERROR(Errors.Fail, 'array_equal');
         }
 
         this.data.push(Bcs.getInstance().ser_u8(OperatorType.TYPE_FUTURE_QUERY)); // TYPE
@@ -464,27 +455,32 @@ export class SenseMaker {
         this.type_validator.splice(offset, Guard.QUERIES[query_index][3].length); // delete type stack
         this.type_validator.push(Guard.QUERIES[query_index][4]); // add the return value type to type stack
         // console.log(this.type_validator)
-        return true;
     }
 
     // object_address_from: string for static address; number as identifier  for variable
-    add_query(module:MODULES, query_name:string, object_address_from:string | number) : boolean {
-        let query_index = SenseMaker.query_index(module, query_name); // query_index: index(from 0) of array Guard.QUERIES 
-        if (query_index == -1)  return false; 
+    add_query(module:MODULES, query_name:string, object_address_from:string | number)  {
+        let query_index = GuardInputMaker.query_index(module, query_name); // query_index: index(from 0) of array Guard.QUERIES 
+        if (query_index == -1)  {
+            ERROR(Errors.InvalidParam, 'query_name');
+        }
         if (typeof(object_address_from) == 'number') {
-            if (!Guard.IsValidIndentifier(object_address_from)) return false;
+            if (!GuardVariableMaker.IsValidIndentifier(object_address_from)) {
+                ERROR(Errors.InvalidParam, 'object_address_from');
+            }
         } else {
-            if (!IsValidAddress(object_address_from)) return false;
+            if (!IsValidAddress(object_address_from)) {
+                ERROR(Errors.InvalidParam, 'object_address_from');
+            }
         }
 
         let offset = this.type_validator.length - Guard.QUERIES[query_index][3].length;
         if (offset < 0) { 
-            return false; 
+            ERROR(Errors.InvalidParam, 'query_name');
         }
 
         let types = this.type_validator.slice(offset);
         if (!array_equal(types, Guard.QUERIES[query_index][3])) { // type validate 
-            return false; 
+            ERROR(Errors.Fail, 'array_equal');
         }
         
         if (typeof(object_address_from) == 'string') {
@@ -500,44 +496,64 @@ export class SenseMaker {
         this.type_validator.splice(offset, Guard.QUERIES[query_index][3].length); // delete type stack
         this.type_validator.push(Guard.QUERIES[query_index][4]); // add the return value type to type stack
         // console.log(this.type_validator)
-        return true;
     }
 
-    add_logic(type:OperatorType) : boolean {
+    add_logic(type:OperatorType)  {
+        let splice_len = 2;
         switch (type) {
             case OperatorType.TYPE_LOGIC_OPERATOR_U128_GREATER:
             case OperatorType.TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL:
             case OperatorType.TYPE_LOGIC_OPERATOR_U128_LESSER:
             case OperatorType.TYPE_LOGIC_OPERATOR_U128_LESSER_EQUAL:
             case OperatorType.TYPE_LOGIC_OPERATOR_U128_EQUAL:
-                if (this.type_validator.length < 2)  { return false; }
-                if (!SenseMaker.match_u128(this.type_validator[this.type_validator.length - 1])) { return false; }
-                if (!SenseMaker.match_u128(this.type_validator[this.type_validator.length - 2])) { return false; }
+                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length') }
+                if (!GuardInputMaker.match_u128(this.type_validator[this.type_validator.length - 1])) { ERROR(Errors.Fail, 'type_validator check') }
+                if (!GuardInputMaker.match_u128(this.type_validator[this.type_validator.length - 2])) { ERROR(Errors.Fail, 'type_validator check')  }
                 break;
             case OperatorType.TYPE_LOGIC_OPERATOR_EQUAL:
+                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length') }
+                break;
             case OperatorType.TYPE_LOGIC_OPERATOR_HAS_SUBSTRING:
-                if (this.type_validator.length < 2)  { return false; }
+                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length') }
+                break;
+            case OperatorType.TYPE_LOGIC_NOT:
+                splice_len =  1;
+                if (this.type_validator.length < splice_len) { ERROR(Errors.Fail, 'type_validator.length') }
+                if (this.type_validator[this.type_validator.length -1] != ValueType.TYPE_STATIC_bool) { ERROR(Errors.Fail, 'type_validator check')  }
+                break;
+            case OperatorType.TYPE_LOGIC_AND:
+            case OperatorType.TYPE_LOGIC_OR:
+                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length') }
+                if (this.type_validator[this.type_validator.length -1] != ValueType.TYPE_STATIC_bool) { ERROR(Errors.Fail, 'type_validator check')  }
+                if (this.type_validator[this.type_validator.length -2] != ValueType.TYPE_STATIC_bool) { ERROR(Errors.Fail, 'type_validator check')  }
                 break;
             default:
-                return false;
+                ERROR(Errors.InvalidParam, 'type') 
         }
         this.data.push(Bcs.getInstance().ser_u8(type)); // TYPE     
-        this.type_validator.splice(this.type_validator.length - 2); // delete type stack   
+        this.type_validator.splice(this.type_validator.length - splice_len); // delete type stack   
         this.type_validator.push(ValueType.TYPE_STATIC_bool); // add bool to type stack
-        return true;
     }
 
-    make(bNotAfterSense:boolean = false, binder:Guard_Sense_Binder = Guard_Sense_Binder.AND) : boolean | Guard_Sense {
+    make(bNot = false) : Uint8Array {
         //console.log(this.type_validator);
         //this.data.forEach((value:Uint8Array) => console.log(value));
         if (this.type_validator.length != 1 || this.type_validator[0] != ValueType.TYPE_STATIC_bool) { 
             console.log(this.type_validator)
-            return false;
+            ERROR(Errors.Fail, 'type_validator check') 
         } // ERROR
+        if (bNot) {
+            this.add_logic(OperatorType.TYPE_LOGIC_NOT);
+        }
+        return concatenate(Uint8Array, ...this.data) as Uint8Array;
+    }
 
-        let input = concatenate(Uint8Array, ...this.data) as Uint8Array;
-        const sense:Guard_Sense = {input:input, notAfterSense:bNotAfterSense, binder:binder};
-        return sense;
+    static combine(input1:Uint8Array, input2:Uint8Array, bAnd:boolean = true) : Uint8Array {
+        let op = bAnd ? OperatorType.TYPE_LOGIC_AND :  OperatorType.TYPE_LOGIC_OR;
+        return concatenate(Uint8Array, input1, input2, Bcs.getInstance().ser_u8(op)) as  Uint8Array;
+    }
+    static not(input:Uint8Array) : Uint8Array {
+        return concatenate(Uint8Array, input, Bcs.getInstance().ser_u8(OperatorType.TYPE_LOGIC_NOT)) as Uint8Array;
     }
 
     static match_u128(type:number) : boolean {

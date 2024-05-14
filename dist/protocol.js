@@ -33,6 +33,9 @@ export var OperatorType;
     OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_EQUAL"] = 16] = "TYPE_LOGIC_OPERATOR_EQUAL";
     OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_HAS_SUBSTRING"] = 17] = "TYPE_LOGIC_OPERATOR_HAS_SUBSTRING";
     OperatorType[OperatorType["TYPE_LOGIC_ALWAYS_TRUE"] = 18] = "TYPE_LOGIC_ALWAYS_TRUE";
+    OperatorType[OperatorType["TYPE_LOGIC_NOT"] = 19] = "TYPE_LOGIC_NOT";
+    OperatorType[OperatorType["TYPE_LOGIC_AND"] = 20] = "TYPE_LOGIC_AND";
+    OperatorType[OperatorType["TYPE_LOGIC_OR"] = 21] = "TYPE_LOGIC_OR";
 })(OperatorType || (OperatorType = {}));
 export var ContextType;
 (function (ContextType) {
@@ -89,8 +92,7 @@ export class Protocol {
     everyone_guard = '';
     graphql = '';
     txb;
-    constructor(network, signer_address) {
-        this.signer = signer_address;
+    constructor(network = ENTRYPOINT.testnet) {
         this.UseNetwork(network);
         this.NewSession();
     }
@@ -104,7 +106,7 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0x142a896540e7bb2858ca8a3ec6194511e409a7d81225abddf84ae58fd4764735";
+                this.package = "0x38a20e695354d9bdeda558c301fd42f746a16df5f0da6ca5d0670a6ef1165d34";
                 this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
@@ -202,7 +204,11 @@ export class Protocol {
     WOWOK_OBJECTS_PREFIX_TYPE = () => Object.keys(MODULES).map((key) => { return this.package + '::' + key + '::'; });
     object_name_from_type_repr = (type_repr) => {
         let i = type_repr.indexOf('::');
-        if (i > 0 && type_repr.slice(0, i).includes(this.package)) {
+        if (i > 0 && type_repr.slice(0, i) === this.package) {
+            i = type_repr.indexOf('<');
+            if (i > 0) {
+                type_repr = type_repr.slice(0, i);
+            }
             let n = type_repr.lastIndexOf('::');
             if (n > 0) {
                 return type_repr.slice(n + 2);
