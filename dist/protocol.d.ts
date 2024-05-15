@@ -122,6 +122,7 @@ export declare class Protocol {
     ServiceFn: (fn: any) => string;
     WowokFn: (fn: any) => string;
     Query: (objects: Query_Param[], options?: SuiObjectDataOptions) => Promise<SuiObjectResponse[]>;
+    Query_Raw: (objects: string[], options?: SuiObjectDataOptions) => Promise<SuiObjectResponse[]>;
     NewSession: () => TransactionBlock;
     CurrentSession: () => TransactionBlock;
     SignExcute: (exes: ((protocol: Protocol, param: any) => void)[], priv_key: string, param?: any, options?: SuiTransactionBlockResponseOptions) => Promise<SuiTransactionBlockResponse>;

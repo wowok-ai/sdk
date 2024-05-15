@@ -5,103 +5,6 @@ import { IsValidDesription, Bcs, IsValidInt, IsValidAddress } from './utils';
 import { ERROR, Errors } from './exception';
 export class Guard {
     static MAX_INPUT_LENGTH = 2048;
-    static IsValidGuardVirableType = (type) => {
-        if (type == OperatorType.TYPE_FUTURE_QUERY || type == ContextType.TYPE_CONTEXT_FUTURE_ID || type == OperatorType.TYPE_QUERY_FROM_CONTEXT ||
-            type == ContextType.TYPE_CONTEXT_bool || type == ContextType.TYPE_CONTEXT_address || type == ContextType.TYPE_CONTEXT_u64 ||
-            type == ContextType.TYPE_CONTEXT_u8 || type == ContextType.TYPE_CONTEXT_vec_u8) {
-            return true;
-        }
-        ;
-        return false;
-    };
-    static IsValidIndentifier = (identifier) => {
-        if (!IsValidInt(identifier) || identifier > 255)
-            return false;
-        return true;
-    };
-    static get_variable_value(variables, identifier, type) {
-        if (variables.has(identifier)) {
-            let v = variables.get(identifier);
-            if (v?.value && v.type == type) {
-                return v.value;
-            }
-        }
-        return false;
-    }
-    static get_variable_witness(variables, identifier, type) {
-        if (variables.has(identifier)) {
-            let v = variables.get(identifier);
-            if (v?.witness && v.type == type) {
-                return v.witness;
-            }
-        }
-        return false;
-    }
-    static add_future_variable(variables, identifier, type, witness, value, bNeedSerialize = true) {
-        if (!Guard.IsValidIndentifier(identifier))
-            return false;
-        if (!Guard.IsValidGuardVirableType(type))
-            return false;
-        if (!witness && !value)
-            return false;
-        switch (type) {
-            case OperatorType.TYPE_FUTURE_QUERY:
-            case ContextType.TYPE_CONTEXT_FUTURE_ID:
-                if (variables.has(identifier)) {
-                    let v = variables.get(identifier);
-                    if (bNeedSerialize) {
-                        v.value = value ? Bcs.getInstance().ser_address(value) : undefined;
-                        v.witness = witness ? Bcs.getInstance().ser_address(witness) : undefined;
-                    }
-                    else {
-                        v.value = value ? value : undefined;
-                        v.witness = witness ? witness : undefined;
-                    }
-                }
-                else {
-                    if (bNeedSerialize) {
-                        variables.set(identifier, { type: type, value: value ? Bcs.getInstance().ser_address(value) : undefined, witness: witness ? Bcs.getInstance().ser_address(witness) : undefined });
-                    }
-                    else {
-                        variables.set(identifier, { type: type, value: value ? value : undefined, witness: witness ? witness : undefined });
-                    }
-                }
-                return true;
-        }
-        return false;
-    }
-    static add_variable(variables, identifier, type, value, bNeedSerialize = true) {
-        if (!Guard.IsValidIndentifier(identifier))
-            return false;
-        if (!Guard.IsValidGuardVirableType(type))
-            return false;
-        if (!value)
-            return false;
-        switch (type) {
-            case ContextType.TYPE_CONTEXT_bool:
-                bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_bool(value) }) :
-                    variables.set(identifier, { type: type, value: value });
-                return true;
-            case ContextType.TYPE_CONTEXT_address:
-            case OperatorType.TYPE_QUERY_FROM_CONTEXT:
-                bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_address(value) }) :
-                    variables.set(identifier, { type: type, value: value });
-                return true;
-            case ContextType.TYPE_CONTEXT_u64:
-                bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_u64(value) }) :
-                    variables.set(identifier, { type: type, value: value });
-                return true;
-            case ContextType.TYPE_CONTEXT_u8:
-                bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_u8(value) }) :
-                    variables.set(identifier, { type: type, value: value });
-                return true;
-            case ContextType.TYPE_CONTEXT_vec_u8:
-                bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_string(value) }) :
-                    variables.set(identifier, { type: type, value: value });
-                return true;
-        }
-        return false;
-    }
     static launch(protocol, creation) {
         if (!IsValidDesription(creation.description)) {
             ERROR(Errors.IsValidDesription);
@@ -111,9 +14,9 @@ export class Guard {
         }
         let bValid = true;
         creation?.variables?.forEach((v, k) => {
-            if (!Guard.IsValidIndentifier(k))
+            if (!GuardVariableMaker.IsValidIndentifier(k))
                 bValid = false;
-            if (!Guard.IsValidGuardVirableType(v.type))
+            if (!GuardVariableMaker.IsValidGuardVirableType(v.type))
                 bValid = false;
             if (!v.value && !v.witness)
                 bValid = false;
@@ -122,10 +25,11 @@ export class Guard {
             ERROR(Errors.InvalidParam, 'creation.variables');
         }
         let txb = protocol.CurrentSession();
+        let input = new Uint8Array(creation.input); // copy new uint8array to reserve!
         // reserve the  bytes for guard
         let guard = txb.moveCall({
             target: protocol.GuardFn('new'),
-            arguments: [txb.pure(creation.description, BCS.STRING), txb.pure([].slice.call(creation.input.reverse()))],
+            arguments: [txb.pure(creation.description, BCS.STRING), txb.pure([].slice.call(input.reverse()))],
         });
         creation?.variables?.forEach((v, k) => {
             if (v.type == OperatorType.TYPE_FUTURE_QUERY || v.type == ContextType.TYPE_CONTEXT_FUTURE_ID) {
@@ -306,6 +210,105 @@ export const graphql_query_objects = (protocol: Protocol, nodes:any) : Guard_Que
     })
     return ret
 } */
+export class GuardVariableMaker {
+    static IsValidGuardVirableType = (type) => {
+        if (type == OperatorType.TYPE_FUTURE_QUERY || type == ContextType.TYPE_CONTEXT_FUTURE_ID || type == OperatorType.TYPE_QUERY_FROM_CONTEXT ||
+            type == ContextType.TYPE_CONTEXT_bool || type == ContextType.TYPE_CONTEXT_address || type == ContextType.TYPE_CONTEXT_u64 ||
+            type == ContextType.TYPE_CONTEXT_u8 || type == ContextType.TYPE_CONTEXT_vec_u8) {
+            return true;
+        }
+        ;
+        return false;
+    };
+    static IsValidIndentifier = (identifier) => {
+        if (!IsValidInt(identifier) || identifier > 255)
+            return false;
+        return true;
+    };
+    static get_variable_value(variables, identifier, type) {
+        if (variables.has(identifier)) {
+            let v = variables.get(identifier);
+            if (v?.value && v.type == type) {
+                return v.value;
+            }
+        }
+        return false;
+    }
+    static get_variable_witness(variables, identifier, type) {
+        if (variables.has(identifier)) {
+            let v = variables.get(identifier);
+            if (v?.witness && v.type == type) {
+                return v.witness;
+            }
+        }
+        return false;
+    }
+    static add_future_variable(variables, identifier, type, witness, value, bNeedSerialize = true) {
+        if (!GuardVariableMaker.IsValidIndentifier(identifier))
+            return false;
+        if (!GuardVariableMaker.IsValidGuardVirableType(type))
+            return false;
+        if (!witness && !value)
+            return false;
+        switch (type) {
+            case OperatorType.TYPE_FUTURE_QUERY:
+            case ContextType.TYPE_CONTEXT_FUTURE_ID:
+                if (variables.has(identifier)) {
+                    let v = variables.get(identifier);
+                    if (bNeedSerialize) {
+                        v.value = value ? Bcs.getInstance().ser_address(value) : undefined;
+                        v.witness = witness ? Bcs.getInstance().ser_address(witness) : undefined;
+                    }
+                    else {
+                        v.value = value ? value : undefined;
+                        v.witness = witness ? witness : undefined;
+                    }
+                }
+                else {
+                    if (bNeedSerialize) {
+                        variables.set(identifier, { type: type, value: value ? Bcs.getInstance().ser_address(value) : undefined, witness: witness ? Bcs.getInstance().ser_address(witness) : undefined });
+                    }
+                    else {
+                        variables.set(identifier, { type: type, value: value ? value : undefined, witness: witness ? witness : undefined });
+                    }
+                }
+                return true;
+        }
+        return false;
+    }
+    static add_variable(variables, identifier, type, value, bNeedSerialize = true) {
+        if (!GuardVariableMaker.IsValidIndentifier(identifier))
+            return false;
+        if (!GuardVariableMaker.IsValidGuardVirableType(type))
+            return false;
+        if (!value)
+            return false;
+        switch (type) {
+            case ContextType.TYPE_CONTEXT_bool:
+                bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_bool(value) }) :
+                    variables.set(identifier, { type: type, value: value });
+                return true;
+            case ContextType.TYPE_CONTEXT_address:
+            case OperatorType.TYPE_QUERY_FROM_CONTEXT:
+                bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_address(value) }) :
+                    variables.set(identifier, { type: type, value: value });
+                return true;
+            case ContextType.TYPE_CONTEXT_u64:
+                bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_u64(value) }) :
+                    variables.set(identifier, { type: type, value: value });
+                return true;
+            case ContextType.TYPE_CONTEXT_u8:
+                bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_u8(value) }) :
+                    variables.set(identifier, { type: type, value: value });
+                return true;
+            case ContextType.TYPE_CONTEXT_vec_u8:
+                bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_string(value) }) :
+                    variables.set(identifier, { type: type, value: value });
+                return true;
+        }
+        return false;
+    }
+}
 export class GuardInputMaker {
     data = [];
     type_validator = [];
@@ -315,35 +318,35 @@ export class GuardInputMaker {
         switch (type) {
             case ValueType.TYPE_STATIC_address:
                 if (!param)
-                    return false;
+                    ERROR(Errors.InvalidParam, 'param');
                 this.data.push(Bcs.getInstance().ser_u8(type));
                 this.data.push(Bcs.getInstance().ser_address(param));
                 this.type_validator.push(type);
                 break;
             case ValueType.TYPE_STATIC_bool:
                 if (!param)
-                    return false;
+                    ERROR(Errors.InvalidParam, 'param');
                 this.data.push(Bcs.getInstance().ser_u8(type));
                 this.data.push(Bcs.getInstance().ser_bool(param));
                 this.type_validator.push(type);
                 break;
             case ValueType.TYPE_STATIC_u8:
                 if (!param)
-                    return false;
+                    ERROR(Errors.InvalidParam, 'param');
                 this.data.push(Bcs.getInstance().ser_u8(type));
                 this.data.push(Bcs.getInstance().ser_u8(param));
                 this.type_validator.push(type);
                 break;
             case ValueType.TYPE_STATIC_u64:
                 if (!param)
-                    return false;
+                    ERROR(Errors.InvalidParam, 'param');
                 this.data.push(Bcs.getInstance().ser_u8(type));
                 this.data.push(Bcs.getInstance().ser_u64(param));
                 this.type_validator.push(type);
                 break;
             case ValueType.TYPE_STATIC_vec_u8:
                 if (!param)
-                    return false;
+                    ERROR(Errors.InvalidParam, 'param');
                 this.data.push(Bcs.getInstance().ser_u8(type));
                 this.data.push(Bcs.getInstance().ser_string(param));
                 this.type_validator.push(type);
@@ -410,7 +413,7 @@ export class GuardInputMaker {
     }
     add_future_query(identifier, module, query_name, variable) {
         let query_index = GuardInputMaker.query_index(module, query_name);
-        if (!Guard.IsValidIndentifier(identifier) || query_index == -1) {
+        if (!GuardVariableMaker.IsValidIndentifier(identifier) || query_index == -1) {
             ERROR(Errors.InvalidParam, 'identifier or query_name');
         }
         if (module != MODULES.order && module != MODULES.progress) {
@@ -441,7 +444,7 @@ export class GuardInputMaker {
             ERROR(Errors.InvalidParam, 'query_name');
         }
         if (typeof (object_address_from) == 'number') {
-            if (!Guard.IsValidIndentifier(object_address_from)) {
+            if (!GuardVariableMaker.IsValidIndentifier(object_address_from)) {
                 ERROR(Errors.InvalidParam, 'object_address_from');
             }
         }
@@ -542,6 +545,9 @@ export class GuardInputMaker {
     static combine(input1, input2, bAnd = true) {
         let op = bAnd ? OperatorType.TYPE_LOGIC_AND : OperatorType.TYPE_LOGIC_OR;
         return concatenate(Uint8Array, input1, input2, Bcs.getInstance().ser_u8(op));
+    }
+    static not(input) {
+        return concatenate(Uint8Array, input, Bcs.getInstance().ser_u8(OperatorType.TYPE_LOGIC_NOT));
     }
     static match_u128(type) {
         if (type == ValueType.TYPE_STATIC_u8 ||

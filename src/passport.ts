@@ -17,13 +17,13 @@ export type Guard_Query_Object = {
 interface FutrueInfo {
     identifier: number;
     type:  number;
-    witness: string;
+    value_or_witness: string;
     futrue?: string;
 }
 interface GuardInfo {
     id: string;
     query_list: (string | {identifier:number, type:number, witness:string})[]; // object or future object query
-    futrue_list: FutrueInfo[];
+    variable_or_future_list: FutrueInfo[];
 }
 interface FutrueFill {
     guard: string;
@@ -57,7 +57,7 @@ export class GuardParser {
             let index = protocol.WOWOK_OBJECTS_TYPE().findIndex(v => v.includes('guard::Guard') && v == c.type);
             if (index == -1) return;
 
-            let info:GuardInfo = {id: c.fields.id.id, query_list:[],  futrue_list:[]};
+            let info:GuardInfo = {id: c.fields.id.id, query_list:[],  variable_or_future_list:[]};
             me.parse_future(info,  c.fields.variables);
             if (c.fields.input.type == (protocol.Package() + '::bcs::BCS')) {
                 me.parse_bcs(info,  Uint8Array.from(c.fields.input.fields.bytes));
@@ -67,18 +67,18 @@ export class GuardParser {
         return me
     }
 
-    private parse_future = (info:GuardInfo, variables:any)  => {
+    parse_future = (info:GuardInfo, variables:any)  => {
         variables.forEach((v:any) => {
             if (v.type == (this.protocol.Package() + '::guard::Variable')) {
                 if (v.fields.type == OperatorType.TYPE_FUTURE_QUERY || v.fields.type == ContextType.TYPE_CONTEXT_FUTURE_ID) {
-                    info.futrue_list.push({identifier:v.fields.identifier, type:v.fields.type, 
-                        witness:'0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(v.fields.value))});
+                    info.variable_or_future_list.push({identifier:v.fields.identifier, type:v.fields.type, 
+                        value_or_witness:'0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(v.fields.value))});
                 }
             }
         });
     }
 
-    private parse_bcs = (info:GuardInfo, chain_bytes: Uint8Array) => {
+    parse_bcs = (info:GuardInfo, chain_bytes: Uint8Array) => {
         var arr = [].slice.call(chain_bytes.reverse());
         while (arr.length > 0) {
             var type : unknown = arr.shift() ;
@@ -101,10 +101,10 @@ export class GuardParser {
             case ContextType.TYPE_CONTEXT_FUTURE_ID: 
             case OperatorType.TYPE_FUTURE_QUERY:
                 var identifer = arr.splice(0, 1);  
-                let i = info.futrue_list.find(f => f.identifier == identifer[0]) ;
+                let i = info.variable_or_future_list.find(f => f.identifier == identifer[0]) ;
                 if (!i) { ERROR(Errors.Fail, 'futrue_list not found')}
                 if (type == OperatorType.TYPE_FUTURE_QUERY) {
-                    info.query_list.push({identifier:identifer[0], type:type as number, witness:i!.witness}); // query list item
+                    info.query_list.push({identifier:identifer[0], type:type as number, witness:i!.value_or_witness}); // query list item
                     arr.splice(0, 1); // cmd
                 }
                 break;
@@ -146,7 +146,7 @@ export class GuardParser {
     done = async (fill?:FutrueFill[]) : Promise<PassportQuery>=> {
         let objects: string[] = [];
         this.guard_list.forEach((g) => {
-            g.futrue_list.forEach((f) => {
+            g.variable_or_future_list.forEach((f) => {
                 let r = fill?.find(i => i.identifier == f.identifier && g.id == i.guard);
                 if (!r && !f.futrue) { ERROR(Errors.InvalidParam, 'fill') }
                 
@@ -158,7 +158,7 @@ export class GuardParser {
                     objects.push(q)
                     return q
                 } else {
-                    let r = g.futrue_list.find(f => f.identifier == q.identifier && f.type == q.type && f.witness == q.witness);
+                    let r = g.variable_or_future_list.find(f => f.identifier == q.identifier && f.type == q.type && f.value_or_witness == q.witness);
                     if (!r || !r.futrue) { ERROR(Errors.Fail, 'query witness not match')}
                     objects.push(r!.futrue!);
                     return r!.futrue!
@@ -178,7 +178,7 @@ export class GuardParser {
                 if (!object) { ERROR(Errors.Fail, 'object fail')} 
                 query.push(object!);
             })
-            g.futrue_list.forEach(f => {
+            g.variable_or_future_list.forEach(f => {
                 let r = res.find(r => r.data?.objectId == f.futrue!);
                 if (!r) { ERROR(Errors.Fail, 'query future not match')} 
                 let object = this.object_query(r!.data, 'witness');

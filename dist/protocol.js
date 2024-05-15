@@ -106,7 +106,7 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0x38a20e695354d9bdeda558c301fd42f746a16df5f0da6ca5d0670a6ef1165d34";
+                this.package = "0xfca45168861085e920aa6e0dd0391b8dbe439fb4725004fe4e0fa5792870bae8";
                 this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
@@ -158,6 +158,10 @@ export class Protocol {
             });
         }
         return res;
+    };
+    Query_Raw = async (objects, options = { showContent: true }) => {
+        const client = new SuiClient({ url: this.NetworkUrl() });
+        return await client.call('sui_multiGetObjects', [objects, options]);
     };
     NewSession = () => {
         this.txb = new TransactionBlock();
