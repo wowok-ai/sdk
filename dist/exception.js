@@ -16,6 +16,7 @@ export var Errors;
     Errors["IsValidPermissionIndex"] = "invalid permission index";
     Errors["IsValidKey"] = "invalid key";
     Errors["Fail"] = "fail";
+    Errors["IsValidIndentifier"] = "indentifier invalid";
 })(Errors || (Errors = {}));
 export const ERROR = (error, info) => {
     const e = error + info ? (': ' + info) : '';

@@ -118,6 +118,12 @@ export class Bcs {
     ser_u64(data:number) : Uint8Array {
         return this.bcs.ser(BCS.U64, data).toBytes();
     }
+    ser_u128(data:number) : Uint8Array {
+        return this.bcs.ser(BCS.U128, data).toBytes();
+    }
+    ser_u256(data:number) : Uint8Array {
+        return this.bcs.ser(BCS.U256, data).toBytes();
+    }
     ser_string(data:string) : Uint8Array {
         return this.bcs.ser(BCS.STRING, data).toBytes();
     }

@@ -1,6 +1,6 @@
 import { SuiObjectResponse, SuiObjectDataOptions, SuiTransactionBlockResponseOptions, SuiTransactionBlockResponse } from '@mysten/sui.js/client';
 import { TransactionBlock, TransactionResult } from '@mysten/sui.js/transactions';
-import { VariableType } from './guard';
+import { GuardVariable } from './guard';
 export declare enum MODULES {
     machine = "machine",
     node = "node",
@@ -45,48 +45,44 @@ export type WowokObject = TransactionResult;
 export type FnCallType = `${string}::${string}::${string}`;
 export declare enum OperatorType {
     TYPE_QUERY = 1,
-    TYPE_FUTURE_QUERY = 2,
-    TYPE_QUERY_FROM_CONTEXT = 3,
-    TYPE_LOGIC_OPERATOR_U128_GREATER = 11,
-    TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL = 12,
-    TYPE_LOGIC_OPERATOR_U128_LESSER = 13,
-    TYPE_LOGIC_OPERATOR_U128_LESSER_EQUAL = 14,
-    TYPE_LOGIC_OPERATOR_U128_EQUAL = 15,
-    TYPE_LOGIC_OPERATOR_EQUAL = 16,
-    TYPE_LOGIC_OPERATOR_HAS_SUBSTRING = 17,
+    TYPE_LOGIC_AS_U256_GREATER = 11,
+    TYPE_LOGIC_AS_U256_GREATER_EQUAL = 12,
+    TYPE_LOGIC_AS_U256_LESSER = 13,
+    TYPE_LOGIC_AS_U256_LESSER_EQUAL = 14,
+    TYPE_LOGIC_AS_U256_EQUAL = 15,
+    TYPE_LOGIC_EQUAL = 16,
+    TYPE_LOGIC_HAS_SUBSTRING = 17,
     TYPE_LOGIC_ALWAYS_TRUE = 18,
     TYPE_LOGIC_NOT = 19,
     TYPE_LOGIC_AND = 20,
     TYPE_LOGIC_OR = 21
 }
-export declare enum ContextType {
-    TYPE_CONTEXT_SIGNER = 60,
-    TYPE_CONTEXT_CLOCK = 61,
-    TYPE_CONTEXT_FUTURE_ID = 62,
-    TYPE_CONTEXT_bool = 70,
-    TYPE_CONTEXT_address = 71,
-    TYPE_CONTEXT_u64 = 72,
-    TYPE_CONTEXT_u8 = 73,
-    TYPE_CONTEXT_vec_u8 = 74
-}
 export declare enum ValueType {
-    TYPE_STATIC_bool = 100,
-    TYPE_STATIC_address = 101,
-    TYPE_STATIC_u64 = 102,
-    TYPE_STATIC_u8 = 103,
-    TYPE_STATIC_vec_u8 = 104,
-    TYPE_STATIC_u128 = 105,
-    TYPE_STATIC_vec_address = 106,
-    TYPE_STATIC_vec_bool = 107,
-    TYPE_STATIC_vec_vec_u8 = 108,
-    TYPE_STATIC_vec_u64 = 109,
-    TYPE_STATIC_vec_u128 = 110,
-    TYPE_STATIC_option_address = 111,
-    TYPE_STATIC_option_bool = 112,
-    TYPE_STATIC_option_u8 = 113,
-    TYPE_STATIC_option_u64 = 114,
-    TYPE_STATIC_option_u128 = 115
+    TYPE_BOOL = 100,
+    TYPE_ADDRESS = 101,
+    TYPE_U64 = 102,
+    TYPE_U8 = 103,
+    TYPE_VEC_U8 = 104,
+    TYPE_U128 = 105,
+    TYPE_VEC_ADDRESS = 106,
+    TYPE_VEC_BOOL = 107,
+    TYPE_VEC_VEC_U8 = 108,
+    TYPE_VEC_U64 = 109,
+    TYPE_VEC_U128 = 110,
+    TYPE_OPTION_ADDRESS = 111,
+    TYPE_OPTION_BOOL = 112,
+    TYPE_OPTION_U8 = 113,
+    TYPE_OPTION_U64 = 114,
+    TYPE_OPTION_U128 = 115,
+    TYPE_U256 = 116
 }
+export declare enum ContextType {
+    TYPE_SIGNER = 60,
+    TYPE_CLOCK = 61,
+    TYPE_WITNESS_ID = 62,
+    TYPE_VARIABLE = 80
+}
+export type VariableType = ValueType | ContextType.TYPE_WITNESS_ID;
 export type Data_Type = ValueType | OperatorType | ContextType;
 export declare enum ENTRYPOINT {
     mainnet = "mainnet",
@@ -164,8 +160,8 @@ export declare class RpcResultParser {
 export type Query_Param = {
     objectid: string;
     callback: (protocol: Protocol, response: SuiObjectResponse, param: Query_Param, option: SuiObjectDataOptions) => void;
-    parser?: (result: any[], guardid: string, chain_sense_bsc: Uint8Array, variable?: VariableType) => boolean;
+    parser?: (result: any[], guardid: string, chain_sense_bsc: Uint8Array, variable?: GuardVariable) => boolean;
     data?: any;
-    variables?: VariableType;
+    variables?: GuardVariable;
 };
 //# sourceMappingURL=protocol.d.ts.map

@@ -25,6 +25,8 @@ export declare class Bcs {
     ser_bool(data: boolean): Uint8Array;
     ser_u8(data: number): Uint8Array;
     ser_u64(data: number): Uint8Array;
+    ser_u128(data: number): Uint8Array;
+    ser_u256(data: number): Uint8Array;
     ser_string(data: string): Uint8Array;
     de(type: TypeName | StructTypeDefinition, data: Uint8Array): any;
 }

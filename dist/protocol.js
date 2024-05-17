@@ -23,61 +23,45 @@ export var MODULES;
 export var OperatorType;
 (function (OperatorType) {
     OperatorType[OperatorType["TYPE_QUERY"] = 1] = "TYPE_QUERY";
-    OperatorType[OperatorType["TYPE_FUTURE_QUERY"] = 2] = "TYPE_FUTURE_QUERY";
-    OperatorType[OperatorType["TYPE_QUERY_FROM_CONTEXT"] = 3] = "TYPE_QUERY_FROM_CONTEXT";
-    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_GREATER"] = 11] = "TYPE_LOGIC_OPERATOR_U128_GREATER";
-    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL"] = 12] = "TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL";
-    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_LESSER"] = 13] = "TYPE_LOGIC_OPERATOR_U128_LESSER";
-    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_LESSER_EQUAL"] = 14] = "TYPE_LOGIC_OPERATOR_U128_LESSER_EQUAL";
-    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_U128_EQUAL"] = 15] = "TYPE_LOGIC_OPERATOR_U128_EQUAL";
-    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_EQUAL"] = 16] = "TYPE_LOGIC_OPERATOR_EQUAL";
-    OperatorType[OperatorType["TYPE_LOGIC_OPERATOR_HAS_SUBSTRING"] = 17] = "TYPE_LOGIC_OPERATOR_HAS_SUBSTRING";
+    OperatorType[OperatorType["TYPE_LOGIC_AS_U256_GREATER"] = 11] = "TYPE_LOGIC_AS_U256_GREATER";
+    OperatorType[OperatorType["TYPE_LOGIC_AS_U256_GREATER_EQUAL"] = 12] = "TYPE_LOGIC_AS_U256_GREATER_EQUAL";
+    OperatorType[OperatorType["TYPE_LOGIC_AS_U256_LESSER"] = 13] = "TYPE_LOGIC_AS_U256_LESSER";
+    OperatorType[OperatorType["TYPE_LOGIC_AS_U256_LESSER_EQUAL"] = 14] = "TYPE_LOGIC_AS_U256_LESSER_EQUAL";
+    OperatorType[OperatorType["TYPE_LOGIC_AS_U256_EQUAL"] = 15] = "TYPE_LOGIC_AS_U256_EQUAL";
+    OperatorType[OperatorType["TYPE_LOGIC_EQUAL"] = 16] = "TYPE_LOGIC_EQUAL";
+    OperatorType[OperatorType["TYPE_LOGIC_HAS_SUBSTRING"] = 17] = "TYPE_LOGIC_HAS_SUBSTRING";
     OperatorType[OperatorType["TYPE_LOGIC_ALWAYS_TRUE"] = 18] = "TYPE_LOGIC_ALWAYS_TRUE";
     OperatorType[OperatorType["TYPE_LOGIC_NOT"] = 19] = "TYPE_LOGIC_NOT";
     OperatorType[OperatorType["TYPE_LOGIC_AND"] = 20] = "TYPE_LOGIC_AND";
     OperatorType[OperatorType["TYPE_LOGIC_OR"] = 21] = "TYPE_LOGIC_OR";
 })(OperatorType || (OperatorType = {}));
-export var ContextType;
-(function (ContextType) {
-    ContextType[ContextType["TYPE_CONTEXT_SIGNER"] = 60] = "TYPE_CONTEXT_SIGNER";
-    ContextType[ContextType["TYPE_CONTEXT_CLOCK"] = 61] = "TYPE_CONTEXT_CLOCK";
-    ContextType[ContextType["TYPE_CONTEXT_FUTURE_ID"] = 62] = "TYPE_CONTEXT_FUTURE_ID";
-    ContextType[ContextType["TYPE_CONTEXT_bool"] = 70] = "TYPE_CONTEXT_bool";
-    ContextType[ContextType["TYPE_CONTEXT_address"] = 71] = "TYPE_CONTEXT_address";
-    ContextType[ContextType["TYPE_CONTEXT_u64"] = 72] = "TYPE_CONTEXT_u64";
-    ContextType[ContextType["TYPE_CONTEXT_u8"] = 73] = "TYPE_CONTEXT_u8";
-    ContextType[ContextType["TYPE_CONTEXT_vec_u8"] = 74] = "TYPE_CONTEXT_vec_u8";
-    /*   TYPE_CONTEXT_u128 = 75,
-       TYPE_CONTEXT_vec_address = 76,
-       TYPE_CONTEXT_vec_bool = 77,
-       TYPE_CONTEXT_vec_vec_u8 = 78,
-       TYPE_CONTEXT_vec_u64 = 79,
-       TYPE_CONTEXT_vec_u128 = 80,
-       TYPE_CONTEXT_option_address = 81,
-       TYPE_CONTEXT_option_bool = 82,
-       TYPE_CONTEXT_option_u8 = 83,
-       TYPE_CONTEXT_option_u64 = 84,
-       TYPE_CONTEXT_option_u128 = 85,*/
-})(ContextType || (ContextType = {}));
 export var ValueType;
 (function (ValueType) {
-    ValueType[ValueType["TYPE_STATIC_bool"] = 100] = "TYPE_STATIC_bool";
-    ValueType[ValueType["TYPE_STATIC_address"] = 101] = "TYPE_STATIC_address";
-    ValueType[ValueType["TYPE_STATIC_u64"] = 102] = "TYPE_STATIC_u64";
-    ValueType[ValueType["TYPE_STATIC_u8"] = 103] = "TYPE_STATIC_u8";
-    ValueType[ValueType["TYPE_STATIC_vec_u8"] = 104] = "TYPE_STATIC_vec_u8";
-    ValueType[ValueType["TYPE_STATIC_u128"] = 105] = "TYPE_STATIC_u128";
-    ValueType[ValueType["TYPE_STATIC_vec_address"] = 106] = "TYPE_STATIC_vec_address";
-    ValueType[ValueType["TYPE_STATIC_vec_bool"] = 107] = "TYPE_STATIC_vec_bool";
-    ValueType[ValueType["TYPE_STATIC_vec_vec_u8"] = 108] = "TYPE_STATIC_vec_vec_u8";
-    ValueType[ValueType["TYPE_STATIC_vec_u64"] = 109] = "TYPE_STATIC_vec_u64";
-    ValueType[ValueType["TYPE_STATIC_vec_u128"] = 110] = "TYPE_STATIC_vec_u128";
-    ValueType[ValueType["TYPE_STATIC_option_address"] = 111] = "TYPE_STATIC_option_address";
-    ValueType[ValueType["TYPE_STATIC_option_bool"] = 112] = "TYPE_STATIC_option_bool";
-    ValueType[ValueType["TYPE_STATIC_option_u8"] = 113] = "TYPE_STATIC_option_u8";
-    ValueType[ValueType["TYPE_STATIC_option_u64"] = 114] = "TYPE_STATIC_option_u64";
-    ValueType[ValueType["TYPE_STATIC_option_u128"] = 115] = "TYPE_STATIC_option_u128";
+    ValueType[ValueType["TYPE_BOOL"] = 100] = "TYPE_BOOL";
+    ValueType[ValueType["TYPE_ADDRESS"] = 101] = "TYPE_ADDRESS";
+    ValueType[ValueType["TYPE_U64"] = 102] = "TYPE_U64";
+    ValueType[ValueType["TYPE_U8"] = 103] = "TYPE_U8";
+    ValueType[ValueType["TYPE_VEC_U8"] = 104] = "TYPE_VEC_U8";
+    ValueType[ValueType["TYPE_U128"] = 105] = "TYPE_U128";
+    ValueType[ValueType["TYPE_VEC_ADDRESS"] = 106] = "TYPE_VEC_ADDRESS";
+    ValueType[ValueType["TYPE_VEC_BOOL"] = 107] = "TYPE_VEC_BOOL";
+    ValueType[ValueType["TYPE_VEC_VEC_U8"] = 108] = "TYPE_VEC_VEC_U8";
+    ValueType[ValueType["TYPE_VEC_U64"] = 109] = "TYPE_VEC_U64";
+    ValueType[ValueType["TYPE_VEC_U128"] = 110] = "TYPE_VEC_U128";
+    ValueType[ValueType["TYPE_OPTION_ADDRESS"] = 111] = "TYPE_OPTION_ADDRESS";
+    ValueType[ValueType["TYPE_OPTION_BOOL"] = 112] = "TYPE_OPTION_BOOL";
+    ValueType[ValueType["TYPE_OPTION_U8"] = 113] = "TYPE_OPTION_U8";
+    ValueType[ValueType["TYPE_OPTION_U64"] = 114] = "TYPE_OPTION_U64";
+    ValueType[ValueType["TYPE_OPTION_U128"] = 115] = "TYPE_OPTION_U128";
+    ValueType[ValueType["TYPE_U256"] = 116] = "TYPE_U256";
 })(ValueType || (ValueType = {}));
+export var ContextType;
+(function (ContextType) {
+    ContextType[ContextType["TYPE_SIGNER"] = 60] = "TYPE_SIGNER";
+    ContextType[ContextType["TYPE_CLOCK"] = 61] = "TYPE_CLOCK";
+    ContextType[ContextType["TYPE_WITNESS_ID"] = 62] = "TYPE_WITNESS_ID";
+    ContextType[ContextType["TYPE_VARIABLE"] = 80] = "TYPE_VARIABLE";
+})(ContextType || (ContextType = {}));
 export var ENTRYPOINT;
 (function (ENTRYPOINT) {
     ENTRYPOINT["mainnet"] = "mainnet";
@@ -106,7 +90,7 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0xfca45168861085e920aa6e0dd0391b8dbe439fb4725004fe4e0fa5792870bae8";
+                this.package = "0xffd87461cb8e54e0ae612a0d6a323d8c6fb4a85933e7481d3f4926ced3e6d7c7";
                 this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;

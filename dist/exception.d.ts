@@ -14,7 +14,8 @@ export declare enum Errors {
     InvalidParam = "invalid parameter",
     IsValidPermissionIndex = "invalid permission index",
     IsValidKey = "invalid key",
-    Fail = "fail"
+    Fail = "fail",
+    IsValidIndentifier = "indentifier invalid"
 }
 export declare const ERROR: (error: Errors, info?: any) => never;
 //# sourceMappingURL=exception.d.ts.map

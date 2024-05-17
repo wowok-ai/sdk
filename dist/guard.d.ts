@@ -1,42 +1,42 @@
-import { Protocol, GuardAddress, Data_Type, MODULES, ContextType, ValueType, OperatorType } from './protocol';
-export type VariableType = Map<number, Guard_Vriable>;
+import { Protocol, GuardAddress, Data_Type, MODULES, ContextType, ValueType, OperatorType, VariableType } from './protocol';
+export type GuardVariable = Map<number, Guard_Vriable>;
 export interface Guard_Vriable {
-    type: ContextType | OperatorType;
+    type: VariableType;
     value?: Uint8Array;
     witness?: Uint8Array;
 }
-export type Guard_Creation = {
-    description: string;
-    variables?: VariableType;
-    input: Uint8Array;
-};
 export declare class Guard {
     static MAX_INPUT_LENGTH: number;
-    static launch(protocol: Protocol, creation: Guard_Creation): GuardAddress;
+    static launch(protocol: Protocol, description: string, maker: GuardMaker): GuardAddress;
     static signer_guard(protocol: Protocol): GuardAddress;
     static everyone_guard(protocol: Protocol): GuardAddress;
     static QUERIES: any[];
 }
-export declare class GuardVariableMaker {
-    static IsValidGuardVirableType: (type: OperatorType | ContextType) => boolean;
+export declare class GuardVariableHelper {
     static IsValidIndentifier: (identifier: number) => boolean;
-    static get_variable_value(variables: VariableType, identifier: number, type: OperatorType | ContextType): Uint8Array | boolean;
-    static get_variable_witness(variables: VariableType, identifier: number, type: OperatorType | ContextType): Uint8Array | boolean;
-    static add_future_variable(variables: VariableType, identifier: number, type: OperatorType | ContextType, witness: any, value?: any, bNeedSerialize?: boolean): boolean;
-    static add_variable(variables: VariableType, identifier: number, type: OperatorType | ContextType, value: any, bNeedSerialize?: boolean): boolean;
+    static get_variable_value(variables: GuardVariable, identifier: number, type: VariableType): Uint8Array | undefined;
+    static get_variable_witness(variables: GuardVariable, identifier: number): Uint8Array | undefined;
+    static add_future_variable(variables: GuardVariable, identifier: number, witness: any, value?: any, bNeedSerialize?: boolean): void;
+    static add_variable(variables: GuardVariable, identifier: number, type: ValueType, value: any, bNeedSerialize?: boolean): false | undefined;
 }
-export declare class GuardInputMaker {
+export declare class GuardMaker {
     protected data: Uint8Array[];
     protected type_validator: Data_Type[];
+    protected variable: GuardVariable;
+    private static index;
+    private static get_index;
     constructor();
-    add_param(type: ValueType | ContextType, param?: any, variable?: VariableType): void;
-    static query_index(module: MODULES, query_name: string): number;
-    add_future_query(identifier: number, module: MODULES, query_name: string, variable: VariableType): void;
-    add_query(module: MODULES, query_name: string, object_address_from: string | number): void;
-    add_logic(type: OperatorType): void;
-    make(bNot?: boolean): Uint8Array;
-    static combine(input1: Uint8Array, input2: Uint8Array, bAnd?: boolean): Uint8Array;
-    static not(input: Uint8Array): Uint8Array;
+    add_variable(type: VariableType, value: any, bNeedSerialize?: boolean): number;
+    add_param(type: ValueType | ContextType, param?: any): GuardMaker;
+    add_query(module: MODULES, query_name: string, object_address_from: string | number, bWitness?: boolean): GuardMaker;
+    add_logic(type: OperatorType): GuardMaker;
+    build(bNot?: boolean): GuardMaker;
+    IsReady(): boolean;
+    combine(otherBuilt: GuardMaker, bAnd?: boolean, bCombinVariable?: boolean): GuardMaker;
+    get_variable(): GuardVariable;
+    get_input(): Uint8Array[];
+    static input_combine(input1: Uint8Array, input2: Uint8Array, bAnd?: boolean): Uint8Array;
+    static input_not(input: Uint8Array): Uint8Array;
     static match_u128(type: number): boolean;
 }
 //# sourceMappingURL=guard.d.ts.map

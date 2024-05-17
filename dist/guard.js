@@ -5,36 +5,39 @@ import { IsValidDesription, Bcs, IsValidInt, IsValidAddress } from './utils';
 import { ERROR, Errors } from './exception';
 export class Guard {
     static MAX_INPUT_LENGTH = 2048;
-    static launch(protocol, creation) {
-        if (!IsValidDesription(creation.description)) {
+    static launch(protocol, description, maker) {
+        if (!maker.IsReady()) {
+            ERROR(Errors.InvalidParam, 'launch maker');
+        }
+        if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription);
         }
-        if (creation.input.length == 0 || creation.input.length > Guard.MAX_INPUT_LENGTH) {
-            ERROR(Errors.InvalidParam, 'creation.input');
+        let bcs_input = maker.get_input()[0];
+        let variables = maker.get_variable();
+        if (bcs_input.length == 0 || bcs_input.length > Guard.MAX_INPUT_LENGTH) {
+            ERROR(Errors.InvalidParam, 'launch input');
         }
         let bValid = true;
-        creation?.variables?.forEach((v, k) => {
-            if (!GuardVariableMaker.IsValidIndentifier(k))
-                bValid = false;
-            if (!GuardVariableMaker.IsValidGuardVirableType(v.type))
+        variables?.forEach((v, k) => {
+            if (!GuardVariableHelper.IsValidIndentifier(k))
                 bValid = false;
             if (!v.value && !v.witness)
                 bValid = false;
         });
         if (!bValid) {
-            ERROR(Errors.InvalidParam, 'creation.variables');
+            ERROR(Errors.InvalidParam, 'launch variables');
         }
         let txb = protocol.CurrentSession();
-        let input = new Uint8Array(creation.input); // copy new uint8array to reserve!
+        let input = new Uint8Array(bcs_input); // copy new uint8array to reserve!
         // reserve the  bytes for guard
         let guard = txb.moveCall({
             target: protocol.GuardFn('new'),
-            arguments: [txb.pure(creation.description, BCS.STRING), txb.pure([].slice.call(input.reverse()))],
+            arguments: [txb.pure(description, BCS.STRING), txb.pure([].slice.call(input.reverse()))],
         });
-        creation?.variables?.forEach((v, k) => {
-            if (v.type == OperatorType.TYPE_FUTURE_QUERY || v.type == ContextType.TYPE_CONTEXT_FUTURE_ID) {
+        variables?.forEach((v, k) => {
+            if (v.type == ContextType.TYPE_WITNESS_ID) {
                 if (!v.witness) {
-                    ERROR(Errors.InvalidParam, 'creation.variables.type');
+                    ERROR(Errors.InvalidParam, 'variables type');
                 }
                 txb.moveCall({
                     target: protocol.GuardFn("variable_add"),
@@ -43,7 +46,7 @@ export class Guard {
             }
             else {
                 if (!v.value) {
-                    ERROR(Errors.InvalidParam, 'creation.variables.type');
+                    ERROR(Errors.InvalidParam, 'variables type');
                 }
                 txb.moveCall({
                     target: protocol.GuardFn("variable_add"),
@@ -70,156 +73,127 @@ export class Guard {
     }
     static QUERIES = [
         // module, 'name', 'id', [input], output
-        [MODULES.permission, 'builder', 1, [], ValueType.TYPE_STATIC_address],
-        [MODULES.permission, 'is_admin', 2, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_bool],
-        [MODULES.permission, 'has_rights', 3, [ValueType.TYPE_STATIC_address, ValueType.TYPE_STATIC_u64], ValueType.TYPE_STATIC_bool],
-        [MODULES.permission, 'contains_address', 4, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_bool],
-        [MODULES.permission, 'contains_index', 5, [ValueType.TYPE_STATIC_address, ValueType.TYPE_STATIC_u64], ValueType.TYPE_STATIC_bool],
-        [MODULES.permission, 'contains_guard', 6, [ValueType.TYPE_STATIC_address, ValueType.TYPE_STATIC_u64], ValueType.TYPE_STATIC_bool],
-        [MODULES.permission, 'contains_guard', 7, [ValueType.TYPE_STATIC_address, ValueType.TYPE_STATIC_u64], ValueType.TYPE_STATIC_address],
-        [MODULES.permission, 'entity_count', 8, [], ValueType.TYPE_STATIC_u64],
-        [MODULES.permission, 'admin_count', 9, [], ValueType.TYPE_STATIC_u64],
-        [MODULES.repository, 'permission', 1, [], ValueType.TYPE_STATIC_address],
-        [MODULES.repository, 'policy_contains', 2, [ValueType.TYPE_STATIC_vec_u8], ValueType.TYPE_STATIC_bool],
-        [MODULES.repository, 'policy_has_permission_index', 3, [ValueType.TYPE_STATIC_vec_u8], ValueType.TYPE_STATIC_bool],
-        [MODULES.repository, 'policy_permission_index', 4, [ValueType.TYPE_STATIC_vec_u8], ValueType.TYPE_STATIC_u64],
-        [MODULES.repository, 'policy_value_type', 5, [ValueType.TYPE_STATIC_vec_u8], ValueType.TYPE_STATIC_u8],
-        [MODULES.repository, 'contains_id', 6, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_bool],
-        [MODULES.repository, 'contains_value', 7, [ValueType.TYPE_STATIC_address, ValueType.TYPE_STATIC_vec_u8], ValueType.TYPE_STATIC_bool],
-        [MODULES.repository, 'value_without_type', 8, [ValueType.TYPE_STATIC_address, ValueType.TYPE_STATIC_vec_u8], ValueType.TYPE_STATIC_vec_u8],
-        [MODULES.repository, 'value', 9, [ValueType.TYPE_STATIC_address, ValueType.TYPE_STATIC_vec_u8], ValueType.TYPE_STATIC_vec_u8],
-        [MODULES.repository, 'type', 10, [], ValueType.TYPE_STATIC_u8],
-        [MODULES.repository, 'policy_mode', 11, [], ValueType.TYPE_STATIC_u8],
-        [MODULES.repository, 'reference_count', 12, [], ValueType.TYPE_STATIC_u64],
-        [MODULES.repository, 'has_reference', 13, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_bool],
-        [MODULES.machine, 'permission', 1, [], ValueType.TYPE_STATIC_address],
-        [MODULES.machine, 'has_paused', 2, [], ValueType.TYPE_STATIC_bool],
-        [MODULES.machine, 'has_published', 3, [], ValueType.TYPE_STATIC_bool],
-        [MODULES.machine, 'consensus_repositories_contains', 5, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_bool],
-        [MODULES.machine, 'has_endpoint', 6, [], ValueType.TYPE_STATIC_bool],
-        [MODULES.machine, 'endpoint', 7, [], ValueType.TYPE_STATIC_vec_u8],
-        [MODULES.progress, 'machine', 1, [], ValueType.TYPE_STATIC_address],
-        [MODULES.progress, 'current', 2, [], ValueType.TYPE_STATIC_vec_u8],
-        [MODULES.progress, 'has_parent', 3, [], ValueType.TYPE_STATIC_bool],
-        [MODULES.progress, 'parent', 4, [], ValueType.TYPE_STATIC_address],
-        [MODULES.progress, 'has_task', 5, [], ValueType.TYPE_STATIC_bool],
-        [MODULES.progress, 'task', 6, [], ValueType.TYPE_STATIC_address],
-        [MODULES.progress, 'has_namedOperator', 7, [ValueType.TYPE_STATIC_vec_u8], ValueType.TYPE_STATIC_bool],
-        [MODULES.progress, 'namedOperator_contains', 8, [ValueType.TYPE_STATIC_vec_u8, ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_bool],
-        [MODULES.progress, 'has_context_repository', 9, [], ValueType.TYPE_STATIC_bool],
-        [MODULES.progress, 'context_repository', 10, [], ValueType.TYPE_STATIC_address],
-        [MODULES.demand, 'permission', 1, [], ValueType.TYPE_STATIC_address],
-        [MODULES.demand, 'has_time_expire', 2, [], ValueType.TYPE_STATIC_bool],
-        [MODULES.demand, 'time_expire', 3, [], ValueType.TYPE_STATIC_u64],
-        [MODULES.demand, 'earnest_count', 4, [], ValueType.TYPE_STATIC_u64],
-        [MODULES.demand, 'has_guard', 5, [], ValueType.TYPE_STATIC_bool],
-        [MODULES.demand, 'guard', 6, [], ValueType.TYPE_STATIC_address],
-        [MODULES.demand, 'has_yes', 7, [], ValueType.TYPE_STATIC_bool],
-        [MODULES.demand, 'yes', 8, [], ValueType.TYPE_STATIC_address],
-        [MODULES.demand, 'presenters_count', 9, [], ValueType.TYPE_STATIC_u64],
-        [MODULES.demand, 'has_presenter', 10, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_bool],
-        [MODULES.demand, 'persenter', 11, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_address],
-        [MODULES.order, 'amount', 1, [], ValueType.TYPE_STATIC_u64],
-        [MODULES.order, 'payer', 2, [], ValueType.TYPE_STATIC_address],
-        [MODULES.order, 'service', 3, [], ValueType.TYPE_STATIC_address],
-        [MODULES.order, 'has_progress', 4, [], ValueType.TYPE_STATIC_bool],
-        [MODULES.order, 'progress', 5, [], ValueType.TYPE_STATIC_address],
-        [MODULES.order, 'has_requred_info', 6, [], ValueType.TYPE_STATIC_bool],
-        [MODULES.order, 'requred_info_service_pubkey', 7, [], ValueType.TYPE_STATIC_vec_u8],
-        [MODULES.order, 'requred_info_customer_pubkey', 8, [], ValueType.TYPE_STATIC_vec_u8],
-        [MODULES.order, 'requred_info_info', 9, [], ValueType.TYPE_STATIC_vec_vec_u8],
-        [MODULES.order, 'has_discount', 10, [], ValueType.TYPE_STATIC_bool],
-        [MODULES.order, 'discount', 11, [], ValueType.TYPE_STATIC_address],
-        [MODULES.order, 'balance', 12, [], ValueType.TYPE_STATIC_u64],
-        [MODULES.order, 'bRefunded', 13, [], ValueType.TYPE_STATIC_u8],
-        [MODULES.order, 'bWithdrawed', 14, [], ValueType.TYPE_STATIC_u8],
-        [MODULES.service, 'permission', 1, [], ValueType.TYPE_STATIC_address],
-        [MODULES.service, 'payee', 2, [], ValueType.TYPE_STATIC_address],
-        [MODULES.service, 'has_buy_guard', 3, [], ValueType.TYPE_STATIC_bool],
-        [MODULES.service, 'buy_guard', 4, [], ValueType.TYPE_STATIC_address],
-        [MODULES.service, 'repository_contains', 5, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_bool],
-        [MODULES.service, 'has_withdraw_guard', 6, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_bool],
-        [MODULES.service, 'withdraw_guard_percent', 7, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_u64],
-        [MODULES.service, 'has_refund_guard', 8, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_bool],
-        [MODULES.service, 'refund_guard_percent', 9, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_u64],
-        [MODULES.service, 'has_sale', 10, [ValueType.TYPE_STATIC_vec_u8], ValueType.TYPE_STATIC_bool],
-        [MODULES.service, 'sale_price', 11, [ValueType.TYPE_STATIC_vec_u8], ValueType.TYPE_STATIC_u64],
-        [MODULES.service, 'sale_stock', 12, [ValueType.TYPE_STATIC_vec_u8], ValueType.TYPE_STATIC_u64],
-        [MODULES.service, 'has_machine', 13, [], ValueType.TYPE_STATIC_bool],
-        [MODULES.service, 'machine', 14, [], ValueType.TYPE_STATIC_address],
-        [MODULES.service, 'bPaused', 15, [], ValueType.TYPE_STATIC_bool],
-        [MODULES.service, 'bPublished', 16, [], ValueType.TYPE_STATIC_bool],
-        [MODULES.service, 'has_required', 17, [], ValueType.TYPE_STATIC_bool],
-        [MODULES.service, 'requrired_pubkey', 18, [], ValueType.TYPE_STATIC_vec_u8],
-        [MODULES.service, 'requrired_info', 19, [], ValueType.TYPE_STATIC_vec_vec_u8],
-        [MODULES.reward, 'permission', 1, [], ValueType.TYPE_STATIC_address],
-        [MODULES.reward, 'rewards_count_remain', 2, [], ValueType.TYPE_STATIC_u64],
-        [MODULES.reward, 'rewards_count_supplied', 3, [], ValueType.TYPE_STATIC_u64],
-        [MODULES.reward, 'guard_count', 4, [], ValueType.TYPE_STATIC_u64],
-        [MODULES.reward, 'has_guard', 5, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_bool],
-        [MODULES.reward, 'guard_portions', 6, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_u64],
-        [MODULES.reward, 'time_expire', 7, [], ValueType.TYPE_STATIC_u64],
-        [MODULES.reward, 'has_claimed', 8, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_bool],
-        [MODULES.reward, 'claimed', 9, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_u64],
-        [MODULES.reward, 'has_claimed_count', 10, [], ValueType.TYPE_STATIC_u64],
-        [MODULES.reward, 'is_sponsor', 11, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_bool],
-        [MODULES.reward, 'sponsor', 12, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_u64],
-        [MODULES.reward, 'sponsor_count', 13, [], ValueType.TYPE_STATIC_u64],
-        [MODULES.reward, 'bAllowRepeatClaim', 14, [], ValueType.TYPE_STATIC_bool],
-        [MODULES.vote, 'permission', 1, [], ValueType.TYPE_STATIC_address],
-        [MODULES.vote, 'bOptions_locked_for_voting', 2, [], ValueType.TYPE_STATIC_bool],
-        [MODULES.vote, 'bdeadline_locked', 3, [], ValueType.TYPE_STATIC_bool],
-        [MODULES.vote, 'bLockedGuard', 4, [], ValueType.TYPE_STATIC_bool],
-        [MODULES.vote, 'max_choice_count', 5, [], ValueType.TYPE_STATIC_u8],
-        [MODULES.vote, 'deadline', 6, [], ValueType.TYPE_STATIC_u64],
-        [MODULES.vote, 'has_reference', 7, [], ValueType.TYPE_STATIC_bool],
-        [MODULES.vote, 'reference', 8, [], ValueType.TYPE_STATIC_address],
-        [MODULES.vote, 'has_guard', 9, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_bool],
-        [MODULES.vote, 'guard', 10, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_u64],
-        [MODULES.vote, 'voted', 11, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_bool],
-        [MODULES.vote, 'voted_weight', 12, [ValueType.TYPE_STATIC_address], ValueType.TYPE_STATIC_u64],
-        [MODULES.vote, 'has_agree', 13, [ValueType.TYPE_STATIC_vec_u8], ValueType.TYPE_STATIC_bool],
-        [MODULES.vote, 'agree_has_object', 14, [ValueType.TYPE_STATIC_vec_u8], ValueType.TYPE_STATIC_bool],
-        [MODULES.vote, 'agree_object', 15, [ValueType.TYPE_STATIC_vec_u8], ValueType.TYPE_STATIC_address],
-        [MODULES.vote, 'agree_count', 16, [ValueType.TYPE_STATIC_vec_u8], ValueType.TYPE_STATIC_u64],
-        [MODULES.vote, 'agree_votes', 17, [ValueType.TYPE_STATIC_vec_u8], ValueType.TYPE_STATIC_u64],
-        [MODULES.vote, 'voted_count', 18, [], ValueType.TYPE_STATIC_u64],
-        [MODULES.vote, 'top1_name_by_count', 19, [], ValueType.TYPE_STATIC_vec_u8],
-        [MODULES.vote, 'top1_count', 20, [], ValueType.TYPE_STATIC_u64],
-        [MODULES.vote, 'top1_name_by_votes', 21, [], ValueType.TYPE_STATIC_vec_u8],
-        [MODULES.vote, 'top1_votes', 22, [], ValueType.TYPE_STATIC_u64],
+        [MODULES.permission, 'builder', 1, [], ValueType.TYPE_ADDRESS],
+        [MODULES.permission, 'is_admin', 2, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.permission, 'has_rights', 3, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_BOOL],
+        [MODULES.permission, 'contains_address', 4, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.permission, 'contains_index', 5, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_BOOL],
+        [MODULES.permission, 'contains_guard', 6, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_BOOL],
+        [MODULES.permission, 'contains_guard', 7, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_ADDRESS],
+        [MODULES.permission, 'entity_count', 8, [], ValueType.TYPE_U64],
+        [MODULES.permission, 'admin_count', 9, [], ValueType.TYPE_U64],
+        [MODULES.repository, 'permission', 1, [], ValueType.TYPE_ADDRESS],
+        [MODULES.repository, 'policy_contains', 2, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
+        [MODULES.repository, 'policy_has_permission_index', 3, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
+        [MODULES.repository, 'policy_permission_index', 4, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64],
+        [MODULES.repository, 'policy_value_type', 5, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U8],
+        [MODULES.repository, 'contains_id', 6, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.repository, 'contains_value', 7, [ValueType.TYPE_ADDRESS, ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
+        [MODULES.repository, 'value_without_type', 8, [ValueType.TYPE_ADDRESS, ValueType.TYPE_VEC_U8], ValueType.TYPE_VEC_U8],
+        [MODULES.repository, 'value', 9, [ValueType.TYPE_ADDRESS, ValueType.TYPE_VEC_U8], ValueType.TYPE_VEC_U8],
+        [MODULES.repository, 'type', 10, [], ValueType.TYPE_U8],
+        [MODULES.repository, 'policy_mode', 11, [], ValueType.TYPE_U8],
+        [MODULES.repository, 'reference_count', 12, [], ValueType.TYPE_U64],
+        [MODULES.repository, 'has_reference', 13, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.machine, 'permission', 1, [], ValueType.TYPE_ADDRESS],
+        [MODULES.machine, 'has_paused', 2, [], ValueType.TYPE_BOOL],
+        [MODULES.machine, 'has_published', 3, [], ValueType.TYPE_BOOL],
+        [MODULES.machine, 'consensus_repositories_contains', 5, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.machine, 'has_endpoint', 6, [], ValueType.TYPE_BOOL],
+        [MODULES.machine, 'endpoint', 7, [], ValueType.TYPE_VEC_U8],
+        [MODULES.progress, 'machine', 1, [], ValueType.TYPE_ADDRESS],
+        [MODULES.progress, 'current', 2, [], ValueType.TYPE_VEC_U8],
+        [MODULES.progress, 'has_parent', 3, [], ValueType.TYPE_BOOL],
+        [MODULES.progress, 'parent', 4, [], ValueType.TYPE_ADDRESS],
+        [MODULES.progress, 'has_task', 5, [], ValueType.TYPE_BOOL],
+        [MODULES.progress, 'task', 6, [], ValueType.TYPE_ADDRESS],
+        [MODULES.progress, 'has_namedOperator', 7, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
+        [MODULES.progress, 'namedOperator_contains', 8, [ValueType.TYPE_VEC_U8, ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.progress, 'has_context_repository', 9, [], ValueType.TYPE_BOOL],
+        [MODULES.progress, 'context_repository', 10, [], ValueType.TYPE_ADDRESS],
+        [MODULES.demand, 'permission', 1, [], ValueType.TYPE_ADDRESS],
+        [MODULES.demand, 'has_time_expire', 2, [], ValueType.TYPE_BOOL],
+        [MODULES.demand, 'time_expire', 3, [], ValueType.TYPE_U64],
+        [MODULES.demand, 'earnest_count', 4, [], ValueType.TYPE_U64],
+        [MODULES.demand, 'has_guard', 5, [], ValueType.TYPE_BOOL],
+        [MODULES.demand, 'guard', 6, [], ValueType.TYPE_ADDRESS],
+        [MODULES.demand, 'has_yes', 7, [], ValueType.TYPE_BOOL],
+        [MODULES.demand, 'yes', 8, [], ValueType.TYPE_ADDRESS],
+        [MODULES.demand, 'presenters_count', 9, [], ValueType.TYPE_U64],
+        [MODULES.demand, 'has_presenter', 10, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.demand, 'persenter', 11, [ValueType.TYPE_ADDRESS], ValueType.TYPE_ADDRESS],
+        [MODULES.order, 'amount', 1, [], ValueType.TYPE_U64],
+        [MODULES.order, 'payer', 2, [], ValueType.TYPE_ADDRESS],
+        [MODULES.order, 'service', 3, [], ValueType.TYPE_ADDRESS],
+        [MODULES.order, 'has_progress', 4, [], ValueType.TYPE_BOOL],
+        [MODULES.order, 'progress', 5, [], ValueType.TYPE_ADDRESS],
+        [MODULES.order, 'has_requred_info', 6, [], ValueType.TYPE_BOOL],
+        [MODULES.order, 'requred_info_service_pubkey', 7, [], ValueType.TYPE_VEC_U8],
+        [MODULES.order, 'requred_info_customer_pubkey', 8, [], ValueType.TYPE_VEC_U8],
+        [MODULES.order, 'requred_info_info', 9, [], ValueType.TYPE_VEC_VEC_U8],
+        [MODULES.order, 'has_discount', 10, [], ValueType.TYPE_BOOL],
+        [MODULES.order, 'discount', 11, [], ValueType.TYPE_ADDRESS],
+        [MODULES.order, 'balance', 12, [], ValueType.TYPE_U64],
+        [MODULES.order, 'bRefunded', 13, [], ValueType.TYPE_U8],
+        [MODULES.order, 'bWithdrawed', 14, [], ValueType.TYPE_U8],
+        [MODULES.service, 'permission', 1, [], ValueType.TYPE_ADDRESS],
+        [MODULES.service, 'payee', 2, [], ValueType.TYPE_ADDRESS],
+        [MODULES.service, 'has_buy_guard', 3, [], ValueType.TYPE_BOOL],
+        [MODULES.service, 'buy_guard', 4, [], ValueType.TYPE_ADDRESS],
+        [MODULES.service, 'repository_contains', 5, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.service, 'has_withdraw_guard', 6, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.service, 'withdraw_guard_percent', 7, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
+        [MODULES.service, 'has_refund_guard', 8, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.service, 'refund_guard_percent', 9, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
+        [MODULES.service, 'has_sale', 10, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
+        [MODULES.service, 'sale_price', 11, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64],
+        [MODULES.service, 'sale_stock', 12, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64],
+        [MODULES.service, 'has_machine', 13, [], ValueType.TYPE_BOOL],
+        [MODULES.service, 'machine', 14, [], ValueType.TYPE_ADDRESS],
+        [MODULES.service, 'bPaused', 15, [], ValueType.TYPE_BOOL],
+        [MODULES.service, 'bPublished', 16, [], ValueType.TYPE_BOOL],
+        [MODULES.service, 'has_required', 17, [], ValueType.TYPE_BOOL],
+        [MODULES.service, 'requrired_pubkey', 18, [], ValueType.TYPE_VEC_U8],
+        [MODULES.service, 'requrired_info', 19, [], ValueType.TYPE_VEC_VEC_U8],
+        [MODULES.reward, 'permission', 1, [], ValueType.TYPE_ADDRESS],
+        [MODULES.reward, 'rewards_count_remain', 2, [], ValueType.TYPE_U64],
+        [MODULES.reward, 'rewards_count_supplied', 3, [], ValueType.TYPE_U64],
+        [MODULES.reward, 'guard_count', 4, [], ValueType.TYPE_U64],
+        [MODULES.reward, 'has_guard', 5, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.reward, 'guard_portions', 6, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
+        [MODULES.reward, 'time_expire', 7, [], ValueType.TYPE_U64],
+        [MODULES.reward, 'has_claimed', 8, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.reward, 'claimed', 9, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
+        [MODULES.reward, 'has_claimed_count', 10, [], ValueType.TYPE_U64],
+        [MODULES.reward, 'is_sponsor', 11, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.reward, 'sponsor', 12, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
+        [MODULES.reward, 'sponsor_count', 13, [], ValueType.TYPE_U64],
+        [MODULES.reward, 'bAllowRepeatClaim', 14, [], ValueType.TYPE_BOOL],
+        [MODULES.vote, 'permission', 1, [], ValueType.TYPE_ADDRESS],
+        [MODULES.vote, 'bOptions_locked_for_voting', 2, [], ValueType.TYPE_BOOL],
+        [MODULES.vote, 'bdeadline_locked', 3, [], ValueType.TYPE_BOOL],
+        [MODULES.vote, 'bLockedGuard', 4, [], ValueType.TYPE_BOOL],
+        [MODULES.vote, 'max_choice_count', 5, [], ValueType.TYPE_U8],
+        [MODULES.vote, 'deadline', 6, [], ValueType.TYPE_U64],
+        [MODULES.vote, 'has_reference', 7, [], ValueType.TYPE_BOOL],
+        [MODULES.vote, 'reference', 8, [], ValueType.TYPE_ADDRESS],
+        [MODULES.vote, 'has_guard', 9, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.vote, 'guard', 10, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
+        [MODULES.vote, 'voted', 11, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.vote, 'voted_weight', 12, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
+        [MODULES.vote, 'has_agree', 13, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
+        [MODULES.vote, 'agree_has_object', 14, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
+        [MODULES.vote, 'agree_object', 15, [ValueType.TYPE_VEC_U8], ValueType.TYPE_ADDRESS],
+        [MODULES.vote, 'agree_count', 16, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64],
+        [MODULES.vote, 'agree_votes', 17, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64],
+        [MODULES.vote, 'voted_count', 18, [], ValueType.TYPE_U64],
+        [MODULES.vote, 'top1_name_by_count', 19, [], ValueType.TYPE_VEC_U8],
+        [MODULES.vote, 'top1_count', 20, [], ValueType.TYPE_U64],
+        [MODULES.vote, 'top1_name_by_votes', 21, [], ValueType.TYPE_VEC_U8],
+        [MODULES.vote, 'top1_votes', 22, [], ValueType.TYPE_U64],
     ];
 }
-/*
-export const graphql_query_objects = (protocol: Protocol, nodes:any) : Guard_Query_Object[] => {
-    let ret:Guard_Query_Object[] = [];
-    nodes.forEach((node:any) => {
-        for (let k = 0; k < protocol.WOWOK_OBJECTS_TYPE().length; k++) {
-            if (node?.asMoveObject?.contents?.type?.repr?.includes(protocol.WOWOK_OBJECTS_TYPE()[k]) ) { // type: pack::m::Object<...>
-                ret.push({ target:protocol.WOWOK_OBJECTS_PREFIX_TYPE()[k] + 'guard_query' as FnCallType,
-                    object:Inputs.SharedObjectRef({
-                        objectId: node.address,
-                        mutable: false,
-                        initialSharedVersion: node.version,
-                    }) as TransactionObjectInput,
-                    types:parse_object_type(node.asMoveObject.contents.type.repr as string),
-                    id: node.address,
-                } as Guard_Query_Object);
-            }
-        }
-    })
-    return ret
-} */
-export class GuardVariableMaker {
-    static IsValidGuardVirableType = (type) => {
-        if (type == OperatorType.TYPE_FUTURE_QUERY || type == ContextType.TYPE_CONTEXT_FUTURE_ID || type == OperatorType.TYPE_QUERY_FROM_CONTEXT ||
-            type == ContextType.TYPE_CONTEXT_bool || type == ContextType.TYPE_CONTEXT_address || type == ContextType.TYPE_CONTEXT_u64 ||
-            type == ContextType.TYPE_CONTEXT_u8 || type == ContextType.TYPE_CONTEXT_vec_u8) {
-            return true;
-        }
-        ;
-        return false;
-    };
+export class GuardVariableHelper {
     static IsValidIndentifier = (identifier) => {
         if (!IsValidInt(identifier) || identifier > 255)
             return false;
@@ -232,119 +206,139 @@ export class GuardVariableMaker {
                 return v.value;
             }
         }
-        return false;
     }
-    static get_variable_witness(variables, identifier, type) {
+    static get_variable_witness(variables, identifier) {
         if (variables.has(identifier)) {
             let v = variables.get(identifier);
-            if (v?.witness && v.type == type) {
+            if (v?.witness && v.type == ContextType.TYPE_WITNESS_ID) {
                 return v.witness;
             }
         }
-        return false;
     }
-    static add_future_variable(variables, identifier, type, witness, value, bNeedSerialize = true) {
-        if (!GuardVariableMaker.IsValidIndentifier(identifier))
-            return false;
-        if (!GuardVariableMaker.IsValidGuardVirableType(type))
-            return false;
+    static add_future_variable(variables, identifier, witness, value, bNeedSerialize = true) {
+        if (!GuardVariableHelper.IsValidIndentifier(identifier))
+            ERROR(Errors.IsValidIndentifier, 'add_future_variable');
         if (!witness && !value)
-            return false;
-        switch (type) {
-            case OperatorType.TYPE_FUTURE_QUERY:
-            case ContextType.TYPE_CONTEXT_FUTURE_ID:
-                if (variables.has(identifier)) {
-                    let v = variables.get(identifier);
-                    if (bNeedSerialize) {
-                        v.value = value ? Bcs.getInstance().ser_address(value) : undefined;
-                        v.witness = witness ? Bcs.getInstance().ser_address(witness) : undefined;
-                    }
-                    else {
-                        v.value = value ? value : undefined;
-                        v.witness = witness ? witness : undefined;
-                    }
-                }
-                else {
-                    if (bNeedSerialize) {
-                        variables.set(identifier, { type: type, value: value ? Bcs.getInstance().ser_address(value) : undefined, witness: witness ? Bcs.getInstance().ser_address(witness) : undefined });
-                    }
-                    else {
-                        variables.set(identifier, { type: type, value: value ? value : undefined, witness: witness ? witness : undefined });
-                    }
-                }
-                return true;
+            ERROR(Errors.InvalidParam, 'both witness and value invalid');
+        let v = variables.get(identifier);
+        if (!v || v.type == ContextType.TYPE_WITNESS_ID) {
+            if (bNeedSerialize) {
+                variables.set(identifier, { type: ContextType.TYPE_WITNESS_ID, value: value ? Bcs.getInstance().ser_address(value) : undefined, witness: witness ? Bcs.getInstance().ser_address(witness) : undefined });
+            }
+            else {
+                variables.set(identifier, { type: ContextType.TYPE_WITNESS_ID, value: value ? value : undefined, witness: witness ? witness : undefined });
+            }
         }
-        return false;
     }
     static add_variable(variables, identifier, type, value, bNeedSerialize = true) {
-        if (!GuardVariableMaker.IsValidIndentifier(identifier))
-            return false;
-        if (!GuardVariableMaker.IsValidGuardVirableType(type))
+        if (!GuardVariableHelper.IsValidIndentifier(identifier))
             return false;
         if (!value)
             return false;
         switch (type) {
-            case ContextType.TYPE_CONTEXT_bool:
+            case ValueType.TYPE_BOOL:
                 bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_bool(value) }) :
                     variables.set(identifier, { type: type, value: value });
-                return true;
-            case ContextType.TYPE_CONTEXT_address:
-            case OperatorType.TYPE_QUERY_FROM_CONTEXT:
+                return;
+            case ValueType.TYPE_ADDRESS:
                 bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_address(value) }) :
                     variables.set(identifier, { type: type, value: value });
-                return true;
-            case ContextType.TYPE_CONTEXT_u64:
+                return;
+            case ValueType.TYPE_U64:
                 bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_u64(value) }) :
                     variables.set(identifier, { type: type, value: value });
-                return true;
-            case ContextType.TYPE_CONTEXT_u8:
+                return;
+            case ValueType.TYPE_U8:
                 bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_u8(value) }) :
                     variables.set(identifier, { type: type, value: value });
-                return true;
-            case ContextType.TYPE_CONTEXT_vec_u8:
-                bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_string(value) }) :
+                return;
+            case ValueType.TYPE_VEC_U8:
+                if (typeof (value) === 'string') {
+                    variables.set(identifier, { type: type, value: Bcs.getInstance().ser_string(value) });
+                }
+                else {
                     variables.set(identifier, { type: type, value: value });
-                return true;
+                }
+                return;
+            case ValueType.TYPE_U128:
+                bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_u128(value) }) :
+                    variables.set(identifier, { type: type, value: value });
+                return;
+            case ValueType.TYPE_U256:
+                bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_u256(value) }) :
+                    variables.set(identifier, { type: type, value: value });
+                return;
+            case ValueType.TYPE_VEC_U64:
+                bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_vector_u64(value) }) :
+                    variables.set(identifier, { type: type, value: value });
+                return;
+            case ValueType.TYPE_VEC_VEC_U8:
+                bNeedSerialize ? variables.set(identifier, { type: type, value: Bcs.getInstance().ser_vector_vector_u8(value) }) :
+                    variables.set(identifier, { type: type, value: value });
+                return;
+            default:
+                if (bNeedSerialize) {
+                    ERROR(Errors.Fail, 'ValueType  serialize not impl yet');
+                }
+                variables.set(identifier, { type: type, value: value });
         }
-        return false;
     }
 }
-export class GuardInputMaker {
+export class GuardMaker {
     data = [];
     type_validator = [];
+    variable = new Map();
+    static index = 0;
+    static get_index() {
+        if (GuardMaker.index == 256) {
+            GuardMaker.index = 0;
+        }
+        return GuardMaker.index++;
+    }
     constructor() { }
+    add_variable(type, value, bNeedSerialize = true) {
+        let identifier = GuardMaker.get_index();
+        if (type == ContextType.TYPE_WITNESS_ID) {
+            // add witness to variable
+            GuardVariableHelper.add_future_variable(this.variable, identifier, value, undefined, bNeedSerialize);
+        }
+        else {
+            GuardVariableHelper.add_variable(this.variable, identifier, type, value, bNeedSerialize);
+        }
+        return identifier;
+    }
     // serialize const & data
-    add_param(type, param, variable) {
+    add_param(type, param) {
         switch (type) {
-            case ValueType.TYPE_STATIC_address:
+            case ValueType.TYPE_ADDRESS:
                 if (!param)
                     ERROR(Errors.InvalidParam, 'param');
                 this.data.push(Bcs.getInstance().ser_u8(type));
                 this.data.push(Bcs.getInstance().ser_address(param));
                 this.type_validator.push(type);
                 break;
-            case ValueType.TYPE_STATIC_bool:
+            case ValueType.TYPE_BOOL:
                 if (!param)
                     ERROR(Errors.InvalidParam, 'param');
                 this.data.push(Bcs.getInstance().ser_u8(type));
                 this.data.push(Bcs.getInstance().ser_bool(param));
                 this.type_validator.push(type);
                 break;
-            case ValueType.TYPE_STATIC_u8:
+            case ValueType.TYPE_U8:
                 if (!param)
                     ERROR(Errors.InvalidParam, 'param');
                 this.data.push(Bcs.getInstance().ser_u8(type));
                 this.data.push(Bcs.getInstance().ser_u8(param));
                 this.type_validator.push(type);
                 break;
-            case ValueType.TYPE_STATIC_u64:
+            case ValueType.TYPE_U64:
                 if (!param)
                     ERROR(Errors.InvalidParam, 'param');
                 this.data.push(Bcs.getInstance().ser_u8(type));
                 this.data.push(Bcs.getInstance().ser_u64(param));
                 this.type_validator.push(type);
                 break;
-            case ValueType.TYPE_STATIC_vec_u8:
+            case ValueType.TYPE_VEC_U8:
                 if (!param)
                     ERROR(Errors.InvalidParam, 'param');
                 this.data.push(Bcs.getInstance().ser_u8(type));
@@ -352,99 +346,49 @@ export class GuardInputMaker {
                 this.type_validator.push(type);
                 // this.data[this.data.length-1].forEach((item : number) => console.log(item))
                 break;
-            case ContextType.TYPE_CONTEXT_SIGNER:
+            case ContextType.TYPE_SIGNER:
                 this.data.push(Bcs.getInstance().ser_u8(type));
-                this.type_validator.push(ValueType.TYPE_STATIC_address);
+                this.type_validator.push(ValueType.TYPE_ADDRESS);
                 break;
-            case ContextType.TYPE_CONTEXT_CLOCK:
+            case ContextType.TYPE_CLOCK:
                 this.data.push(Bcs.getInstance().ser_u8(type));
-                this.type_validator.push(ValueType.TYPE_STATIC_u64);
+                this.type_validator.push(ValueType.TYPE_U64);
                 break;
-            case ContextType.TYPE_CONTEXT_bool:
-            case ContextType.TYPE_CONTEXT_u8:
-            case ContextType.TYPE_CONTEXT_u64:
-            case ContextType.TYPE_CONTEXT_vec_u8:
-            case ContextType.TYPE_CONTEXT_address:
-            case ContextType.TYPE_CONTEXT_FUTURE_ID:
-                if (!variable || !param) {
-                    ERROR(Errors.InvalidParam, 'variable or param');
+            case ContextType.TYPE_WITNESS_ID:
+                if (!param)
+                    ERROR(Errors.InvalidParam, 'param');
+                this.data.push(Bcs.getInstance().ser_u8(type));
+                this.data.push(Bcs.getInstance().ser_address(param));
+                this.type_validator.push(ValueType.TYPE_ADDRESS);
+                break;
+            case ContextType.TYPE_VARIABLE:
+                if (!param) {
+                    ERROR(Errors.InvalidParam, 'param invalid');
                 }
                 if (typeof (param) != 'number' || !IsValidInt(param) || param > 255) {
-                    ERROR(Errors.InvalidParam, 'param');
+                    ERROR(Errors.InvalidParam, 'add_param param');
                 }
-                var v = variable.get(param);
-                if (v?.type == type) {
-                    this.data.push(Bcs.getInstance().ser_u8(type));
-                    this.data.push(Bcs.getInstance().ser_u8(param));
-                    if (type == ContextType.TYPE_CONTEXT_bool) {
-                        this.type_validator.push(ValueType.TYPE_STATIC_bool);
-                    }
-                    else if (type == ContextType.TYPE_CONTEXT_u8) {
-                        this.type_validator.push(ValueType.TYPE_STATIC_u8);
-                    }
-                    else if (type == ContextType.TYPE_CONTEXT_u64) {
-                        this.type_validator.push(ValueType.TYPE_STATIC_u64);
-                    }
-                    else if (type == ContextType.TYPE_CONTEXT_vec_u8) {
-                        this.type_validator.push(ValueType.TYPE_STATIC_vec_u8);
-                    }
-                    else if (type == ContextType.TYPE_CONTEXT_address) {
-                        this.type_validator.push(ValueType.TYPE_STATIC_address);
-                    }
-                    else if (type == ContextType.TYPE_CONTEXT_FUTURE_ID) {
-                        this.type_validator.push(ValueType.TYPE_STATIC_address);
-                    }
-                    break;
-                }
-                ;
-                ERROR(Errors.InvalidParam, 'variable');
+                var v = this.variable.get(param);
+                if (!v)
+                    ERROR(Errors.Fail, 'identifier not in variable');
+                this.type_validator.push(v.type);
+                this.data.push(Bcs.getInstance().ser_u8(type));
+                this.data.push(Bcs.getInstance().ser_u8(param));
+                break;
             default:
-                ERROR(Errors.InvalidParam, 'type');
+                ERROR(Errors.InvalidParam, 'add_param type');
         }
         ;
+        return this;
     }
-    static query_index(module, query_name) {
-        for (let i = 0; i < Guard.QUERIES.length; i++) {
-            if (Guard.QUERIES[i][0] == module && Guard.QUERIES[i][1] == query_name) {
-                return i;
-            }
-        }
-        return -1;
-    }
-    add_future_query(identifier, module, query_name, variable) {
-        let query_index = GuardInputMaker.query_index(module, query_name);
-        if (!GuardVariableMaker.IsValidIndentifier(identifier) || query_index == -1) {
-            ERROR(Errors.InvalidParam, 'identifier or query_name');
-        }
-        if (module != MODULES.order && module != MODULES.progress) {
-            ERROR(Errors.InvalidParam, 'module');
-        }
-        if (!variable || variable.get(identifier)?.type != OperatorType.TYPE_FUTURE_QUERY) {
-            ERROR(Errors.InvalidParam, 'variable');
-        }
-        let offset = this.type_validator.length - Guard.QUERIES[query_index][3].length;
-        if (offset < 0) {
-            ERROR(Errors.InvalidParam, 'query_name');
-        }
-        let types = this.type_validator.slice(offset);
-        if (!array_equal(types, Guard.QUERIES[query_index][3])) { // type validate 
-            ERROR(Errors.Fail, 'array_equal');
-        }
-        this.data.push(Bcs.getInstance().ser_u8(OperatorType.TYPE_FUTURE_QUERY)); // TYPE
-        this.data.push(Bcs.getInstance().ser_u8(identifier)); // variable identifier
-        this.data.push(Bcs.getInstance().ser_u8(Guard.QUERIES[query_index][2])); // cmd
-        this.type_validator.splice(offset, Guard.QUERIES[query_index][3].length); // delete type stack
-        this.type_validator.push(Guard.QUERIES[query_index][4]); // add the return value type to type stack
-        // console.log(this.type_validator)
-    }
-    // object_address_from: string for static address; number as identifier  for variable
-    add_query(module, query_name, object_address_from) {
-        let query_index = GuardInputMaker.query_index(module, query_name); // query_index: index(from 0) of array Guard.QUERIES 
+    // object_address_from: string for static address; number as identifier  invariable
+    add_query(module, query_name, object_address_from, bWitness = false) {
+        let query_index = Guard.QUERIES.findIndex((q) => { return q[0] == module && q[1] == query_name; });
         if (query_index == -1) {
             ERROR(Errors.InvalidParam, 'query_name');
         }
         if (typeof (object_address_from) == 'number') {
-            if (!GuardVariableMaker.IsValidIndentifier(object_address_from)) {
+            if (!GuardVariableHelper.IsValidIndentifier(object_address_from)) {
                 ERROR(Errors.InvalidParam, 'object_address_from');
             }
         }
@@ -461,43 +405,53 @@ export class GuardInputMaker {
         if (!array_equal(types, Guard.QUERIES[query_index][3])) { // type validate 
             ERROR(Errors.Fail, 'array_equal');
         }
+        this.data.push(Bcs.getInstance().ser_u8(OperatorType.TYPE_QUERY)); // QUERY TYPE
         if (typeof (object_address_from) == 'string') {
-            this.data.push(Bcs.getInstance().ser_u8(OperatorType.TYPE_QUERY)); // TYPE
+            bWitness ? this.data.push(Bcs.getInstance().ser_u8(ContextType.TYPE_WITNESS_ID)) :
+                this.data.push(Bcs.getInstance().ser_u8(ValueType.TYPE_ADDRESS));
             this.data.push(Bcs.getInstance().ser_address(object_address_from)); // object address            
         }
         else {
-            this.data.push(Bcs.getInstance().ser_u8(OperatorType.TYPE_QUERY_FROM_CONTEXT)); // TYPE
-            this.data.push(Bcs.getInstance().ser_u8(object_address_from)); // object identifer in variables
+            let v = this.variable.get(object_address_from);
+            if (!v)
+                ERROR(Errors.Fail, 'object_address_from not in variable');
+            if ((bWitness && v?.type == ContextType.TYPE_WITNESS_ID) || (!bWitness && v?.type == ValueType.TYPE_ADDRESS)) {
+                this.data.push(Bcs.getInstance().ser_u8(ContextType.TYPE_VARIABLE));
+                this.data.push(Bcs.getInstance().ser_u8(object_address_from)); // object identifer in variables
+            }
+            else {
+                ERROR(Errors.Fail, 'type bWitness not match');
+            }
         }
         this.data.push(Bcs.getInstance().ser_u8(Guard.QUERIES[query_index][2])); // cmd
         this.type_validator.splice(offset, Guard.QUERIES[query_index][3].length); // delete type stack
         this.type_validator.push(Guard.QUERIES[query_index][4]); // add the return value type to type stack
-        // console.log(this.type_validator)
+        return this;
     }
     add_logic(type) {
         let splice_len = 2;
         switch (type) {
-            case OperatorType.TYPE_LOGIC_OPERATOR_U128_GREATER:
-            case OperatorType.TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL:
-            case OperatorType.TYPE_LOGIC_OPERATOR_U128_LESSER:
-            case OperatorType.TYPE_LOGIC_OPERATOR_U128_LESSER_EQUAL:
-            case OperatorType.TYPE_LOGIC_OPERATOR_U128_EQUAL:
+            case OperatorType.TYPE_LOGIC_AS_U256_GREATER:
+            case OperatorType.TYPE_LOGIC_AS_U256_GREATER_EQUAL:
+            case OperatorType.TYPE_LOGIC_AS_U256_LESSER:
+            case OperatorType.TYPE_LOGIC_AS_U256_LESSER_EQUAL:
+            case OperatorType.TYPE_LOGIC_AS_U256_EQUAL:
                 if (this.type_validator.length < splice_len) {
                     ERROR(Errors.Fail, 'type_validator.length');
                 }
-                if (!GuardInputMaker.match_u128(this.type_validator[this.type_validator.length - 1])) {
+                if (!GuardMaker.match_u128(this.type_validator[this.type_validator.length - 1])) {
                     ERROR(Errors.Fail, 'type_validator check');
                 }
-                if (!GuardInputMaker.match_u128(this.type_validator[this.type_validator.length - 2])) {
+                if (!GuardMaker.match_u128(this.type_validator[this.type_validator.length - 2])) {
                     ERROR(Errors.Fail, 'type_validator check');
                 }
                 break;
-            case OperatorType.TYPE_LOGIC_OPERATOR_EQUAL:
+            case OperatorType.TYPE_LOGIC_EQUAL:
                 if (this.type_validator.length < splice_len) {
                     ERROR(Errors.Fail, 'type_validator.length');
                 }
                 break;
-            case OperatorType.TYPE_LOGIC_OPERATOR_HAS_SUBSTRING:
+            case OperatorType.TYPE_LOGIC_HAS_SUBSTRING:
                 if (this.type_validator.length < splice_len) {
                     ERROR(Errors.Fail, 'type_validator.length');
                 }
@@ -507,7 +461,7 @@ export class GuardInputMaker {
                 if (this.type_validator.length < splice_len) {
                     ERROR(Errors.Fail, 'type_validator.length');
                 }
-                if (this.type_validator[this.type_validator.length - 1] != ValueType.TYPE_STATIC_bool) {
+                if (this.type_validator[this.type_validator.length - 1] != ValueType.TYPE_BOOL) {
                     ERROR(Errors.Fail, 'type_validator check');
                 }
                 break;
@@ -516,10 +470,10 @@ export class GuardInputMaker {
                 if (this.type_validator.length < splice_len) {
                     ERROR(Errors.Fail, 'type_validator.length');
                 }
-                if (this.type_validator[this.type_validator.length - 1] != ValueType.TYPE_STATIC_bool) {
+                if (this.type_validator[this.type_validator.length - 1] != ValueType.TYPE_BOOL) {
                     ERROR(Errors.Fail, 'type_validator check');
                 }
-                if (this.type_validator[this.type_validator.length - 2] != ValueType.TYPE_STATIC_bool) {
+                if (this.type_validator[this.type_validator.length - 2] != ValueType.TYPE_BOOL) {
                     ERROR(Errors.Fail, 'type_validator check');
                 }
                 break;
@@ -528,31 +482,60 @@ export class GuardInputMaker {
         }
         this.data.push(Bcs.getInstance().ser_u8(type)); // TYPE     
         this.type_validator.splice(this.type_validator.length - splice_len); // delete type stack   
-        this.type_validator.push(ValueType.TYPE_STATIC_bool); // add bool to type stack
+        this.type_validator.push(ValueType.TYPE_BOOL); // add bool to type stack
+        return this;
     }
-    make(bNot = false) {
+    build(bNot = false) {
         //console.log(this.type_validator);
         //this.data.forEach((value:Uint8Array) => console.log(value));
-        if (this.type_validator.length != 1 || this.type_validator[0] != ValueType.TYPE_STATIC_bool) {
-            console.log(this.type_validator);
+        if (this.type_validator.length != 1 || this.type_validator[0] != ValueType.TYPE_BOOL) {
             ERROR(Errors.Fail, 'type_validator check');
         } // ERROR
         if (bNot) {
             this.add_logic(OperatorType.TYPE_LOGIC_NOT);
         }
-        return concatenate(Uint8Array, ...this.data);
+        this.data.push(concatenate(Uint8Array, ...this.data));
+        this.data.splice(0, this.data.length - 1);
+        return this;
     }
-    static combine(input1, input2, bAnd = true) {
+    IsReady() {
+        return this.type_validator.length == 1 && this.type_validator[0] == ValueType.TYPE_BOOL && this.data.length == 1;
+    }
+    combine(otherBuilt, bAnd = true, bCombinVariable = false) {
+        if (!otherBuilt.IsReady() || !this.IsReady()) {
+            ERROR(Errors.Fail, 'both should built yet');
+        }
+        ;
+        let maker = new GuardMaker();
+        this.variable.forEach((v, k) => {
+            maker.variable.set(k, { type: v.type, value: v.value, witness: v.witness });
+        });
+        otherBuilt.variable.forEach((v, k) => {
+            if (maker.variable.has(k) && !bCombinVariable) {
+                ERROR(Errors.Fail, 'variable identifier exist');
+            }
+            maker.variable.set(k, { type: v.type, value: v.value, witness: v.witness });
+        });
+        let op = bAnd ? OperatorType.TYPE_LOGIC_AND : OperatorType.TYPE_LOGIC_OR;
+        maker.data.push(concatenate(Uint8Array, ...this.data, ...otherBuilt.data, Bcs.getInstance().ser_u8(op)));
+        this.data.splice(0, this.data.length - 1);
+        maker.type_validator = this.type_validator;
+        return maker;
+    }
+    get_variable() { return this.variable; }
+    get_input() { return this.data; }
+    static input_combine(input1, input2, bAnd = true) {
         let op = bAnd ? OperatorType.TYPE_LOGIC_AND : OperatorType.TYPE_LOGIC_OR;
         return concatenate(Uint8Array, input1, input2, Bcs.getInstance().ser_u8(op));
     }
-    static not(input) {
+    static input_not(input) {
         return concatenate(Uint8Array, input, Bcs.getInstance().ser_u8(OperatorType.TYPE_LOGIC_NOT));
     }
     static match_u128(type) {
-        if (type == ValueType.TYPE_STATIC_u8 ||
-            type == ValueType.TYPE_STATIC_u64 ||
-            type == ValueType.TYPE_STATIC_u128) {
+        if (type == ValueType.TYPE_U8 ||
+            type == ValueType.TYPE_U64 ||
+            type == ValueType.TYPE_U128 ||
+            type == ValueType.TYPE_U256) {
             return true;
         }
         return false;

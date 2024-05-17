@@ -1,9 +1,7 @@
-import { SuiObjectResponse, SuiObjectDataOptions } from '@mysten/sui.js/client';
 import { type TransactionObjectInput, Inputs } from '@mysten/sui.js/transactions';
-import { FnCallType, Query_Param, GuardObject, Protocol, ContextType, OperatorType, Data_Type,
+import { FnCallType, GuardObject, Protocol, ContextType, OperatorType, Data_Type,
     ValueType, MODULES } from './protocol';
 import { parse_object_type, array_unique, Bcs, ulebDecode, IsValidAddress, IsValidArray } from './utils';
-import { VariableType, Guard, Guard_Vriable, GuardVariableMaker } from './guard';
 import { BCS } from '@mysten/bcs';
 import { ERROR, Errors } from './exception';
 
@@ -14,31 +12,41 @@ export type Guard_Query_Object = {
     id: string, // object id
 }
 
-interface FutrueInfo {
-    identifier: number;
-    type:  number;
+interface QueryInfo {
+    identifier?: number;
+    index:  number;
+    type: number;
     value_or_witness: string;
-    futrue?: string;
+    future?: string;
 }
 interface GuardInfo {
     id: string;
-    query_list: (string | {identifier:number, type:number, witness:string})[]; // object or future object query
-    variable_or_future_list: FutrueInfo[];
-}
-interface FutrueFill {
-    guard: string;
-    identifier: number;
-    future: string;
+    query_list: (string | QueryInfo)[]; // object or witness object query
+    variable: QueryInfo[]; // witness in variable & ValueType.TYPE_ADDRESS(for Query)
+    input_witness: QueryInfo[]; // witness in input
 }
 
+interface FutrueFill {
+    guard: string;
+    index: number;
+    future: string;
+}
 interface PassportQuery {
+    guard: GuardObject[];
     query: Guard_Query_Object[];
     witness: Guard_Query_Object[];
 }
 export class GuardParser {
     protected guard_list: GuardInfo[] = [];
     protected protocol: Protocol;
-    private constructor(protocol: Protocol) { this.protocol = protocol }
+    protected guards: GuardObject[];
+    private index:number = 0;
+    private get_index() { return this.index++ }
+
+    private constructor(protocol: Protocol, guards: string[]) { 
+        this.protocol = protocol ;
+        this.guards = guards.map(g => protocol.CurrentSession().object(g) as GuardObject);
+    }
     guardlist = () => { return this.guard_list }
 
     static CreateAsync = async (protocol: Protocol, guards: string[]) => {
@@ -47,18 +55,18 @@ export class GuardParser {
         }
 
         let guard_list = array_unique(guards);
-        const me = new GuardParser(protocol);
+        const me = new GuardParser(protocol, guards);
         
-        let res =  await protocol.Query_Raw(guards);
+        let res =  await protocol.Query_Raw(guard_list);
         res.forEach((r) => {
             let c = r.data?.content as any;
             if (!c) return;
 
-            let index = protocol.WOWOK_OBJECTS_TYPE().findIndex(v => v.includes('guard::Guard') && v == c.type);
+            let index = protocol.WOWOK_OBJECTS_TYPE().findIndex(v => {return v.includes('guard::Guard') && v == c.type});
             if (index == -1) return;
 
-            let info:GuardInfo = {id: c.fields.id.id, query_list:[],  variable_or_future_list:[]};
-            me.parse_future(info,  c.fields.variables);
+            let info:GuardInfo = {id: c.fields.id.id, query_list:[],  variable:[], input_witness:[]};
+            me.parse_variable(info,  c.fields.variables);
             if (c.fields.input.type == (protocol.Package() + '::bcs::BCS')) {
                 me.parse_bcs(info,  Uint8Array.from(c.fields.input.fields.bytes));
             }
@@ -67,11 +75,12 @@ export class GuardParser {
         return me
     }
 
-    parse_future = (info:GuardInfo, variables:any)  => {
+    parse_variable = (info:GuardInfo, variables:any)  => {
         variables.forEach((v:any) => {
             if (v.type == (this.protocol.Package() + '::guard::Variable')) {
-                if (v.fields.type == OperatorType.TYPE_FUTURE_QUERY || v.fields.type == ContextType.TYPE_CONTEXT_FUTURE_ID) {
-                    info.variable_or_future_list.push({identifier:v.fields.identifier, type:v.fields.type, 
+                // ValueType.TYPE_ADDRESS: Query_Cmd maybe used the address, so save it for using
+                if (v.fields.type == ContextType.TYPE_WITNESS_ID || v.fields.type == ValueType.TYPE_ADDRESS) {
+                    info.variable.push({identifier:v.fields.identifier,  index:this.get_index(), type:v.fields.type,
                         value_or_witness:'0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(v.fields.value))});
                 }
             }
@@ -84,58 +93,73 @@ export class GuardParser {
             var type : unknown = arr.shift() ;
             // console.log(type);
             switch (type as Data_Type) { 
-                case ContextType.TYPE_CONTEXT_SIGNER:
-                case ContextType.TYPE_CONTEXT_CLOCK:
-                case OperatorType.TYPE_LOGIC_OPERATOR_U128_GREATER:
-                case OperatorType.TYPE_LOGIC_OPERATOR_U128_GREATER_EQUAL:
-                case OperatorType.TYPE_LOGIC_OPERATOR_U128_LESSER:
-                case OperatorType.TYPE_LOGIC_OPERATOR_U128_LESSER_EQUAL:
-                case OperatorType.TYPE_LOGIC_OPERATOR_U128_EQUAL:
-                case OperatorType.TYPE_LOGIC_OPERATOR_EQUAL:
-                case OperatorType.TYPE_LOGIC_OPERATOR_HAS_SUBSTRING:
+                case ContextType.TYPE_SIGNER:
+                case ContextType.TYPE_CLOCK:
+                case OperatorType.TYPE_LOGIC_AS_U256_GREATER:
+                case OperatorType.TYPE_LOGIC_AS_U256_GREATER_EQUAL:
+                case OperatorType.TYPE_LOGIC_AS_U256_LESSER:
+                case OperatorType.TYPE_LOGIC_AS_U256_LESSER_EQUAL:
+                case OperatorType.TYPE_LOGIC_AS_U256_EQUAL:
+                case OperatorType.TYPE_LOGIC_EQUAL:
+                case OperatorType.TYPE_LOGIC_HAS_SUBSTRING:
                 case OperatorType.TYPE_LOGIC_ALWAYS_TRUE:
                 case OperatorType.TYPE_LOGIC_NOT:
                 case OperatorType.TYPE_LOGIC_AND:
                 case OperatorType.TYPE_LOGIC_OR:
                 break;    
-            case ContextType.TYPE_CONTEXT_FUTURE_ID: 
-            case OperatorType.TYPE_FUTURE_QUERY:
-                var identifer = arr.splice(0, 1);  
-                let i = info.variable_or_future_list.find(f => f.identifier == identifer[0]) ;
-                if (!i) { ERROR(Errors.Fail, 'futrue_list not found')}
-                if (type == OperatorType.TYPE_FUTURE_QUERY) {
-                    info.query_list.push({identifier:identifer[0], type:type as number, witness:i!.value_or_witness}); // query list item
-                    arr.splice(0, 1); // cmd
-                }
+            case ContextType.TYPE_VARIABLE:
+                arr.splice(0, 1); // identifier of variable
                 break;
-            case ContextType.TYPE_CONTEXT_address:
-            case ContextType.TYPE_CONTEXT_bool:
-            case ContextType.TYPE_CONTEXT_u8:
-            case ContextType.TYPE_CONTEXT_u64:
-            case ContextType.TYPE_CONTEXT_vec_u8:
-            case ValueType.TYPE_STATIC_bool:
-            case ValueType.TYPE_STATIC_u8:
+            case ContextType.TYPE_WITNESS_ID:  // add to variable 
+                let addr = '0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(arr)).toString();
+                arr.splice(0, 32); // address     
+                info.input_witness.push({index:this.get_index(), type:ContextType.TYPE_WITNESS_ID, value_or_witness:addr})
+                break;
+            case ValueType.TYPE_BOOL:
+            case ValueType.TYPE_U8:
                 arr.splice(0, 1); // identifier
                 break;
-            case OperatorType.TYPE_QUERY_FROM_CONTEXT: 
-                arr.splice(0, 2); // identifer + cmd
-                break;
-            case ValueType.TYPE_STATIC_address: 
+            case ValueType.TYPE_ADDRESS: 
                 arr.splice(0, 32);
                 break;
-            case ValueType.TYPE_STATIC_u64: 
+            case ValueType.TYPE_U64: 
                 arr.splice(0, 8);
                 break;
-            case ValueType.TYPE_STATIC_u128: 
+            case ValueType.TYPE_U128: 
                 arr.splice(0, 16);
                 break;
-            case ValueType.TYPE_STATIC_vec_u8:
+            case ValueType.TYPE_U256:
+                arr.splice(0, 32);
+                break;
+            case ValueType.TYPE_VEC_U8:
                 let {value, length} = ulebDecode(Uint8Array.from(arr));
                 arr.splice(0, value+length);
                 break;     
             case OperatorType.TYPE_QUERY:
-                info.query_list.push('0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(arr)).toString());
-                arr.splice(0, 33); // address + cmd
+                let type = arr.splice(0, 1);
+                if (type[0] == ValueType.TYPE_ADDRESS || type[0] == ContextType.TYPE_WITNESS_ID) {
+                    let addr = '0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(arr)).toString();
+                    arr.splice(0, 33); // address + cmd              
+                    if (type[0] == ValueType.TYPE_ADDRESS) {
+                        info.query_list.push(addr);
+                    } else if (type[0] == ContextType.TYPE_WITNESS_ID){
+                        info.query_list.push({index:this.get_index(), type:type[0], value_or_witness:addr});
+                    }
+                } else if (type[0] == ContextType.TYPE_VARIABLE) {
+                    let identifer = arr.splice(0, 2); // key + cmd
+                    let variable = info.variable.find((v) => 
+                        (v.identifier == identifer[0]) && 
+                        ((v.type == ValueType.TYPE_ADDRESS) || (v.type == ContextType.TYPE_WITNESS_ID)));
+                    if (!variable) { ERROR(Errors.Fail, 'indentifier not in  variable')}
+                    if (variable?.type == ValueType.TYPE_ADDRESS) {
+                        info.query_list.push(variable.value_or_witness);
+                    } else if (variable?.type == ContextType.TYPE_WITNESS_ID) {
+                        info.query_list.push({identifier:identifer[0], type:variable.type, value_or_witness:variable.value_or_witness, index:this.get_index()});
+                    } 
+                } else {
+                    ERROR(Errors.Fail, 'variable type invalid');
+                }
+
                 break;
             default:
                 ERROR(Errors.Fail, 'parse_bcs types')
@@ -143,26 +167,37 @@ export class GuardParser {
         } 
     }
 
+    private get_object(guardid:string, info:QueryInfo, fill?:FutrueFill[]) :  string  {
+        let r = fill?.find(i => guardid == i.guard && i.index == info.index);
+        if (!r || !r.future) {
+            if (!info.future) {
+                ERROR(Errors.InvalidParam, 'index invalid for fill') 
+            }
+        } else {
+            info.future = r!.future;
+        }
+        return info.future!
+    }
+
     done = async (fill?:FutrueFill[]) : Promise<PassportQuery>=> {
         let objects: string[] = [];
         this.guard_list.forEach((g) => {
-            g.variable_or_future_list.forEach((f) => {
-                let r = fill?.find(i => i.identifier == f.identifier && g.id == i.guard);
-                if (!r && !f.futrue) { ERROR(Errors.InvalidParam, 'fill') }
-                
-                if (r) f.futrue = r!.future;
-                objects.push(f.futrue!);
+            g.variable.filter(v => v.type == ContextType.TYPE_WITNESS_ID).forEach((q) => {
+                objects.push(this.get_object(g.id, q, fill));
             })
-            g.query_list = g.query_list.map((q) => {
+            let list = g.query_list.map((q) => {
                 if (typeof(q) === "string") {
                     objects.push(q)
                     return q
                 } else {
-                    let r = g.variable_or_future_list.find(f => f.identifier == q.identifier && f.type == q.type && f.value_or_witness == q.witness);
-                    if (!r || !r.futrue) { ERROR(Errors.Fail, 'query witness not match')}
-                    objects.push(r!.futrue!);
-                    return r!.futrue!
+                    let r = this.get_object(g.id, q, fill);
+                    objects.push(r);
+                    return r
                 }
+            })
+            g.query_list =  list;
+            g.input_witness.forEach((q) => {
+                objects.push(this.get_object(g.id, q, fill));
             })
         })
 
@@ -175,18 +210,22 @@ export class GuardParser {
                 let r = res.find(r => r.data?.objectId == q as string);  
                 if (!r)   { ERROR(Errors.Fail, 'query object not match')} 
                 let object = this.object_query(r!.data);
-                if (!object) { ERROR(Errors.Fail, 'object fail')} 
+                if (!object) { ERROR(Errors.Fail, 'query object fail')} 
                 query.push(object!);
             })
-            g.variable_or_future_list.forEach(f => {
-                let r = res.find(r => r.data?.objectId == f.futrue!);
-                if (!r) { ERROR(Errors.Fail, 'query future not match')} 
-                let object = this.object_query(r!.data, 'witness');
-                witness.push(object!)
+            res.forEach(q => {
+                let r1 = g.variable.find(v  => v.future == q.data?.objectId);
+                let r2 = g.input_witness.find(v  => v.future == q.data?.objectId)
+                // not match r1 || r2 means query-cmd, not witness-cmd
+                if (r1 || r2) {
+                    let object = this.object_query(q.data, 'witness');
+                    if (!object)  { ERROR(Errors.Fail, 'witness object fail') }
+                    witness.push(object!);
+                }
             })
         })
 
-        return {query:query,  witness:witness} as PassportQuery;
+        return {guard:this.guards, query:query,  witness:witness} as PassportQuery;
     }
 
     private object_query = (data: any, method:string='guard_query') : Guard_Query_Object | undefined=> {
@@ -213,11 +252,11 @@ export class Passport {
 
     get_object () { return this.passport }
     // return passport object used
-    constructor (protocol:Protocol, guards:GuardObject[], query?:PassportQuery)  {
-        if (!guards || guards.length > Passport.MAX_GUARD_COUNT)   {
+    constructor (protocol:Protocol, query:PassportQuery)  {
+        if (!query.guard || query.guard.length > Passport.MAX_GUARD_COUNT)   {
             ERROR(Errors.InvalidParam, 'guards' )
         }
-        if (!Protocol.IsValidObjects(guards)) {
+        if (!Protocol.IsValidObjects(query.guard)) {
             ERROR(Errors.IsValidObjects, 'guards')
         }
 
@@ -229,10 +268,10 @@ export class Passport {
         });
 
         // add others guards, if any
-        guards.forEach((guard) => {
+        query.guard.forEach((g) => {
             txb.moveCall({
                 target:protocol.PassportFn('guard_add') as FnCallType,
-                arguments:[this.passport, Protocol.TXB_OBJECT(txb, guard)]
+                arguments:[this.passport, Protocol.TXB_OBJECT(txb, g)]
             });        
         })
 
@@ -247,13 +286,13 @@ export class Passport {
 
         // rules: 'verify' & 'query' in turns；'verify' at final end.
         query?.query.forEach((q) => {
-            let [type, address] = txb.moveCall({
+            let address = txb.moveCall({
                 target: protocol.PassportFn('passport_verify') as FnCallType,
                 arguments: [ this.passport, txb.object(Protocol.CLOCK_OBJECT)]
             }); 
             txb.moveCall({
                 target: q.target as FnCallType,
-                arguments: [ txb.object(q.object), this.passport, type, address ],
+                arguments: [ txb.object(q.object), this.passport, address ],
                 typeArguments: q.types,
             })
         })
