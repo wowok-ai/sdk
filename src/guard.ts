@@ -1,6 +1,6 @@
 
 import { BCS } from '@mysten/bcs';
-import { Protocol, GuardAddress, FnCallType, Data_Type, MODULES, ContextType, ValueType,  OperatorType, VariableType} from './protocol';
+import { Protocol, GuardAddress, FnCallType, Data_Type, MODULES, ContextType, ValueType,  OperatorType, VariableType, SER_VALUE} from './protocol';
 import { concatenate, array_equal } from './utils';
 import { IsValidDesription, Bcs, IsValidInt, IsValidAddress } from './utils';
 import { ERROR, Errors } from './exception';
@@ -100,123 +100,131 @@ export class Guard {
         [MODULES.permission, 'entity_count', 8, [], ValueType.TYPE_U64],
         [MODULES.permission, 'admin_count', 9, [], ValueType.TYPE_U64],
     
-        [MODULES.repository, 'permission', 1, [], ValueType.TYPE_ADDRESS],
-        [MODULES.repository, 'policy_contains', 2, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
-        [MODULES.repository, 'policy_has_permission_index', 3, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
-        [MODULES.repository, 'policy_permission_index', 4, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64],
-        [MODULES.repository, 'policy_value_type', 5, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U8],
-        [MODULES.repository, 'contains_id', 6, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],   
-        [MODULES.repository, 'contains_value', 7, [ValueType.TYPE_ADDRESS, ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
-        [MODULES.repository, 'value_without_type', 8, [ValueType.TYPE_ADDRESS, ValueType.TYPE_VEC_U8], ValueType.TYPE_VEC_U8],       
-        [MODULES.repository, 'value', 9, [ValueType.TYPE_ADDRESS, ValueType.TYPE_VEC_U8], ValueType.TYPE_VEC_U8],
-        [MODULES.repository, 'type', 10, [], ValueType.TYPE_U8],   
-        [MODULES.repository, 'policy_mode', 11, [], ValueType.TYPE_U8],   
-        [MODULES.repository, 'reference_count', 12, [], ValueType.TYPE_U64],   
-        [MODULES.repository, 'has_reference', 13, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],   
+        [MODULES.repository, 'permission', 11, [], ValueType.TYPE_ADDRESS],
+        [MODULES.repository, 'policy_contains', 12, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
+        [MODULES.repository, 'policy_has_permission_index', 13, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
+        [MODULES.repository, 'policy_permission_index', 14, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64],
+        [MODULES.repository, 'policy_value_type',  15, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U8],
+        [MODULES.repository, 'contains_id', 16, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],   
+        [MODULES.repository, 'contains_value', 17, [ValueType.TYPE_ADDRESS, ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
+        [MODULES.repository, 'value_without_type', 18, [ValueType.TYPE_ADDRESS, ValueType.TYPE_VEC_U8], ValueType.TYPE_VEC_U8],       
+        [MODULES.repository, 'value', 19, [ValueType.TYPE_ADDRESS, ValueType.TYPE_VEC_U8], ValueType.TYPE_VEC_U8],
+        [MODULES.repository, 'type', 20, [], ValueType.TYPE_U8],   
+        [MODULES.repository, 'policy_mode', 21, [], ValueType.TYPE_U8],   
+        [MODULES.repository, 'reference_count', 22, [], ValueType.TYPE_U64],   
+        [MODULES.repository, 'has_reference', 23, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],   
 
-        [MODULES.machine, 'permission', 1, [], ValueType.TYPE_ADDRESS],
-        [MODULES.machine, 'has_paused', 2, [], ValueType.TYPE_BOOL],
-        [MODULES.machine, 'has_published', 3, [], ValueType.TYPE_BOOL],
-        [MODULES.machine, 'consensus_repositories_contains', 5, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
-        [MODULES.machine, 'has_endpoint', 6, [], ValueType.TYPE_BOOL],   
-        [MODULES.machine, 'endpoint', 7, [], ValueType.TYPE_VEC_U8],
+        [MODULES.machine, 'permission', 31, [], ValueType.TYPE_ADDRESS],
+        [MODULES.machine, 'has_paused', 32, [], ValueType.TYPE_BOOL],
+        [MODULES.machine, 'has_published', 33, [], ValueType.TYPE_BOOL],
+        [MODULES.machine, 'consensus_repositories_contains', 34, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.machine, 'has_endpoint', 35, [], ValueType.TYPE_BOOL],   
+        [MODULES.machine, 'endpoint', 36, [], ValueType.TYPE_VEC_U8],
     
-        [MODULES.progress, 'machine', 1, [], ValueType.TYPE_ADDRESS],       
-        [MODULES.progress, 'current', 2, [], ValueType.TYPE_VEC_U8],
-        [MODULES.progress, 'has_parent', 3, [], ValueType.TYPE_BOOL],   
-        [MODULES.progress, 'parent', 4, [], ValueType.TYPE_ADDRESS],   
-        [MODULES.progress, 'has_task', 5, [], ValueType.TYPE_BOOL],       
-        [MODULES.progress, 'task', 6, [], ValueType.TYPE_ADDRESS],
-        [MODULES.progress, 'has_namedOperator', 7, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],   
-        [MODULES.progress, 'namedOperator_contains', 8, [ValueType.TYPE_VEC_U8, ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
-        [MODULES.progress, 'has_context_repository', 9, [], ValueType.TYPE_BOOL],
-        [MODULES.progress, 'context_repository', 10, [], ValueType.TYPE_ADDRESS],   
+        [MODULES.progress, 'machine', 51, [], ValueType.TYPE_ADDRESS],       
+        [MODULES.progress, 'current', 52, [], ValueType.TYPE_VEC_U8],
+        [MODULES.progress, 'has_parent', 53, [], ValueType.TYPE_BOOL],   
+        [MODULES.progress, 'parent', 54, [], ValueType.TYPE_ADDRESS],   
+        [MODULES.progress, 'has_task', 55, [], ValueType.TYPE_BOOL],       
+        [MODULES.progress, 'task', 56, [], ValueType.TYPE_ADDRESS],
+        [MODULES.progress, 'has_namedOperator', 57, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],   
+        [MODULES.progress, 'namedOperator_contains', 58, [ValueType.TYPE_VEC_U8, ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
+        [MODULES.progress, 'has_context_repository', 59, [], ValueType.TYPE_BOOL],
+        [MODULES.progress, 'context_repository', 60, [], ValueType.TYPE_ADDRESS],   
     
-        [MODULES.demand, 'permission', 1, [], ValueType.TYPE_ADDRESS],       
-        [MODULES.demand, 'has_time_expire', 2, [], ValueType.TYPE_BOOL],
-        [MODULES.demand, 'time_expire', 3, [], ValueType.TYPE_U64],   
-        [MODULES.demand, 'earnest_count', 4, [], ValueType.TYPE_U64],   
-        [MODULES.demand, 'has_guard', 5, [], ValueType.TYPE_BOOL],       
-        [MODULES.demand, 'guard', 6, [], ValueType.TYPE_ADDRESS],
-        [MODULES.demand, 'has_yes', 7, [], ValueType.TYPE_BOOL],   
-        [MODULES.demand, 'yes', 8, [], ValueType.TYPE_ADDRESS], 
-        [MODULES.demand, 'presenters_count', 9, [], ValueType.TYPE_U64],
-        [MODULES.demand, 'has_presenter', 10, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],   
-        [MODULES.demand, 'persenter', 11, [ValueType.TYPE_ADDRESS], ValueType.TYPE_ADDRESS], 
+        [MODULES.demand, 'permission', 71, [], ValueType.TYPE_ADDRESS],       
+        [MODULES.demand, 'has_time_expire', 72, [], ValueType.TYPE_BOOL],
+        [MODULES.demand, 'time_expire', 73, [], ValueType.TYPE_U64],   
+        [MODULES.demand, 'earnest_count', 74, [], ValueType.TYPE_U64],   
+        [MODULES.demand, 'has_guard', 75, [], ValueType.TYPE_BOOL],       
+        [MODULES.demand, 'guard', 76, [], ValueType.TYPE_ADDRESS],
+        [MODULES.demand, 'has_yes', 77, [], ValueType.TYPE_BOOL],   
+        [MODULES.demand, 'yes', 78, [], ValueType.TYPE_ADDRESS], 
+        [MODULES.demand, 'presenters_count', 79, [], ValueType.TYPE_U64],
+        [MODULES.demand, 'has_presenter', 80, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],   
+        [MODULES.demand, 'persenter', 81, [ValueType.TYPE_ADDRESS], ValueType.TYPE_ADDRESS], 
     
-        [MODULES.order, 'amount', 1, [], ValueType.TYPE_U64],       
-        [MODULES.order, 'payer', 2, [], ValueType.TYPE_ADDRESS],
-        [MODULES.order, 'service', 3, [], ValueType.TYPE_ADDRESS],   
-        [MODULES.order, 'has_progress', 4, [], ValueType.TYPE_BOOL],   
-        [MODULES.order, 'progress', 5, [], ValueType.TYPE_ADDRESS],       
-        [MODULES.order, 'has_requred_info', 6, [], ValueType.TYPE_BOOL],
-        [MODULES.order, 'requred_info_service_pubkey', 7, [], ValueType.TYPE_VEC_U8],   
-        [MODULES.order, 'requred_info_customer_pubkey', 8, [], ValueType.TYPE_VEC_U8], 
-        [MODULES.order, 'requred_info_info', 9, [], ValueType.TYPE_VEC_VEC_U8],
-        [MODULES.order, 'has_discount', 10, [], ValueType.TYPE_BOOL],   
-        [MODULES.order, 'discount', 11, [], ValueType.TYPE_ADDRESS], 
-        [MODULES.order, 'balance', 12, [], ValueType.TYPE_U64], 
-        [MODULES.order, 'bRefunded', 13, [], ValueType.TYPE_U8],
-        [MODULES.order, 'bWithdrawed', 14, [], ValueType.TYPE_U8],   
+        [MODULES.order, 'amount', 91, [], ValueType.TYPE_U64],       
+        [MODULES.order, 'payer', 92, [], ValueType.TYPE_ADDRESS],
+        [MODULES.order, 'service', 93, [], ValueType.TYPE_ADDRESS],   
+        [MODULES.order, 'has_progress', 94, [], ValueType.TYPE_BOOL],   
+        [MODULES.order, 'progress', 95, [], ValueType.TYPE_ADDRESS],       
+        [MODULES.order, 'has_requred_info', 96, [], ValueType.TYPE_BOOL],
+        [MODULES.order, 'requred_info_service_pubkey', 97, [], ValueType.TYPE_VEC_U8],   
+        [MODULES.order, 'requred_info_customer_pubkey', 98, [], ValueType.TYPE_VEC_U8], 
+        [MODULES.order, 'requred_info_info', 99, [], ValueType.TYPE_VEC_VEC_U8],
+        [MODULES.order, 'has_discount', 100, [], ValueType.TYPE_BOOL],   
+        [MODULES.order, 'discount', 101, [], ValueType.TYPE_ADDRESS], 
+        [MODULES.order, 'balance', 102, [], ValueType.TYPE_U64], 
+        [MODULES.order, 'bRefunded', 103, [], ValueType.TYPE_U8],
+        [MODULES.order, 'bWithdrawed', 104, [], ValueType.TYPE_U8],   
     
-        [MODULES.service, 'permission', 1, [], ValueType.TYPE_ADDRESS],       
-        [MODULES.service, 'payee', 2, [], ValueType.TYPE_ADDRESS],
-        [MODULES.service, 'has_buy_guard', 3, [], ValueType.TYPE_BOOL],   
-        [MODULES.service, 'buy_guard', 4, [], ValueType.TYPE_ADDRESS],   
-        [MODULES.service, 'repository_contains', 5, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],       
-        [MODULES.service, 'has_withdraw_guard', 6, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
-        [MODULES.service, 'withdraw_guard_percent', 7, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],   
-        [MODULES.service, 'has_refund_guard', 8, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
-        [MODULES.service, 'refund_guard_percent', 9, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
-        [MODULES.service, 'has_sale', 10, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],   
-        [MODULES.service, 'sale_price', 11, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64], 
-        [MODULES.service, 'sale_stock', 12, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64], 
-        [MODULES.service, 'has_machine', 13, [], ValueType.TYPE_BOOL],
-        [MODULES.service, 'machine', 14, [], ValueType.TYPE_ADDRESS],   
-        [MODULES.service, 'bPaused', 15, [], ValueType.TYPE_BOOL], 
-        [MODULES.service, 'bPublished', 16, [], ValueType.TYPE_BOOL], 
-        [MODULES.service, 'has_required', 17, [], ValueType.TYPE_BOOL],
-        [MODULES.service, 'requrired_pubkey', 18, [], ValueType.TYPE_VEC_U8],   
-        [MODULES.service, 'requrired_info', 19, [], ValueType.TYPE_VEC_VEC_U8],  
+        [MODULES.service, 'permission', 111, [], ValueType.TYPE_ADDRESS],       
+        [MODULES.service, 'payee', 112, [], ValueType.TYPE_ADDRESS],
+        [MODULES.service, 'has_buy_guard', 113, [], ValueType.TYPE_BOOL],   
+        [MODULES.service, 'buy_guard', 114, [], ValueType.TYPE_ADDRESS],   
+        [MODULES.service, 'repository_contains', 115, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],       
+        [MODULES.service, 'has_withdraw_guard', 116, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.service, 'withdraw_guard_percent', 117, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],   
+        [MODULES.service, 'has_refund_guard', 118, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
+        [MODULES.service, 'refund_guard_percent', 119, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
+        [MODULES.service, 'has_sale', 120, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],   
+        [MODULES.service, 'sale_price', 121, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64], 
+        [MODULES.service, 'sale_stock', 122, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64], 
+        [MODULES.service, 'has_machine', 123, [], ValueType.TYPE_BOOL],
+        [MODULES.service, 'machine', 124, [], ValueType.TYPE_ADDRESS],   
+        [MODULES.service, 'bPaused', 125, [], ValueType.TYPE_BOOL], 
+        [MODULES.service, 'bPublished', 126, [], ValueType.TYPE_BOOL], 
+        [MODULES.service, 'has_required', 127, [], ValueType.TYPE_BOOL],
+        [MODULES.service, 'requrired_pubkey', 128, [], ValueType.TYPE_VEC_U8],   
+        [MODULES.service, 'requrired_info', 129, [], ValueType.TYPE_VEC_VEC_U8],  
     
-        [MODULES.reward, 'permission', 1, [], ValueType.TYPE_ADDRESS],       
-        [MODULES.reward, 'rewards_count_remain', 2, [], ValueType.TYPE_U64],
-        [MODULES.reward, 'rewards_count_supplied', 3, [], ValueType.TYPE_U64],   
-        [MODULES.reward, 'guard_count', 4, [], ValueType.TYPE_U64],   
-        [MODULES.reward, 'has_guard', 5, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],       
-        [MODULES.reward, 'guard_portions', 6, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
-        [MODULES.reward, 'time_expire', 7, [], ValueType.TYPE_U64],   
-        [MODULES.reward, 'has_claimed', 8, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
-        [MODULES.reward, 'claimed', 9, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
-        [MODULES.reward, 'has_claimed_count', 10, [], ValueType.TYPE_U64],   
-        [MODULES.reward, 'is_sponsor', 11, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
-        [MODULES.reward, 'sponsor', 12, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
-        [MODULES.reward, 'sponsor_count', 13, [], ValueType.TYPE_U64],
-        [MODULES.reward, 'bAllowRepeatClaim', 14, [], ValueType.TYPE_BOOL],  
+        [MODULES.reward, 'permission', 151, [], ValueType.TYPE_ADDRESS],       
+        [MODULES.reward, 'rewards_count_remain', 152, [], ValueType.TYPE_U64],
+        [MODULES.reward, 'rewards_count_supplied', 153, [], ValueType.TYPE_U64],   
+        [MODULES.reward, 'guard_count', 154, [], ValueType.TYPE_U64],   
+        [MODULES.reward, 'has_guard', 155, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],       
+        [MODULES.reward, 'guard_portions', 156, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
+        [MODULES.reward, 'time_expire', 157, [], ValueType.TYPE_U64],   
+        [MODULES.reward, 'has_claimed', 158, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
+        [MODULES.reward, 'claimed', 159, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
+        [MODULES.reward, 'has_claimed_count', 160, [], ValueType.TYPE_U64],   
+        [MODULES.reward, 'is_sponsor', 161, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
+        [MODULES.reward, 'sponsor', 162, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
+        [MODULES.reward, 'sponsor_count', 163, [], ValueType.TYPE_U64],
+        [MODULES.reward, 'bAllowRepeatClaim', 164, [], ValueType.TYPE_BOOL],  
+        [MODULES.reward, 'claimed_potions_count', 165, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],  
     
-        [MODULES.vote, 'permission', 1, [], ValueType.TYPE_ADDRESS],       
-        [MODULES.vote, 'bOptions_locked_for_voting', 2, [], ValueType.TYPE_BOOL],
-        [MODULES.vote, 'bdeadline_locked', 3, [], ValueType.TYPE_BOOL],   
-        [MODULES.vote, 'bLockedGuard', 4, [], ValueType.TYPE_BOOL],   
-        [MODULES.vote, 'max_choice_count', 5, [], ValueType.TYPE_U8],       
-        [MODULES.vote, 'deadline', 6, [], ValueType.TYPE_U64],
-        [MODULES.vote, 'has_reference', 7, [], ValueType.TYPE_BOOL],   
-        [MODULES.vote, 'reference', 8, [], ValueType.TYPE_ADDRESS], 
-        [MODULES.vote, 'has_guard', 9, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
-        [MODULES.vote, 'guard', 10, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],   
-        [MODULES.vote, 'voted', 11, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
-        [MODULES.vote, 'voted_weight', 12, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
-        [MODULES.vote, 'has_agree', 13, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
-        [MODULES.vote, 'agree_has_object', 14, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],   
-        [MODULES.vote, 'agree_object', 15, [ValueType.TYPE_VEC_U8], ValueType.TYPE_ADDRESS], 
-        [MODULES.vote, 'agree_count', 16, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64], 
-        [MODULES.vote, 'agree_votes', 17, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64],
-        [MODULES.vote, 'voted_count', 18, [], ValueType.TYPE_U64],   
-        [MODULES.vote, 'top1_name_by_count', 19, [], ValueType.TYPE_VEC_U8], 
-        [MODULES.vote, 'top1_count', 20, [], ValueType.TYPE_U64], 
-        [MODULES.vote, 'top1_name_by_votes', 21, [], ValueType.TYPE_VEC_U8], 
-        [MODULES.vote, 'top1_votes', 22, [], ValueType.TYPE_U64], 
-    ]
+        [MODULES.vote, 'permission', 171, [], ValueType.TYPE_ADDRESS],       
+        [MODULES.vote, 'bOptions_locked_for_voting', 172, [], ValueType.TYPE_BOOL],
+        [MODULES.vote, 'bdeadline_locked', 173, [], ValueType.TYPE_BOOL],   
+        [MODULES.vote, 'bLockedGuard', 174, [], ValueType.TYPE_BOOL],   
+        [MODULES.vote, 'max_choice_count', 175, [], ValueType.TYPE_U8],       
+        [MODULES.vote, 'deadline', 176, [], ValueType.TYPE_U64],
+        [MODULES.vote, 'has_reference', 177, [], ValueType.TYPE_BOOL],   
+        [MODULES.vote, 'reference', 178, [], ValueType.TYPE_ADDRESS], 
+        [MODULES.vote, 'has_guard', 179, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.vote, 'guard', 180, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],   
+        [MODULES.vote, 'voted', 181, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
+        [MODULES.vote, 'voted_weight', 182, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
+        [MODULES.vote, 'has_agree', 183, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
+        [MODULES.vote, 'agree_has_object', 184, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],   
+        [MODULES.vote, 'agree_object', 185, [ValueType.TYPE_VEC_U8], ValueType.TYPE_ADDRESS], 
+        [MODULES.vote, 'agree_count', 186, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64], 
+        [MODULES.vote, 'agree_votes', 187, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64],
+        [MODULES.vote, 'voted_count', 188, [], ValueType.TYPE_U64],   
+        [MODULES.vote, 'top1_name_by_count', 189, [], ValueType.TYPE_VEC_U8], 
+        [MODULES.vote, 'top1_count', 190, [], ValueType.TYPE_U64], 
+        [MODULES.vote, 'top1_name_by_votes', 191, [], ValueType.TYPE_VEC_U8], 
+        [MODULES.vote, 'top1_votes', 192, [], ValueType.TYPE_U64], 
+    ];
+    static BoolCmd = Guard.QUERIES.filter(q => q[4] == ValueType.TYPE_BOOL);
+    static IsBoolCmd = (cmd:number) : boolean => { return Guard.BoolCmd.includes((q:any) => {return q[2] == cmd}) }
+    static GetCmd = (cmd:number) : any => { 
+        let r = Guard.QUERIES.find((q:any) => {return q[2] == cmd}) ;
+        if (!r) { ERROR(Errors.Fail, 'CmdParamCount: not found')};
+        return r;
+    }
 }
 
 export class GuardVariableHelper {
@@ -260,21 +268,28 @@ export class GuardVariableHelper {
     
         switch (type) {
             case ValueType.TYPE_BOOL:
-                bNeedSerialize ? variables.set(identifier, {type:type, value:Bcs.getInstance().ser_bool(value)}) :
-                    variables.set(identifier,  {type:type, value:value})    
-                return         
             case ValueType.TYPE_ADDRESS:
-                bNeedSerialize ? variables.set(identifier, {type:type, value:Bcs.getInstance().ser_address(value)}):
-                    variables.set(identifier,  {type:type, value:value});       
-                return;   
             case ValueType.TYPE_U64:
-                bNeedSerialize ? variables.set(identifier, {type:type, value:Bcs.getInstance().ser_u64(value)}) :
-                    variables.set(identifier,  {type:type, value:value})       
-                return;  
             case ValueType.TYPE_U8:
-                bNeedSerialize ? variables.set(identifier, {type:type, value:Bcs.getInstance().ser_u8(value)}) :
-                    variables.set(identifier,  {type:type, value:value})    
-                return;  
+            case ValueType.TYPE_U128:
+            case ValueType.TYPE_U256:
+            case ValueType.TYPE_VEC_U64:
+            case ValueType.TYPE_VEC_VEC_U8:   
+            case ValueType.TYPE_OPTION_ADDRESS:
+            case ValueType.TYPE_OPTION_BOOL:
+            case ValueType.TYPE_OPTION_U128:
+            case ValueType.TYPE_OPTION_U256:
+            case ValueType.TYPE_OPTION_U64:
+            case ValueType.TYPE_OPTION_U8:
+            case ValueType.TYPE_VEC_ADDRESS:
+            case ValueType.TYPE_VEC_BOOL:
+            case ValueType.TYPE_VEC_U128:
+            case ValueType.TYPE_VEC_U256:
+                let ser = SER_VALUE.find(s=>s.type==type);
+                if (!ser) ERROR(Errors.Fail, 'add_variable: invalid type');
+                bNeedSerialize ? variables.set(identifier, {type:type, value:Bcs.getInstance().ser(ser!.name, value)}) :
+                variables.set(identifier,  {type:type, value:value})    
+                return         
             case ValueType.TYPE_VEC_U8:
                 if (typeof(value) === 'string') {
                     variables.set(identifier, {type:type, value:Bcs.getInstance().ser_string(value)})                 
@@ -282,27 +297,8 @@ export class GuardVariableHelper {
                     variables.set(identifier,  {type:type, value:value})      
                 }
                 return;  
-            case ValueType.TYPE_U128:
-                bNeedSerialize ? variables.set(identifier, {type:type, value:Bcs.getInstance().ser_u128(value)}) :
-                    variables.set(identifier,  {type:type, value:value})    
-                return;  
-            case ValueType.TYPE_U256:
-                bNeedSerialize ? variables.set(identifier, {type:type, value:Bcs.getInstance().ser_u256(value)}) :
-                    variables.set(identifier,  {type:type, value:value})    
-                return;  
-            case ValueType.TYPE_VEC_U64:
-                bNeedSerialize ? variables.set(identifier, {type:type, value:Bcs.getInstance().ser_vector_u64(value)}) :
-                    variables.set(identifier,  {type:type, value:value})    
-                return;  
-            case ValueType.TYPE_VEC_VEC_U8:
-                bNeedSerialize ? variables.set(identifier, {type:type, value:Bcs.getInstance().ser_vector_vector_u8(value)}) :
-                    variables.set(identifier,  {type:type, value:value})    
-                return;        
             default:
-                if (bNeedSerialize) {
-                    ERROR(Errors.Fail, 'ValueType  serialize not impl yet')
-                }
-                variables.set(identifier,  {type:type, value:value}) 
+                ERROR(Errors.Fail, 'add_variable  serialize not impl yet')
         }
     }
 }
@@ -332,39 +328,47 @@ export class GuardMaker {
         return identifier
     }
 
+    private  serValueParam(type:ValueType, param?:any) {
+        if (!param) ERROR(Errors.InvalidParam, 'param');
+        this.data.push(Bcs.getInstance().ser_u8(type));
+        let ser = SER_VALUE.find(s=>s.type==type);
+        if (!ser) ERROR(Errors.Fail, 'serValueParam: invalid type');
+        this.data.push(Bcs.getInstance().ser(ser!.name, param));
+        this.type_validator.push(type);
+    }
+
     // serialize const & data
     add_param(type:ValueType | ContextType, param?:any) : GuardMaker {
         switch(type)  {
         case ValueType.TYPE_ADDRESS: 
-            if (!param) ERROR(Errors.InvalidParam, 'param');
-            this.data.push(Bcs.getInstance().ser_u8(type));
-            this.data.push(Bcs.getInstance().ser_address(param));
-            this.type_validator.push(type);
-            break;
         case ValueType.TYPE_BOOL:
-            if (!param) ERROR(Errors.InvalidParam, 'param');
-            this.data.push(Bcs.getInstance().ser_u8(type));
-            this.data.push(Bcs.getInstance().ser_bool(param));
-            this.type_validator.push(type);
-            break;
         case ValueType.TYPE_U8:
-            if (!param) ERROR(Errors.InvalidParam, 'param');
-            this.data.push(Bcs.getInstance().ser_u8(type));
-            this.data.push(Bcs.getInstance().ser_u8(param));
-            this.type_validator.push(type);
-            break;
         case ValueType.TYPE_U64: 
-            if (!param) ERROR(Errors.InvalidParam, 'param');
-            this.data.push(Bcs.getInstance().ser_u8(type));
-            this.data.push(Bcs.getInstance().ser_u64(param));
-            this.type_validator.push(type);
+        case ValueType.TYPE_U128: 
+        case ValueType.TYPE_U256: 
+        case ValueType.TYPE_VEC_ADDRESS: 
+        case ValueType.TYPE_VEC_BOOL: 
+        case ValueType.TYPE_VEC_U128: 
+        case ValueType.TYPE_VEC_U64: 
+        case ValueType.TYPE_VEC_VEC_U8: 
+        case ValueType.TYPE_OPTION_U64: 
+        case ValueType.TYPE_OPTION_ADDRESS:
+        case ValueType.TYPE_OPTION_BOOL:
+        case ValueType.TYPE_OPTION_U128:
+        case ValueType.TYPE_OPTION_U256:
+        case ValueType.TYPE_OPTION_U8:
+        case ValueType.TYPE_VEC_U256:
+            this.serValueParam(type, param);
             break;
         case ValueType.TYPE_VEC_U8:
             if (!param) ERROR(Errors.InvalidParam, 'param');
             this.data.push(Bcs.getInstance().ser_u8(type));
-            this.data.push(Bcs.getInstance().ser_string(param));
+            if (typeof(param) == 'string') {
+                this.data.push(Bcs.getInstance().ser_string(param));
+            } else {
+                this.data.push(Bcs.getInstance().ser_vector_u8(param));
+            }
             this.type_validator.push(type);
-            // this.data[this.data.length-1].forEach((item : number) => console.log(item))
             break;
         case ContextType.TYPE_SIGNER:
             this.data.push(Bcs.getInstance().ser_u8(type));
@@ -458,8 +462,8 @@ export class GuardMaker {
             case OperatorType.TYPE_LOGIC_AS_U256_LESSER_EQUAL:
             case OperatorType.TYPE_LOGIC_AS_U256_EQUAL:
                 if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length') }
-                if (!GuardMaker.match_u128(this.type_validator[this.type_validator.length - 1])) { ERROR(Errors.Fail, 'type_validator check') }
-                if (!GuardMaker.match_u128(this.type_validator[this.type_validator.length - 2])) { ERROR(Errors.Fail, 'type_validator check')  }
+                if (!GuardMaker.match_u256(this.type_validator[this.type_validator.length - 1])) { ERROR(Errors.Fail, 'type_validator check') }
+                if (!GuardMaker.match_u256(this.type_validator[this.type_validator.length - 2])) { ERROR(Errors.Fail, 'type_validator check')  }
                 break;
             case OperatorType.TYPE_LOGIC_EQUAL:
                 if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length') }
@@ -535,7 +539,7 @@ export class GuardMaker {
         return concatenate(Uint8Array, input, Bcs.getInstance().ser_u8(OperatorType.TYPE_LOGIC_NOT)) as Uint8Array;
     }
 
-    static match_u128(type:number) : boolean {
+    static match_u256(type:number) : boolean {
         if (type == ValueType.TYPE_U8 || 
             type == ValueType.TYPE_U64 || 
             type == ValueType.TYPE_U128 ||

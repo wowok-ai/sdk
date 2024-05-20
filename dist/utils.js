@@ -1,4 +1,19 @@
 import { BCS, getSuiMoveConfig } from '@mysten/bcs';
+import { ERROR, Errors } from './exception';
+export const OPTION_NONE = 0;
+export const readOption = (arr, de) => {
+    let o = arr.splice(0, 1);
+    if (o[0] == 1) { // true
+        return { bNone: false, value: Bcs.getInstance().de(de, Uint8Array.from(arr)) };
+    }
+    else if (o[0] == 0) {
+        return { bNone: true, value: OPTION_NONE };
+    }
+    else {
+        ERROR(Errors.Fail, 'readOption: option invalid');
+        return { bNone: true, value: OPTION_NONE };
+    }
+};
 export const ulebDecode = (arr) => {
     let total = 0;
     let shift = 0;
@@ -17,6 +32,27 @@ export const ulebDecode = (arr) => {
         value: total,
         length: len,
     };
+};
+export const readVec = (arr, cb) => {
+    let r = ulebDecode(Uint8Array.from(arr));
+    arr.splice(0, r.length);
+    let result = [];
+    for (let i = 0; i < r.value; i++) {
+        result.push(cb(arr, i, r.value));
+    }
+    return result;
+};
+export const cb_U8 = (arr, i, length) => {
+    return arr.shift();
+};
+export const cb_U64 = (arr, i, length) => {
+    return arr.splice(0, 8);
+};
+export const cb_U128 = (arr, i, length) => {
+    return arr.splice(0, 16);
+};
+export const cb_U256 = (arr, i, length) => {
+    return arr.splice(0, 32);
 };
 export const concatenate = (resultConstructor, ...arrays) => {
     let totalLength = 0;
@@ -97,6 +133,15 @@ export class Bcs {
     ser_vector_u8(data) {
         return this.bcs.ser('vector<u8>', data).toBytes();
     }
+    ser_vector_address(data) {
+        return this.bcs.ser('vector<address>', data).toBytes();
+    }
+    ser_vector_bool(data) {
+        return this.bcs.ser('vector<bool>', data).toBytes();
+    }
+    ser_vector_u128(data) {
+        return this.bcs.ser('vector<u128>', data).toBytes();
+    }
     ser_address(data) {
         return this.bcs.ser(BCS.ADDRESS, data).toBytes();
     }
@@ -117,6 +162,9 @@ export class Bcs {
     }
     ser_string(data) {
         return this.bcs.ser(BCS.STRING, data).toBytes();
+    }
+    ser(type, data) {
+        return this.bcs.ser(type, data).toBytes();
     }
     de(type, data) {
         return this.bcs.de(type, data);

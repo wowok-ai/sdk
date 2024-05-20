@@ -74,8 +74,19 @@ export declare enum ValueType {
     TYPE_OPTION_U8 = 113,
     TYPE_OPTION_U64 = 114,
     TYPE_OPTION_U128 = 115,
-    TYPE_U256 = 116
+    TYPE_OPTION_U256 = 116,
+    TYPE_VEC_U256 = 117,
+    TYPE_U256 = 118
 }
+export declare const OperatorTypeArray: number[];
+export declare const ValueTypeArray: number[];
+export declare const IsValidOperatorType: (type: number) => boolean;
+export declare const IsValidValueType: (type: number) => boolean;
+interface ValueTypeString {
+    type: ValueType;
+    name: string;
+}
+export declare const SER_VALUE: ValueTypeString[];
 export declare enum ContextType {
     TYPE_SIGNER = 60,
     TYPE_CLOCK = 61,
@@ -164,4 +175,5 @@ export type Query_Param = {
     data?: any;
     variables?: GuardVariable;
 };
+export {};
 //# sourceMappingURL=protocol.d.ts.map

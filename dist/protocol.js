@@ -53,8 +53,35 @@ export var ValueType;
     ValueType[ValueType["TYPE_OPTION_U8"] = 113] = "TYPE_OPTION_U8";
     ValueType[ValueType["TYPE_OPTION_U64"] = 114] = "TYPE_OPTION_U64";
     ValueType[ValueType["TYPE_OPTION_U128"] = 115] = "TYPE_OPTION_U128";
-    ValueType[ValueType["TYPE_U256"] = 116] = "TYPE_U256";
+    ValueType[ValueType["TYPE_OPTION_U256"] = 116] = "TYPE_OPTION_U256";
+    ValueType[ValueType["TYPE_VEC_U256"] = 117] = "TYPE_VEC_U256";
+    ValueType[ValueType["TYPE_U256"] = 118] = "TYPE_U256";
 })(ValueType || (ValueType = {}));
+export const OperatorTypeArray = Object.values(OperatorType).filter((v) => typeof (v) === 'number');
+export const ValueTypeArray = Object.values(ValueType).filter((v) => typeof (v) === 'number');
+export const IsValidOperatorType = (type) => { return OperatorTypeArray.includes(type); };
+export const IsValidValueType = (type) => { return ValueTypeArray.includes(type); };
+export const SER_VALUE = [
+    { type: ValueType.TYPE_BOOL, name: 'bool' },
+    { type: ValueType.TYPE_ADDRESS, name: 'address' },
+    { type: ValueType.TYPE_U64, name: 'u64' },
+    { type: ValueType.TYPE_U8, name: 'u8' },
+    { type: ValueType.TYPE_VEC_U8, name: 'vector<u8>' },
+    { type: ValueType.TYPE_U128, name: 'u128' },
+    { type: ValueType.TYPE_VEC_ADDRESS, name: 'vector<address>' },
+    { type: ValueType.TYPE_VEC_BOOL, name: 'vector<bool>' },
+    { type: ValueType.TYPE_VEC_VEC_U8, name: 'vector<vector<u8>>' },
+    { type: ValueType.TYPE_VEC_U64, name: 'vector<u64>' },
+    { type: ValueType.TYPE_VEC_U128, name: 'vector<u128>' },
+    { type: ValueType.TYPE_OPTION_ADDRESS, name: 'Option<address>' },
+    { type: ValueType.TYPE_OPTION_BOOL, name: 'Option<bool>' },
+    { type: ValueType.TYPE_OPTION_U8, name: 'Option<u8>' },
+    { type: ValueType.TYPE_OPTION_U64, name: 'Option<u64>' },
+    { type: ValueType.TYPE_OPTION_U128, name: 'Option<u128>' },
+    { type: ValueType.TYPE_OPTION_U256, name: 'Option<u256>' },
+    { type: ValueType.TYPE_VEC_U256, name: 'vector<u256>' },
+    { type: ValueType.TYPE_U256, name: 'u256' },
+];
 export var ContextType;
 (function (ContextType) {
     ContextType[ContextType["TYPE_SIGNER"] = 60] = "TYPE_SIGNER";
@@ -90,7 +117,7 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0xffd87461cb8e54e0ae612a0d6a323d8c6fb4a85933e7481d3f4926ced3e6d7c7";
+                this.package = "0x9a7fc338ab9fd0a8f4c108e2f3dbe53393b83529263eb31a391120997d962400";
                 this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;

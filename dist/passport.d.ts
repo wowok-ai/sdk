@@ -19,6 +19,19 @@ interface GuardInfo {
     variable: QueryInfo[];
     input_witness: QueryInfo[];
 }
+interface DeGuardVariable {
+    type: number;
+    value: any;
+    identifier?: number;
+}
+interface DeGuardData {
+    type: number;
+    value?: any;
+    identifier?: number;
+    cmd?: number;
+    child: DeGuardData[];
+    ret_type?: number;
+}
 interface FutrueFill {
     guard: string;
     index: number;
@@ -37,6 +50,8 @@ export declare class GuardParser {
     private get_index;
     private constructor();
     guardlist: () => GuardInfo[];
+    static GuardObject: (protocol: Protocol, guard: string) => Promise<void>;
+    static ResolveData: (variables: DeGuardVariable[], stack: DeGuardData[], current: DeGuardData) => void;
     static CreateAsync: (protocol: Protocol, guards: string[]) => Promise<GuardParser>;
     parse_variable: (info: GuardInfo, variables: any) => void;
     parse_bcs: (info: GuardInfo, chain_bytes: Uint8Array) => void;

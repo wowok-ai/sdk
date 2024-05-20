@@ -1,7 +1,22 @@
 import { bcs, BCS, toHEX, fromHEX, getSuiMoveConfig, TypeName, StructTypeDefinition } from '@mysten/bcs';
 import { TransactionBlock, Inputs, TransactionResult, TransactionArgument } from '@mysten/sui.js/transactions';
+import { ERROR, Errors } from './exception';
+import { OperatorType } from './protocol';
 
-export const ulebDecode = (arr: number[] | Uint8Array) : {value: number, length: number} => {
+export const OPTION_NONE = 0;
+export const readOption = (arr: number[], de:string) : {bNone:boolean, value:any}=> {
+    let o = arr.splice(0, 1);
+    if (o[0] == 1) { // true
+        return {bNone:false,  value:Bcs.getInstance().de(de, Uint8Array.from(arr))};
+    } else if (o[0] == 0) {
+        return {bNone:true, value:OPTION_NONE};
+    } else {
+        ERROR(Errors.Fail, 'readOption: option invalid')
+        return {bNone:true, value:OPTION_NONE}
+    }
+}
+
+export const ulebDecode = (arr: Uint8Array) : {value: number, length: number} => {
 	let total = 0;
 	let shift = 0;
 	let len = 0;
@@ -21,6 +36,30 @@ export const ulebDecode = (arr: number[] | Uint8Array) : {value: number, length:
 		value: total,
 		length: len,
 	};
+}
+
+export const readVec = (arr: any[], cb:(arr:any[], i:number, length:number) => any) : any[] => {
+    let r = ulebDecode(Uint8Array.from(arr));
+    arr.splice(0, r.length) ;
+
+    let result = [];
+    for (let i = 0; i < r.value; i++) {
+        result.push(cb(arr, i, r.value));
+    }    
+    return result;
+}
+
+export const cb_U8 = (arr:any[], i:number, length:number) : any => {
+    return arr.shift();
+}
+export const cb_U64 = (arr:any[], i:number, length:number) : any => {
+    return arr.splice(0, 8);
+}
+export const cb_U128 = (arr:any[], i:number, length:number) : any => {
+    return arr.splice(0, 16);
+}
+export const cb_U256 = (arr:any[], i:number, length:number) : any => {
+    return arr.splice(0, 32);
 }
 
 export const concatenate = (resultConstructor:any, ...arrays:any[]) => {
@@ -106,6 +145,16 @@ export class Bcs {
     ser_vector_u8(data:number[])  : Uint8Array {
         return this.bcs.ser('vector<u8>', data).toBytes();
     }
+    ser_vector_address(data:number[])  : Uint8Array {
+        return this.bcs.ser('vector<address>', data).toBytes();
+    }
+    ser_vector_bool(data:number[])  : Uint8Array {
+        return this.bcs.ser('vector<bool>', data).toBytes();
+    }
+    ser_vector_u128(data:number[])  : Uint8Array {
+        return this.bcs.ser('vector<u128>', data).toBytes();
+    }
+
     ser_address(data:string) : Uint8Array {
         return this.bcs.ser(BCS.ADDRESS, data).toBytes();
     }
@@ -126,6 +175,9 @@ export class Bcs {
     }
     ser_string(data:string) : Uint8Array {
         return this.bcs.ser(BCS.STRING, data).toBytes();
+    }
+    ser(type:TypeName | StructTypeDefinition, data:Uint8Array) {
+        return this.bcs.ser(type, data).toBytes();
     }
     de(type:TypeName | StructTypeDefinition, data:Uint8Array) {
         return this.bcs.de(type, data)

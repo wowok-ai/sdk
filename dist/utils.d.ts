@@ -1,9 +1,19 @@
 import { BCS, TypeName, StructTypeDefinition } from '@mysten/bcs';
 import { TransactionBlock, TransactionArgument } from '@mysten/sui.js/transactions';
-export declare const ulebDecode: (arr: number[] | Uint8Array) => {
+export declare const OPTION_NONE = 0;
+export declare const readOption: (arr: number[], de: string) => {
+    bNone: boolean;
+    value: any;
+};
+export declare const ulebDecode: (arr: Uint8Array) => {
     value: number;
     length: number;
 };
+export declare const readVec: (arr: any[], cb: (arr: any[], i: number, length: number) => any) => any[];
+export declare const cb_U8: (arr: any[], i: number, length: number) => any;
+export declare const cb_U64: (arr: any[], i: number, length: number) => any;
+export declare const cb_U128: (arr: any[], i: number, length: number) => any;
+export declare const cb_U256: (arr: any[], i: number, length: number) => any;
 export declare const concatenate: (resultConstructor: any, ...arrays: any[]) => any;
 export declare const array_equal: (arr1: any[], arr2: any[]) => boolean;
 export declare const array_unique: (arr: any[]) => any[];
@@ -21,6 +31,9 @@ export declare class Bcs {
     ser_vector_vector_u8(data: string[]): Uint8Array;
     ser_vector_u64(data: number[]): Uint8Array;
     ser_vector_u8(data: number[]): Uint8Array;
+    ser_vector_address(data: number[]): Uint8Array;
+    ser_vector_bool(data: number[]): Uint8Array;
+    ser_vector_u128(data: number[]): Uint8Array;
     ser_address(data: string): Uint8Array;
     ser_bool(data: boolean): Uint8Array;
     ser_u8(data: number): Uint8Array;
@@ -28,6 +41,7 @@ export declare class Bcs {
     ser_u128(data: number): Uint8Array;
     ser_u256(data: number): Uint8Array;
     ser_string(data: string): Uint8Array;
+    ser(type: TypeName | StructTypeDefinition, data: Uint8Array): Uint8Array;
     de(type: TypeName | StructTypeDefinition, data: Uint8Array): any;
 }
 export declare function stringToUint8Array(str: string): Uint8Array;

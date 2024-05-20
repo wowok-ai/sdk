@@ -11,6 +11,9 @@ export declare class Guard {
     static signer_guard(protocol: Protocol): GuardAddress;
     static everyone_guard(protocol: Protocol): GuardAddress;
     static QUERIES: any[];
+    static BoolCmd: any[];
+    static IsBoolCmd: (cmd: number) => boolean;
+    static GetCmd: (cmd: number) => any;
 }
 export declare class GuardVariableHelper {
     static IsValidIndentifier: (identifier: number) => boolean;
@@ -27,6 +30,7 @@ export declare class GuardMaker {
     private static get_index;
     constructor();
     add_variable(type: VariableType, value: any, bNeedSerialize?: boolean): number;
+    private serValueParam;
     add_param(type: ValueType | ContextType, param?: any): GuardMaker;
     add_query(module: MODULES, query_name: string, object_address_from: string | number, bWitness?: boolean): GuardMaker;
     add_logic(type: OperatorType): GuardMaker;
@@ -37,6 +41,6 @@ export declare class GuardMaker {
     get_input(): Uint8Array[];
     static input_combine(input1: Uint8Array, input2: Uint8Array, bAnd?: boolean): Uint8Array;
     static input_not(input: Uint8Array): Uint8Array;
-    static match_u128(type: number): boolean;
+    static match_u256(type: number): boolean;
 }
 //# sourceMappingURL=guard.d.ts.map

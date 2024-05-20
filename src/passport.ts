@@ -1,9 +1,10 @@
 import { type TransactionObjectInput, Inputs } from '@mysten/sui.js/transactions';
 import { FnCallType, GuardObject, Protocol, ContextType, OperatorType, Data_Type,
-    ValueType, MODULES } from './protocol';
-import { parse_object_type, array_unique, Bcs, ulebDecode, IsValidAddress, IsValidArray } from './utils';
-import { BCS } from '@mysten/bcs';
+    ValueType, SER_VALUE, IsValidOperatorType } from './protocol';
+import { parse_object_type, array_unique, Bcs, ulebDecode, IsValidAddress, IsValidArray,  OPTION_NONE, readOption } from './utils';
+import { BCS, BcsReader } from '@mysten/bcs';
 import { ERROR, Errors } from './exception';
+import { Guard } from './guard';
 
 export type Guard_Query_Object = {
     target: FnCallType, // object fnCall
@@ -24,6 +25,20 @@ interface GuardInfo {
     query_list: (string | QueryInfo)[]; // object or witness object query
     variable: QueryInfo[]; // witness in variable & ValueType.TYPE_ADDRESS(for Query)
     input_witness: QueryInfo[]; // witness in input
+}
+
+interface DeGuardVariable {
+    type: number;
+    value: any;
+    identifier?: number;
+}
+interface DeGuardData {
+    type: number;
+    value?: any;
+    identifier?: number;
+    cmd?: number;
+    child: DeGuardData[];
+    ret_type?: number;
 }
 
 interface FutrueFill {
@@ -49,6 +64,351 @@ export class GuardParser {
     }
     guardlist = () => { return this.guard_list }
 
+    /// convert guard-on-chain to js object
+    static DeGuardObject = async (protocol: Protocol, guard: string) : Promise<DeGuardData> => {
+        if (!IsValidAddress(guard)) {
+            ERROR(Errors.IsValidAddress,  'GuardObject guard')
+        }
+
+        let res = await protocol.Query_Raw([guard]);
+        if (res.length == 0 || !res[0].data || res[0].data?.objectId != guard) {
+            ERROR(Errors.Fail, 'GuardObject query error');
+        }
+
+        // console.log(res[0].data?.content);
+        let content = res[0].data!.content as any;
+        if (content?.type != protocol.Package() + '::guard::Guard') {
+            ERROR(Errors.Fail, 'GuardObject object invalid')
+        }
+
+        let  variables : DeGuardVariable[] = [];
+        content.fields.variables.forEach((v:any) => {
+            let value : any;
+            switch (v.fields.type) {
+                case ContextType.TYPE_WITNESS_ID:
+                case ValueType.TYPE_ADDRESS:
+                    value = '0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(v.fields.value)).toString();
+                    break;
+                case ValueType.TYPE_BOOL:
+                case ValueType.TYPE_U8:
+                case ValueType.TYPE_U64:
+                case ValueType.TYPE_U128:
+                case ValueType.TYPE_U256:
+                case ValueType.TYPE_VEC_U8:
+                case ValueType.TYPE_VEC_U64:
+                case ValueType.TYPE_VEC_U128:
+                case ValueType.TYPE_VEC_ADDRESS:
+                case ValueType.TYPE_VEC_BOOL:
+                case ValueType.TYPE_VEC_VEC_U8:
+                case ValueType.TYPE_OPTION_ADDRESS:
+                case ValueType.TYPE_OPTION_BOOL: 
+                case ValueType.TYPE_OPTION_U128:
+                case ValueType.TYPE_OPTION_U8:
+                case ValueType.TYPE_OPTION_U64:
+                case ValueType.TYPE_OPTION_U256:
+                case ValueType.TYPE_VEC_U256:
+                    let de  = SER_VALUE.find(s=>s.type==v.fields.type);
+                    if (!de) ERROR(Errors.Fail, 'GuardObject de error')
+                    value = Bcs.getInstance().de(de!.name, Uint8Array.from(v.fields.value));
+                    break;
+
+                default:
+                    ERROR(Errors.Fail, 'GuardObject variable type invalid')
+            }
+            variables.push({identifier:v.fields.identifier, type:v.fields.type,  value:value});
+        });
+        // console.log(variables)
+
+        let arr = [].slice.call(content.fields.input.fields.bytes.reverse());
+        let data : DeGuardData[] = [];
+        while (arr.length > 0) {
+            let type : unknown = arr.shift() ;
+            let value:any; let cmd:any; let identifier:any;
+            switch (type as Data_Type) { 
+                case ContextType.TYPE_SIGNER:
+                case ContextType.TYPE_CLOCK:
+                case OperatorType.TYPE_LOGIC_AS_U256_GREATER:
+                case OperatorType.TYPE_LOGIC_AS_U256_GREATER_EQUAL:
+                case OperatorType.TYPE_LOGIC_AS_U256_LESSER:
+                case OperatorType.TYPE_LOGIC_AS_U256_LESSER_EQUAL:
+                case OperatorType.TYPE_LOGIC_AS_U256_EQUAL:
+                case OperatorType.TYPE_LOGIC_EQUAL:
+                case OperatorType.TYPE_LOGIC_HAS_SUBSTRING:
+                case OperatorType.TYPE_LOGIC_ALWAYS_TRUE:
+                case OperatorType.TYPE_LOGIC_NOT:
+                case OperatorType.TYPE_LOGIC_AND:
+                case OperatorType.TYPE_LOGIC_OR:
+                    break;    
+                case ContextType.TYPE_VARIABLE:
+                    identifier = arr.shift()! as number;  // identifier
+                    break;
+                case ContextType.TYPE_WITNESS_ID:  // add to variable 
+                case ValueType.TYPE_ADDRESS: 
+                    value = '0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(arr)).toString();
+                    arr.splice(0, 32); // address     
+                    break;
+                case ValueType.TYPE_BOOL:
+                    value = Bcs.getInstance().de(BCS.BOOL, Uint8Array.from(arr)) as boolean;
+                    arr.shift();
+                    break;
+                case ValueType.TYPE_U8:
+                    value = Bcs.getInstance().de(BCS.U8, Uint8Array.from(arr)) as number;
+                    arr.shift();
+                    break;
+                case ValueType.TYPE_U64: 
+                    value = Bcs.getInstance().de(BCS.U64, Uint8Array.from(arr)) as number;
+                    arr.splice(0, 8);
+                    break;
+                case ValueType.TYPE_U128: 
+                    value = Bcs.getInstance().de(BCS.U128, Uint8Array.from(arr)) as bigint;
+                    arr.splice(0, 16);
+                    break;
+                case ValueType.TYPE_U256:
+                    value = Bcs.getInstance().de(BCS.U256, Uint8Array.from(arr)) as bigint;
+                    arr.splice(0, 32);
+                    break;
+                case ValueType.TYPE_VEC_U8:
+                case ValueType.TYPE_VEC_BOOL:
+                    let r = ulebDecode(Uint8Array.from(arr));
+                    value = Bcs.getInstance().de('vector<u8>', Uint8Array.from(arr));
+                    arr.splice(0, r.value+r.length);
+                    break;  
+                case ValueType.TYPE_VEC_ADDRESS:
+                    r = ulebDecode(Uint8Array.from(arr));
+                    value = Bcs.getInstance().de('vector<address>', Uint8Array.from(arr));
+                    arr.splice(0, r.value*32+r.length);
+                    break;  
+                case ValueType.TYPE_VEC_U128:
+                    r = ulebDecode(Uint8Array.from(arr));
+                    value = Bcs.getInstance().de('vector<u128>', Uint8Array.from(arr));
+                    arr.splice(0, r.value*16+r.length);
+                    break;  
+                case ValueType.TYPE_VEC_U256:
+                    r = ulebDecode(Uint8Array.from(arr));
+                    value = Bcs.getInstance().de('vector<u256>', Uint8Array.from(arr));
+                    arr.splice(0, r.value*32+r.length);
+                    break;  
+                case ValueType.TYPE_VEC_U64:
+                    r = ulebDecode(Uint8Array.from(arr));
+                    value = Bcs.getInstance().de('vector<u64>', Uint8Array.from(arr));
+                    arr.splice(0, r.value*8+r.length);
+                    break;              
+                case ValueType.TYPE_VEC_VEC_U8:
+                    r = ulebDecode(Uint8Array.from(arr)); arr.splice(0, r.length);
+                    let res = [];
+                    for (let i = 0; i < r.value; i++) {
+                        let r2 = ulebDecode(Uint8Array.from(arr)); 
+                        res.push(Bcs.getInstance().de('vector<u8>', Uint8Array.from(arr)));
+                        arr.splice(0, r2.length+r2.value);
+                    }
+                    value = res;
+                    break;     
+                case OperatorType.TYPE_QUERY:
+                    let t = arr.splice(0, 1); // data-type
+                    if (t[0] == ValueType.TYPE_ADDRESS || t[0] == ContextType.TYPE_WITNESS_ID) {
+                        let addr = '0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(arr)).toString();
+                        arr.splice(0, 32); // address            
+                        value = addr;
+                        cmd = arr.shift()! as number; // cmd
+                    } else if (t[0] == ContextType.TYPE_VARIABLE) {
+                        let id = arr.splice(0, 1); // key
+                        let v = variables.find((v) => 
+                            (v.identifier == id[0]) && 
+                            ((v.type == ValueType.TYPE_ADDRESS) || (v.type == ContextType.TYPE_WITNESS_ID)));
+                        if (!v) { ERROR(Errors.Fail, 'GuardObject: indentifier not in  variable')}
+                        identifier = id[0];
+                        cmd = arr.shift()! as number; // cmd
+                    } else {
+                        ERROR(Errors.Fail, 'GuardObject: variable type invalid');
+                    }
+                    break;
+                case ValueType.TYPE_OPTION_ADDRESS:
+                    let read = readOption(arr, BCS.ADDRESS);
+                    value = read.value;
+                    if (!read.bNone) arr.splice(0, 32);
+                    break;
+                case ValueType.TYPE_OPTION_BOOL:
+                    read = readOption(arr, BCS.BOOL);
+                    value = read.value;
+                    if (!read.bNone) arr.splice(0, 1);
+                    break;
+                case ValueType.TYPE_OPTION_U8:
+                    read = readOption(arr, BCS.U8);
+                    value = read.value;
+                    if (!read.bNone) arr.splice(0, 1);
+                    break;
+                case ValueType.TYPE_OPTION_U128:
+                    read = readOption(arr, BCS.U128);
+                    value = read.value;
+                    if (!read.bNone) arr.splice(0, 16);
+                    break;
+                case ValueType.TYPE_OPTION_U256:
+                    read = readOption(arr, BCS.U256);
+                    value = read.value;
+                    if (!read.bNone) arr.splice(0, 32);
+                    break;
+                case ValueType.TYPE_OPTION_U64:
+                    read = readOption(arr, BCS.U64);
+                    value = read.value;
+                    if (!read.bNone) arr.splice(0, 8);
+                    break;
+                default:
+                    ERROR(Errors.Fail, 'GuardObject: parse_bcs types')
+            }
+            data.push({type:type as number, value:value, cmd:cmd, identifier:identifier, child:[]});
+        } 
+
+        // console.log(data);
+        if (!data || data.length == 0) ERROR(Errors.Fail, 'GuardObject: data parsed error');
+        let stack: DeGuardData[] = [];
+        data.forEach((d) => {
+            this.ResolveData(variables, stack, d);
+        })
+
+        if (stack.length != 1) {
+            ERROR(Errors.Fail, 'GuardObject: parse error');
+        }
+    
+        return stack.pop()!;
+    }
+
+    static ResolveData = (variables:  DeGuardVariable[], stack:DeGuardData[], current: DeGuardData) => {
+        switch (current.type) {
+            case OperatorType.TYPE_LOGIC_ALWAYS_TRUE:
+                current.ret_type = ValueType.TYPE_BOOL;
+                return;
+            case OperatorType.TYPE_LOGIC_NOT:
+                current.ret_type = ValueType.TYPE_BOOL;
+                if (stack.length < 1) ERROR(Errors.Fail, 'ResolveData: TYPE_LOGIC_NOT');
+
+                let param = stack.pop() as DeGuardData;
+                if (!param.ret_type || param.ret_type !=  ValueType.TYPE_BOOL) {
+                    ERROR(Errors.Fail, 'ResolveData: TYPE_LOGIC_NOT type invalid');
+                }
+
+                current.child.push(param);
+                stack.push(current);
+                return;
+            case OperatorType.TYPE_LOGIC_AS_U256_GREATER:
+            case OperatorType.TYPE_LOGIC_AS_U256_GREATER_EQUAL:
+            case OperatorType.TYPE_LOGIC_AS_U256_LESSER:
+            case OperatorType.TYPE_LOGIC_AS_U256_LESSER_EQUAL:
+            case OperatorType.TYPE_LOGIC_AS_U256_EQUAL:
+                current.ret_type = ValueType.TYPE_BOOL;
+                if (stack.length < 2) ERROR(Errors.Fail, 'ResolveData: ' + current.type);
+                for (let i = 0; i < 2; ++i) {
+                    let p = stack.pop() as DeGuardData;
+                    if (!p.ret_type) ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' INVALID param type');
+                    if (p.ret_type != ValueType.TYPE_U8  && p.ret_type != ValueType.TYPE_U64 &&
+                        p.ret_type != ValueType.TYPE_U128 && p.ret_type != ValueType.TYPE_U256) {
+                            ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' INVALID param type');
+                    };
+                    current.child.push(p);
+                }
+                stack.push(current);
+                return;
+            case OperatorType.TYPE_LOGIC_EQUAL:
+                current.ret_type = ValueType.TYPE_BOOL;
+                if (stack.length < 2) ERROR(Errors.Fail, 'ResolveData: ' + current.type);
+                var p1 = stack.pop() as DeGuardData; var p2 = stack.pop() as DeGuardData;
+                if (!p1.ret_type || !p2.ret_type) ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' INVALID param type');
+                if (p1.ret_type != p2.ret_type) ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' param type not match');
+
+                current.child.push(p1);
+                current.child.push(p2);
+                stack.push(current);
+                return;
+            case OperatorType.TYPE_LOGIC_HAS_SUBSTRING:
+                current.ret_type = ValueType.TYPE_BOOL;
+                if (stack.length < 2) ERROR(Errors.Fail, 'ResolveData: ' + current.type);
+                var p1 = stack.pop() as DeGuardData; var p2 = stack.pop() as DeGuardData;
+                if (!p1.ret_type || !p2.ret_type) ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' INVALID param type');
+                if (p1.ret_type != ValueType.TYPE_VEC_U8 || p2.ret_type != ValueType.TYPE_VEC_U8) {
+                    ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' param type not match');
+                }
+
+                current.child.push(p1);
+                current.child.push(p2);
+                stack.push(current);
+                return
+            case OperatorType.TYPE_LOGIC_AND:
+            case OperatorType.TYPE_LOGIC_OR:
+                current.ret_type = ValueType.TYPE_BOOL;
+                if (stack.length < 2) ERROR(Errors.Fail, 'ResolveData: ' + current.type);
+                var p1 = stack.pop() as DeGuardData; var p2 = stack.pop() as DeGuardData;
+                if (!p1.ret_type || !p2.ret_type) ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' INVALID param type');
+                if (p1.ret_type != ValueType.TYPE_BOOL || p2.ret_type != ValueType.TYPE_BOOL) {
+                    ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' param type not match');
+                }
+
+                current.child.push(p1);
+                current.child.push(p2);
+                stack.push(current);
+                return
+            case OperatorType.TYPE_QUERY:
+                if (!current?.cmd)  ERROR(Errors.Fail, 'OperateParamCount: cmd invalid ' + current.type);
+                let r = Guard.GetCmd(current.cmd!);
+                if (!r) ERROR(Errors.Fail, 'OperateParamCount: cmd not supported ' + current.type);
+                current.ret_type = r[4];
+
+                if (stack.length < r[3].length) ERROR(Errors.Fail, 'OperateParamCount: cmd param lost ' + current.type);
+                r[3].forEach((e:number) => {
+                    let d = stack.pop() as DeGuardData;
+                    if (!d?.ret_type || d.ret_type != e) {
+                        ERROR(Errors.Fail, 'OperateParamCount: cmd param not match ' + current.type);
+                    }
+                    current.child.push(d)
+                });
+               
+                stack.push(current);
+                return
+            case ValueType.TYPE_ADDRESS:
+            case ValueType.TYPE_BOOL:
+            case ValueType.TYPE_U128:
+            case ValueType.TYPE_U256:
+            case ValueType.TYPE_U64:
+            case ValueType.TYPE_U8:
+            case ValueType.TYPE_VEC_ADDRESS:
+            case ValueType.TYPE_VEC_BOOL:
+            case ValueType.TYPE_VEC_U128:
+            case ValueType.TYPE_VEC_U256:
+            case ValueType.TYPE_VEC_U64:
+            case ValueType.TYPE_VEC_U8:
+            case ValueType.TYPE_VEC_VEC_U8:
+            case ValueType.TYPE_OPTION_ADDRESS:
+            case ValueType.TYPE_OPTION_BOOL:
+            case ValueType.TYPE_OPTION_U128:
+            case ValueType.TYPE_OPTION_U256:
+            case ValueType.TYPE_OPTION_U64:
+            case ValueType.TYPE_OPTION_U8:
+                current.ret_type = current.type;
+                stack.push(current);
+                return;
+            case ContextType.TYPE_CLOCK:
+                current.ret_type = ValueType.TYPE_U64;
+                stack.push(current);
+                return;
+            case ContextType.TYPE_SIGNER:
+            case ContextType.TYPE_WITNESS_ID: /// notice!! convert witness type to address type
+                current.ret_type = ValueType.TYPE_ADDRESS;
+                stack.push(current);
+                return;
+            case ContextType.TYPE_VARIABLE:
+                let  v = variables.find((e) => e.identifier ==  current?.identifier);
+                if (!v) ERROR(Errors.Fail, 'OperateParamCount: identifier  invalid ' + current.type);
+                
+                current.ret_type = v?.type;
+                if (v?.type == ContextType.TYPE_WITNESS_ID) {
+                    current.ret_type = ValueType.TYPE_ADDRESS;
+                }
+                
+                stack.push(current);
+                return;
+        }   
+        ERROR(Errors.Fail, 'OperateParamCount: type  invalid ' + current.type);
+    }
+
+    /// create GuardParser ayncly
     static CreateAsync = async (protocol: Protocol, guards: string[]) => {
         if (!IsValidArray(guards, IsValidAddress)) {
             ERROR(Errors.IsValidArray, 'guards');
