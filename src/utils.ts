@@ -291,3 +291,14 @@ export function toFixed(x:number) {
     }
     return res;
   }
+
+export function isValidHttpUrl(url:string) : boolean {
+    let r:any;
+    try {
+      r = new URL(url);
+    } catch (_) {
+      return false;  
+    }
+  
+    return r.protocol === "http:" || r.protocol === "https:";
+}

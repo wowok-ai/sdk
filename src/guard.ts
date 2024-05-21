@@ -88,6 +88,7 @@ export class Guard {
             arguments: []
         }); 
     }
+
     static QUERIES:any[] = [ 
         // module, 'name', 'id', [input], output
         [MODULES.permission, 'builder', 1, [], ValueType.TYPE_ADDRESS],
@@ -217,13 +218,26 @@ export class Guard {
         [MODULES.vote, 'top1_count', 190, [], ValueType.TYPE_U64], 
         [MODULES.vote, 'top1_name_by_votes', 191, [], ValueType.TYPE_VEC_U8], 
         [MODULES.vote, 'top1_votes', 192, [], ValueType.TYPE_U64], 
+
+        [MODULES.wowok, 'initor', 210, [], ValueType.TYPE_ADDRESS], 
+        [MODULES.wowok, 'everyone_guard', 211, [], ValueType.TYPE_ADDRESS], 
+        [MODULES.wowok, 'entities', 212, [], ValueType.TYPE_ADDRESS],
+        [MODULES.wowok, 'grantor_count', 213, [], ValueType.TYPE_U64],   
+        [MODULES.wowok, 'has_grantor', 214, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
+        [MODULES.wowok, 'grantor_name', 215, [ValueType.TYPE_ADDRESS], ValueType.TYPE_VEC_U8], 
+        [MODULES.wowok, 'grantor_register_time', 216, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
+        [MODULES.wowok, 'grantor_expired_time', 217, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
+        [MODULES.wowok, 'grantor_grantee', 218, [ValueType.TYPE_ADDRESS], ValueType.TYPE_ADDRESS], 
+
+        [MODULES.entity, 'has_entity', 230, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
+        [MODULES.entity, 'entity_like', 231, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
+        [MODULES.entity, 'entity_unlike', 232, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
+        [MODULES.entity, 'entity_infomation', 233, [ValueType.TYPE_ADDRESS], ValueType.TYPE_VEC_U8], 
     ];
     static BoolCmd = Guard.QUERIES.filter(q => q[4] == ValueType.TYPE_BOOL);
     static IsBoolCmd = (cmd:number) : boolean => { return Guard.BoolCmd.includes((q:any) => {return q[2] == cmd}) }
     static GetCmd = (cmd:number) : any => { 
-        let r = Guard.QUERIES.find((q:any) => {return q[2] == cmd}) ;
-        if (!r) { ERROR(Errors.Fail, 'CmdParamCount: not found')};
-        return r;
+        return Guard.QUERIES.find((q:any) => {return q[2] == cmd}) ;
     }
 }
 

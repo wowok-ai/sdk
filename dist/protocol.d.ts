@@ -15,6 +15,7 @@ export declare enum MODULES {
     order = "order",
     reward = "reward",
     service = "service",
+    resource = "resource",
     wowok = "wowok"
 }
 export type PermissionAddress = TransactionResult;
@@ -40,7 +41,9 @@ export type DiscountObject = TransactionResult | string;
 export type CoinObject = TransactionResult | string;
 export type VoteObject = TransactionResult | string;
 export type VoteAddress = TransactionResult;
-export type TxbObject = string | TransactionResult | GuardObject | RepositoryObject | PermissionObject | MachineObject | PassportObject | DemandObject | ServiceObject | RewardObject | OrderObject | DiscountObject | VoteObject | DemandObject;
+export type ResourceObject = TransactionResult | string;
+export type ResourceAddress = TransactionResult;
+export type TxbObject = string | TransactionResult | GuardObject | RepositoryObject | PermissionObject | MachineObject | PassportObject | DemandObject | ServiceObject | RewardObject | OrderObject | DiscountObject | VoteObject | DemandObject | ResourceObject;
 export type WowokObject = TransactionResult;
 export type FnCallType = `${string}::${string}::${string}`;
 export declare enum OperatorType {
@@ -127,6 +130,7 @@ export declare class Protocol {
     OrderFn: (fn: any) => string;
     RewardFn: (fn: any) => string;
     ServiceFn: (fn: any) => string;
+    ResourceFn: (fn: any) => string;
     WowokFn: (fn: any) => string;
     Query: (objects: Query_Param[], options?: SuiObjectDataOptions) => Promise<SuiObjectResponse[]>;
     Query_Raw: (objects: string[], options?: SuiObjectDataOptions) => Promise<SuiObjectResponse[]>;

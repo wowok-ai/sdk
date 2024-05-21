@@ -16,7 +16,7 @@ export class GuardParser {
     }
     guardlist = () => { return this.guard_list; };
     /// convert guard-on-chain to js object
-    static GuardObject = async (protocol, guard) => {
+    static DeGuardObject = async (protocol, guard) => {
         if (!IsValidAddress(guard)) {
             ERROR(Errors.IsValidAddress, 'GuardObject guard');
         }
@@ -24,7 +24,7 @@ export class GuardParser {
         if (res.length == 0 || !res[0].data || res[0].data?.objectId != guard) {
             ERROR(Errors.Fail, 'GuardObject query error');
         }
-        console.log(res[0].data?.content);
+        // console.log(res[0].data?.content);
         let content = res[0].data.content;
         if (content?.type != protocol.Package() + '::guard::Guard') {
             ERROR(Errors.Fail, 'GuardObject object invalid');
@@ -65,7 +65,7 @@ export class GuardParser {
             }
             variables.push({ identifier: v.fields.identifier, type: v.fields.type, value: value });
         });
-        console.log(variables);
+        // console.log(variables)
         let arr = [].slice.call(content.fields.input.fields.bytes.reverse());
         let data = [];
         while (arr.length > 0) {
@@ -216,15 +216,17 @@ export class GuardParser {
             }
             data.push({ type: type, value: value, cmd: cmd, identifier: identifier, child: [] });
         }
-        console.log(data);
+        // console.log(data);
         if (!data || data.length == 0)
             ERROR(Errors.Fail, 'GuardObject: data parsed error');
         let stack = [];
         data.forEach((d) => {
             this.ResolveData(variables, stack, d);
-            console.log('---------------------------------');
-            console.log(stack);
         });
+        if (stack.length != 1) {
+            ERROR(Errors.Fail, 'GuardObject: parse error');
+        }
+        return { object: stack.pop(), variable: variables };
     };
     static ResolveData = (variables, stack, current) => {
         switch (current.type) {
@@ -314,7 +316,7 @@ export class GuardParser {
                 let r = Guard.GetCmd(current.cmd);
                 if (!r)
                     ERROR(Errors.Fail, 'OperateParamCount: cmd not supported ' + current.type);
-                console.log(r);
+                current.ret_type = r[4];
                 if (stack.length < r[3].length)
                     ERROR(Errors.Fail, 'OperateParamCount: cmd param lost ' + current.type);
                 r[3].forEach((e) => {
@@ -345,7 +347,6 @@ export class GuardParser {
             case ValueType.TYPE_OPTION_U256:
             case ValueType.TYPE_OPTION_U64:
             case ValueType.TYPE_OPTION_U8:
-            case ContextType.TYPE_WITNESS_ID: /// notice!!
                 current.ret_type = current.type;
                 stack.push(current);
                 return;
@@ -354,6 +355,7 @@ export class GuardParser {
                 stack.push(current);
                 return;
             case ContextType.TYPE_SIGNER:
+            case ContextType.TYPE_WITNESS_ID: /// notice!! convert witness type to address type
                 current.ret_type = ValueType.TYPE_ADDRESS;
                 stack.push(current);
                 return;
@@ -362,6 +364,9 @@ export class GuardParser {
                 if (!v)
                     ERROR(Errors.Fail, 'OperateParamCount: identifier  invalid ' + current.type);
                 current.ret_type = v?.type;
+                if (v?.type == ContextType.TYPE_WITNESS_ID) {
+                    current.ret_type = ValueType.TYPE_ADDRESS;
+                }
                 stack.push(current);
                 return;
         }

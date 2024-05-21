@@ -50,7 +50,10 @@ export declare class GuardParser {
     private get_index;
     private constructor();
     guardlist: () => GuardInfo[];
-    static GuardObject: (protocol: Protocol, guard: string) => Promise<void>;
+    static DeGuardObject: (protocol: Protocol, guard: string) => Promise<{
+        object: DeGuardData;
+        variable: DeGuardVariable[];
+    }>;
     static ResolveData: (variables: DeGuardVariable[], stack: DeGuardData[], current: DeGuardData) => void;
     static CreateAsync: (protocol: Protocol, guards: string[]) => Promise<GuardParser>;
     parse_variable: (info: GuardInfo, variables: any) => void;

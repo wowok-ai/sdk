@@ -19,7 +19,6 @@ export class Machine {
         this.object = '';
     }
     static New(protocol, permission, description, endpoint, passport) {
-        let m = new Machine(protocol, permission);
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects, 'permission');
         }
@@ -29,6 +28,7 @@ export class Machine {
         if (endpoint && !IsValidEndpoint(endpoint)) {
             ERROR(Errors.IsValidEndpoint);
         }
+        let m = new Machine(protocol, permission);
         let txb = protocol.CurrentSession();
         let ep = endpoint ? txb.pure(Bcs.getInstance().ser_option_string(endpoint)) : OptionNone(txb);
         if (passport) {
@@ -172,6 +172,13 @@ export class Machine {
         return txb.moveCall({
             target: this.protocol.MachineFn('create'),
             arguments: [Protocol.TXB_OBJECT(txb, this.object)],
+        });
+    }
+    mark(like, resource) {
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target: this.protocol.MachineFn(like),
+            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
         });
     }
     set_description(description, passport) {

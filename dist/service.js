@@ -33,7 +33,6 @@ export class Service {
         return s;
     }
     static New(protocol, pay_token_type, permission, description, payee_address, endpoint, passport) {
-        let s = new Service(protocol, pay_token_type, permission);
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects);
         }
@@ -49,6 +48,7 @@ export class Service {
         if (endpoint && !IsValidEndpoint(endpoint)) {
             ERROR(Errors.IsValidEndpoint);
         }
+        let s = new Service(protocol, pay_token_type, permission);
         let txb = protocol.CurrentSession();
         let ep = endpoint ? txb.pure(Bcs.getInstance().ser_option_string(endpoint)) : OptionNone(txb);
         if (passport) {
@@ -80,6 +80,14 @@ export class Service {
         txb.moveCall({
             target: this.protocol.ServiceFn('destroy'),
             arguments: [Protocol.TXB_OBJECT(txb, this.object)],
+            typeArguments: [this.pay_token_type]
+        });
+    }
+    mark(like, resource) {
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target: this.protocol.ServiceFn(like),
+            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
             typeArguments: [this.pay_token_type]
         });
     }

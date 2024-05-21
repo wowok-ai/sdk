@@ -20,10 +20,10 @@ export class Progress {
         return p;
     }
     static New(protocol, machine, permission, passport) {
-        let p = new Progress(protocol, machine, permission);
         if (!Protocol.IsValidObjects([machine, permission])) {
             ERROR(Errors.IsValidObjects, 'machine & permission');
         }
+        let p = new Progress(protocol, machine, permission);
         let txb = protocol.CurrentSession();
         if (passport) {
             p.object = txb.moveCall({
@@ -65,6 +65,13 @@ export class Progress {
         txb.moveCall({
             target: this.protocol.ProgressFn('destroy'),
             arguments: [Protocol.TXB_OBJECT(txb, this.object)],
+        });
+    }
+    mark(like, resource) {
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target: this.protocol.ProgressFn(like),
+            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
         });
     }
     set_namedOperator(name, addresses, passport) {

@@ -5,6 +5,7 @@ import { IsValidInt, IsValidUint, Bcs, array_unique, IsValidArray, IsValidAddres
     IsValidEndpoint, OptionNone, IsValidDesription} from './utils'
 import { Permission, PermissionIndexType } from './permission';
 import { Errors, ERROR}  from './exception'
+import { Resource } from './resource';
 
 
 export type MachineNodeObject = TransactionResult | String;
@@ -46,8 +47,6 @@ export class Machine {
         this.object =  '';
     }
     static New(protocol:Protocol, permission:PermissionObject, description:string, endpoint?:string, passport?:PassportObject) : Machine {
-        let m = new Machine(protocol, permission);
-
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects, 'permission')
         }
@@ -57,6 +56,8 @@ export class Machine {
         if (endpoint && !IsValidEndpoint(endpoint)) {
             ERROR(Errors.IsValidEndpoint)
         }
+
+        let m = new Machine(protocol, permission);
         let txb = protocol.CurrentSession();
         let ep = endpoint? txb.pure(Bcs.getInstance().ser_option_string(endpoint)) : OptionNone(txb);
     
@@ -195,6 +196,14 @@ export class Machine {
         })
     }
 
+    mark(like:'like' | 'unlike', resource:Resource) {
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target:this.protocol.MachineFn(like) as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb,  this.object)],
+        })  
+    }
+    
     set_description(description:string, passport?:PassportObject) {
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription)

@@ -2,6 +2,7 @@ import { BCS } from '@mysten/bcs';
 import { FnCallType, PassportObject, PermissionObject, GuardObject, VoteAddress, Protocol, TxbObject} from './protocol';
 import { IsValidDesription, IsValidUint, IsValidAddress, OptionNone, Bcs, array_unique, IsValidArray, IsValidName } from './utils';
 import { ERROR, Errors } from './exception';
+import { Resource } from './resource';
 
 export const MAX_AGREES_COUNT = 200;
 export const MAX_CHOICE_COUNT = 200;
@@ -29,7 +30,6 @@ export class Vote {
     }
     static New(protocol:Protocol, permission:PermissionObject, description:string, minutes_duration:number, 
         max_choice_count?:number, reference_address?:string, passport?:PassportObject) : Vote {
-        let v = new Vote(protocol, permission);    
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects,  'permission')
         }
@@ -49,6 +49,7 @@ export class Vote {
             ERROR(Errors.IsValidAddress, 'reference_address')
         }
 
+        let v = new Vote(protocol, permission);    
         let txb  = protocol.CurrentSession();
         let reference = reference_address?  txb.pure(Bcs.getInstance().ser_option_address(reference_address)) : OptionNone(txb);
         let choice_count = max_choice_count ? max_choice_count : 1;
@@ -82,6 +83,14 @@ export class Vote {
         txb.moveCall({
             target:this.protocol.VoteFn('destroy') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(txb, this.object)]
+        })
+    }
+
+    mark(like:'like' | 'unlike', resource:Resource) {
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target:this.protocol.VoteFn(like) as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)]
         })
     }
 

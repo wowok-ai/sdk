@@ -24,13 +24,13 @@ export class Repository {
         return r;
     }
     static New(protocol, permission, description, policy_mode, passport) {
-        let r = new Repository(protocol, permission);
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects, 'permission');
         }
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription);
         }
+        let r = new Repository(protocol, permission);
         let txb = protocol.CurrentSession();
         if (passport) {
             r.object = txb.moveCall({
@@ -60,6 +60,15 @@ export class Repository {
         txb.moveCall({
             target: this.protocol.RepositoryFn('destroy'),
             arguments: [Protocol.TXB_OBJECT(txb, this.object)],
+        });
+    }
+    mark(like, resource) {
+        if (!Protocol.IsValidObjects([this.object]))
+            return false;
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target: this.protocol.RepositoryFn(like),
+            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
         });
     }
     add_data(data) {

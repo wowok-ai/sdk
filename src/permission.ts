@@ -2,6 +2,7 @@ import { BCS } from '@mysten/bcs';
 import { FnCallType, TxbObject, PermissionObject, PermissionAddress, GuardObject, Protocol} from './protocol';
 import { array_unique, IsValidAddress, IsValidArray,  IsValidDesription, IsValidUint, Bcs} from './utils';
 import { ERROR, Errors } from './exception';
+import { Resource } from './resource';
 
 export enum PermissionIndex {
     repository = 100,
@@ -113,12 +114,11 @@ export class  Permission {
     }
 
     static New(protocol:Protocol, description:string) : Permission {
-        let p = new Permission(protocol);
-
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription)
         }
 
+        let p = new Permission(protocol);
         let txb = protocol.CurrentSession();
         p.object = txb.moveCall({
             target: protocol.PermissionFn('new') as FnCallType,
@@ -134,14 +134,23 @@ export class  Permission {
             arguments:[ Protocol.TXB_OBJECT(txb, this.object) ]        
         })
     }
+
     destroy()  {
         let txb = this.protocol.CurrentSession();
         txb.moveCall({
             target:this.protocol.PermissionFn('destroy') as FnCallType,
             arguments: [Protocol.TXB_OBJECT(txb, this.object)],
-        })   
-        
+        })  
     }
+
+    mark(like:'like' | 'unlike', resource:Resource)  {
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target:this.protocol.PermissionFn(like) as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
+        })  
+    }
+
     add_entity(entities:Permission_Entity[])  {
         if (!entities) {
             ERROR(Errors.InvalidParam, 'entities');

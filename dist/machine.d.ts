@@ -1,6 +1,7 @@
 import { type TransactionResult } from '@mysten/sui.js/transactions';
 import { Protocol, PermissionObject, RepositoryObject, PassportObject, MachineObject, MachineAddress, GuardObject, TxbObject } from './protocol';
 import { PermissionIndexType } from './permission';
+import { Resource } from './resource';
 export type MachineNodeObject = TransactionResult | String;
 export interface Machine_Forward {
     name: string;
@@ -32,6 +33,7 @@ export declare class Machine {
     remove_node(nodes_name: string[], bTransferMyself?: boolean, passport?: PassportObject): void;
     destroy(): void;
     launch(): MachineAddress;
+    mark(like: 'like' | 'unlike', resource: Resource): void;
     set_description(description: string, passport?: PassportObject): void;
     add_repository(repository: RepositoryObject, passport?: PassportObject): void;
     remove_repository(repositories: string[], removeall?: boolean, passport?: PassportObject): void;

@@ -20,7 +20,6 @@ export class Vote {
         return v;
     }
     static New(protocol, permission, description, minutes_duration, max_choice_count, reference_address, passport) {
-        let v = new Vote(protocol, permission);
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects, 'permission');
         }
@@ -39,6 +38,7 @@ export class Vote {
         if (reference_address && !IsValidAddress(reference_address)) {
             ERROR(Errors.IsValidAddress, 'reference_address');
         }
+        let v = new Vote(protocol, permission);
         let txb = protocol.CurrentSession();
         let reference = reference_address ? txb.pure(Bcs.getInstance().ser_option_address(reference_address)) : OptionNone(txb);
         let choice_count = max_choice_count ? max_choice_count : 1;
@@ -70,6 +70,13 @@ export class Vote {
         txb.moveCall({
             target: this.protocol.VoteFn('destroy'),
             arguments: [Protocol.TXB_OBJECT(txb, this.object)]
+        });
+    }
+    mark(like, resource) {
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target: this.protocol.VoteFn(like),
+            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)]
         });
     }
     set_description(description, passport) {

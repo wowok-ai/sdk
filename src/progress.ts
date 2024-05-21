@@ -4,6 +4,7 @@ import { FnCallType, PermissionObject, RepositoryObject, PassportObject, Machine
     TxbObject} from './protocol';
 import { Bcs, array_unique,IsValidName, IsValidAddress, IsValidArray, OptionNone, IsValidInt  } from './utils'
 import { ERROR, Errors } from './exception';
+import { Resource } from './resource';
 
 export type ProgressNext = {
     next_node_name: string;
@@ -34,12 +35,11 @@ export class Progress {
         return p
     }
     static New(protocol:Protocol, machine:MachineObject, permission:PermissionObject, passport?:PassportObject) : Progress {
-        let p = new Progress(protocol, machine, permission);
-
         if (!Protocol.IsValidObjects([machine, permission])) {
             ERROR(Errors.IsValidObjects, 'machine & permission')
         }
 
+        let p = new Progress(protocol, machine, permission);
         let txb = protocol.CurrentSession();
 
         if (passport) {
@@ -86,7 +86,15 @@ export class Progress {
             arguments: [Protocol.TXB_OBJECT(txb, this.object)],
         })   
     }
-    
+
+    mark(like:'like' | 'unlike', resource:Resource)  {
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target:this.protocol.ProgressFn(like) as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
+        })   
+    }
+
     set_namedOperator(name:string, addresses:string[], passport?:PassportObject)  {
         if (!IsValidName(name)) {
             ERROR(Errors.IsValidName, 'name')

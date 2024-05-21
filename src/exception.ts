@@ -17,6 +17,7 @@ export enum Errors {
     IsValidKey = 'invalid key',
     Fail = 'fail',
     IsValidIndentifier = 'indentifier invalid',
+    isValidHttpUrl = 'invalid url',
 }
 
 export const ERROR = (error:Errors, info?:any) =>  {

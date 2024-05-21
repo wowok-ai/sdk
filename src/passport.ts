@@ -65,7 +65,7 @@ export class GuardParser {
     guardlist = () => { return this.guard_list }
 
     /// convert guard-on-chain to js object
-    static DeGuardObject = async (protocol: Protocol, guard: string) : Promise<DeGuardData> => {
+    static DeGuardObject = async (protocol: Protocol, guard: string) : Promise<{object:DeGuardData, variable:DeGuardVariable[]}> => {
         if (!IsValidAddress(guard)) {
             ERROR(Errors.IsValidAddress,  'GuardObject guard')
         }
@@ -269,7 +269,7 @@ export class GuardParser {
             ERROR(Errors.Fail, 'GuardObject: parse error');
         }
     
-        return stack.pop()!;
+        return {object:stack.pop()!, variable:variables};
     }
 
     static ResolveData = (variables:  DeGuardVariable[], stack:DeGuardData[], current: DeGuardData) => {
@@ -404,6 +404,7 @@ export class GuardParser {
                 
                 stack.push(current);
                 return;
+                
         }   
         ERROR(Errors.Fail, 'OperateParamCount: type  invalid ' + current.type);
     }

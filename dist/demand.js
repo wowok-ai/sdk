@@ -3,47 +3,47 @@ import { Protocol } from './protocol';
 import { IsValidDesription, IsValidUint, IsValidAddress, IsValidArgType, } from './utils';
 import { Errors, ERROR } from './exception';
 export class Demand {
-    earnest_type;
+    bounty_type;
     permission;
     object;
     protocol;
-    get_earnest_type() { return this.earnest_type; }
+    get_bounty_type() { return this.bounty_type; }
     get_object() { return this.object; }
-    static From(protocol, earnest_type, permission, object) {
-        let d = new Demand(protocol, earnest_type, permission);
+    static From(protocol, bounty_type, permission, object) {
+        let d = new Demand(protocol, bounty_type, permission);
         d.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object);
         return d;
     }
-    constructor(protocol, earnest_type, permission) {
-        this.earnest_type = earnest_type;
+    constructor(protocol, bounty_type, permission) {
+        this.bounty_type = bounty_type;
         this.permission = permission;
         this.protocol = protocol;
         this.object = '';
     }
-    static New(protocol, earnest_type, permission, description, earnest, passport) {
-        let d = new Demand(protocol, earnest_type, permission);
-        if (!Protocol.IsValidObjects([permission, earnest])) {
-            ERROR(Errors.IsValidObjects, 'permission, earnest');
+    static New(protocol, bounty_type, permission, description, bounty, passport) {
+        if (!Protocol.IsValidObjects([permission, bounty])) {
+            ERROR(Errors.IsValidObjects, 'permission, bounty');
         }
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription);
         }
-        if (!IsValidArgType(earnest_type)) {
-            ERROR(Errors.IsValidArgType, earnest_type);
+        if (!IsValidArgType(bounty_type)) {
+            ERROR(Errors.IsValidArgType, bounty_type);
         }
+        let d = new Demand(protocol, bounty_type, permission);
         let txb = protocol.CurrentSession();
         if (passport) {
             d.object = txb.moveCall({
                 target: protocol.DemandFn('new_with_passport'),
-                arguments: [passport, txb.pure(description), earnest, Protocol.TXB_OBJECT(txb, permission)],
-                typeArguments: [earnest_type],
+                arguments: [passport, txb.pure(description), bounty, Protocol.TXB_OBJECT(txb, permission)],
+                typeArguments: [bounty_type],
             });
         }
         else {
             d.object = txb.moveCall({
                 target: protocol.DemandFn('new'),
-                arguments: [txb.pure(description), earnest, Protocol.TXB_OBJECT(txb, permission)],
-                typeArguments: [earnest_type],
+                arguments: [txb.pure(description), bounty, Protocol.TXB_OBJECT(txb, permission)],
+                typeArguments: [bounty_type],
             });
         }
         return d;
@@ -53,7 +53,7 @@ export class Demand {
         return txb.moveCall({
             target: this.protocol.DemandFn('create'),
             arguments: [Protocol.TXB_OBJECT(txb, this.object)],
-            typeArguments: [this.earnest_type],
+            typeArguments: [this.bounty_type],
         });
     }
     destroy() {
@@ -61,7 +61,15 @@ export class Demand {
         txb.moveCall({
             target: this.protocol.DemandFn('destroy'),
             arguments: [Protocol.TXB_OBJECT(txb, this.object)],
-            typeArguments: [this.earnest_type]
+            typeArguments: [this.bounty_type]
+        });
+    }
+    mark(like, resource) {
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target: this.protocol.DemandFn(like),
+            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
+            typeArguments: [this.bounty_type]
         });
     }
     refund(passport) {
@@ -70,14 +78,14 @@ export class Demand {
             txb.moveCall({
                 target: this.protocol.DemandFn('refund_with_passport'),
                 arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments: [this.earnest_type],
+                typeArguments: [this.bounty_type],
             });
         }
         else {
             txb.moveCall({
                 target: this.protocol.DemandFn('refund'),
                 arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments: [this.earnest_type],
+                typeArguments: [this.bounty_type],
             });
         }
     }
@@ -91,7 +99,7 @@ export class Demand {
                 target: this.protocol.DemandFn('time_expand_with_passport'),
                 arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(minutes_duration, BCS.U64),
                     txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments: [this.earnest_type],
+                typeArguments: [this.bounty_type],
             });
         }
         else {
@@ -99,7 +107,7 @@ export class Demand {
                 target: this.protocol.DemandFn('time_expand'),
                 arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(minutes_duration, BCS.U64),
                     txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments: [this.earnest_type],
+                typeArguments: [this.bounty_type],
             });
         }
     }
@@ -114,14 +122,14 @@ export class Demand {
                     target: this.protocol.DemandFn('guard_set_with_passport'),
                     arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard),
                         Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments: [this.earnest_type],
+                    typeArguments: [this.bounty_type],
                 });
             }
             else {
                 txb.moveCall({
                     target: this.protocol.DemandFn('guard_none_with_passport'),
                     arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments: [this.earnest_type],
+                    typeArguments: [this.bounty_type],
                 });
             }
         }
@@ -131,14 +139,14 @@ export class Demand {
                     target: this.protocol.DemandFn('guard_set'),
                     arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard),
                         Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments: [this.earnest_type],
+                    typeArguments: [this.bounty_type],
                 });
             }
             else {
                 txb.moveCall({
                     target: this.protocol.DemandFn('guard_none'),
                     arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments: [this.earnest_type],
+                    typeArguments: [this.bounty_type],
                 });
             }
         }
@@ -153,14 +161,14 @@ export class Demand {
                 target: this.protocol.DemandFn('description_set_with_passport'),
                 arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(description),
                     Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments: [this.earnest_type],
+                typeArguments: [this.bounty_type],
             });
         }
         else {
             txb.moveCall({
                 target: this.protocol.DemandFn('description_set'),
                 arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(description), Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments: [this.earnest_type],
+                typeArguments: [this.bounty_type],
             });
         }
     }
@@ -175,7 +183,7 @@ export class Demand {
                 arguments: [passport, Protocol.TXB_OBJECT(txb, this.object),
                     txb.pure(service_address, BCS.ADDRESS),
                     Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments: [this.earnest_type],
+                typeArguments: [this.bounty_type],
             });
         }
         else {
@@ -184,19 +192,19 @@ export class Demand {
                 arguments: [Protocol.TXB_OBJECT(txb, this.object),
                     txb.pure(service_address, BCS.ADDRESS),
                     Protocol.TXB_OBJECT(txb, this.permission)],
-                typeArguments: [this.earnest_type],
+                typeArguments: [this.bounty_type],
             });
         }
     }
-    deposit(earnest) {
-        if (!Protocol.IsValidObjects([earnest])) {
+    deposit(bounty) {
+        if (!Protocol.IsValidObjects([bounty])) {
             ERROR(Errors.IsValidObjects);
         }
         let txb = this.protocol.CurrentSession();
         txb.moveCall({
             target: this.protocol.DemandFn('deposit'),
-            arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, earnest)],
-            typeArguments: [this.earnest_type],
+            arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, bounty)],
+            typeArguments: [this.bounty_type],
         });
     }
     present(service_address, service_pay_type, tips, passport) {
@@ -215,7 +223,7 @@ export class Demand {
                 target: this.protocol.DemandFn('present_with_passport'),
                 arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, service_address),
                     txb.pure(tips, BCS.STRING)],
-                typeArguments: [this.earnest_type, service_pay_type],
+                typeArguments: [this.bounty_type, service_pay_type],
             });
         }
         else {
@@ -223,7 +231,7 @@ export class Demand {
                 target: this.protocol.DemandFn('present'),
                 arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, service_address),
                     txb.pure(tips, BCS.STRING)],
-                typeArguments: [this.earnest_type, service_pay_type],
+                typeArguments: [this.bounty_type, service_pay_type],
             });
         }
     }
@@ -235,10 +243,10 @@ export class Demand {
         txb.moveCall({
             target: this.protocol.DemandFn('permission_set'),
             arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), Protocol.TXB_OBJECT(txb, new_permission)],
-            typeArguments: [this.earnest_type]
+            typeArguments: [this.bounty_type]
         });
         this.permission = new_permission;
     }
-    static MAX_EARNEST_COUNT = 200;
+    static MAX_BOUNTY_COUNT = 200;
     static MAX_PRESENTERS_COUNT = 200;
 }

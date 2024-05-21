@@ -98,10 +98,10 @@ export class Permission {
         return p;
     }
     static New(protocol, description) {
-        let p = new Permission(protocol);
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription);
         }
+        let p = new Permission(protocol);
         let txb = protocol.CurrentSession();
         p.object = txb.moveCall({
             target: protocol.PermissionFn('new'),
@@ -121,6 +121,13 @@ export class Permission {
         txb.moveCall({
             target: this.protocol.PermissionFn('destroy'),
             arguments: [Protocol.TXB_OBJECT(txb, this.object)],
+        });
+    }
+    mark(like, resource) {
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target: this.protocol.PermissionFn(like),
+            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
         });
     }
     add_entity(entities) {

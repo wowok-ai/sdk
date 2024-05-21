@@ -3,6 +3,7 @@ import { BCS} from '@mysten/bcs';
 import { FnCallType, GuardObject, PassportObject, PermissionObject, RewardAddress, Protocol, TxbObject, } from './protocol';
 import { array_unique, IsValidAddress, IsValidArgType, IsValidArray, IsValidDesription,  IsValidUint, } from './utils';
 import { ERROR, Errors } from './exception';
+import { Resource } from './resource';
 
 export type CoinReward = TransactionResult;
 export type RewardGuardPortions = {
@@ -31,7 +32,6 @@ export class Reward {
     }
     static New(protocol:Protocol, earnest_type:string, permission:PermissionObject, description:string, 
         minutes_duration:number, passport?:PassportObject) : Reward {
-        let r = new Reward(protocol, earnest_type,  permission);
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects, 'permission')
         }
@@ -45,6 +45,7 @@ export class Reward {
             ERROR(Errors.IsValidUint, 'minutes_duration')
         }
 
+        let r = new Reward(protocol, earnest_type,  permission);
         let txb = protocol.CurrentSession()
 
         if (passport) {
@@ -79,6 +80,14 @@ export class Reward {
         txb.moveCall({
             target:this.protocol.RewardFn('destroy') as FnCallType,
             arguments: [Protocol.TXB_OBJECT(txb, this.object)],
+        })   
+    }
+
+    mark(like:'like' | 'unlike', resource:Resource)  {
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target:this.protocol.RewardFn(like) as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
         })   
     }
 

@@ -196,12 +196,7 @@ export class Guard {
     static BoolCmd = Guard.QUERIES.filter(q => q[4] == ValueType.TYPE_BOOL);
     static IsBoolCmd = (cmd) => { return Guard.BoolCmd.includes((q) => { return q[2] == cmd; }); };
     static GetCmd = (cmd) => {
-        let r = Guard.QUERIES.find((q) => { return q[2] == cmd; });
-        if (!r) {
-            ERROR(Errors.Fail, 'CmdParamCount: not found');
-        }
-        ;
-        return r;
+        return Guard.QUERIES.find((q) => { return q[2] == cmd; });
     };
 }
 export class GuardVariableHelper {

@@ -21,7 +21,6 @@ export class Reward {
         return r;
     }
     static New(protocol, earnest_type, permission, description, minutes_duration, passport) {
-        let r = new Reward(protocol, earnest_type, permission);
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects, 'permission');
         }
@@ -34,6 +33,7 @@ export class Reward {
         if (!IsValidUint(minutes_duration)) {
             ERROR(Errors.IsValidUint, 'minutes_duration');
         }
+        let r = new Reward(protocol, earnest_type, permission);
         let txb = protocol.CurrentSession();
         if (passport) {
             r.object = txb.moveCall({
@@ -66,6 +66,13 @@ export class Reward {
         txb.moveCall({
             target: this.protocol.RewardFn('destroy'),
             arguments: [Protocol.TXB_OBJECT(txb, this.object)],
+        });
+    }
+    mark(like, resource) {
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target: this.protocol.RewardFn(like),
+            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
         });
     }
     refund(passport) {

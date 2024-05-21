@@ -3,6 +3,7 @@ import { Protocol, FnCallType, ValueType, RepositoryObject, RepositoryAddress, P
 import { PermissionIndexType, Permission } from './permission'
 import { Bcs, array_unique, IsValidDesription, IsValidAddress, IsValidArray, OptionNone,  } from './utils';
 import { ERROR, Errors } from './exception';
+import { Resource } from './resource';
 
 export enum Repository_Policy_Mode {
     POLICY_MODE_FREE = 0,
@@ -42,7 +43,6 @@ export class Repository {
     }
     static New(protocol:Protocol, permission:PermissionObject, description:string, 
         policy_mode: Repository_Policy_Mode, passport?:PassportObject) : Repository {
-        let r = new Repository(protocol, permission);
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects, 'permission')
         }
@@ -50,6 +50,7 @@ export class Repository {
             ERROR(Errors.IsValidDesription)
         }
 
+        let r = new Repository(protocol, permission);
         let txb = protocol.CurrentSession();
 
         if (passport) {
@@ -79,6 +80,15 @@ export class Repository {
         txb.moveCall({
             target:this.protocol.RepositoryFn('destroy') as FnCallType,
             arguments: [Protocol.TXB_OBJECT(txb, this.object)],
+        })   
+    }
+
+    mark(like:'like' | 'unlike', resource:Resource)  {
+        if (!Protocol.IsValidObjects([this.object])) return false;
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target:this.protocol.RepositoryFn(like) as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
         })   
     }
 

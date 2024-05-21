@@ -5,6 +5,7 @@ import { FnCallType, GuardObject, PassportObject, PermissionObject, RepositoryOb
     ServiceObject, DiscountObject, OrderObject, OrderAddress, CoinObject, Protocol, 
     TxbObject} from './protocol';
 import { ERROR, Errors } from './exception';
+import { Resource } from './resource';
 
 export type Service_Guard_Percent = {
     guard:GuardObject;
@@ -76,7 +77,6 @@ export class Service {
     }
     static New(protocol: Protocol, pay_token_type:string, permission:PermissionObject, description:string, 
         payee_address:string, endpoint?:string, passport?:PassportObject) : Service {
-        let s = new Service(protocol, pay_token_type, permission);
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects)
         }
@@ -94,6 +94,7 @@ export class Service {
             ERROR(Errors.IsValidEndpoint)
         }
 
+        let s = new Service(protocol, pay_token_type, permission);
         let txb = protocol.CurrentSession();
         let ep = endpoint? txb.pure(Bcs.getInstance().ser_option_string(endpoint)) : OptionNone(txb);
         
@@ -129,6 +130,16 @@ export class Service {
             typeArguments:[this.pay_token_type]
         })   
     }
+
+    mark(like:'like' | 'unlike', resource:Resource) {
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target:this.protocol.ServiceFn(like) as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
+            typeArguments:[this.pay_token_type]
+        })   
+    }
+
     set_description(description:string, passport?:PassportObject)  {
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription)

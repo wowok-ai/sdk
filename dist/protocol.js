@@ -18,6 +18,7 @@ export var MODULES;
     MODULES["order"] = "order";
     MODULES["reward"] = "reward";
     MODULES["service"] = "service";
+    MODULES["resource"] = "resource";
     MODULES["wowok"] = "wowok";
 })(MODULES || (MODULES = {}));
 export var OperatorType;
@@ -157,6 +158,7 @@ export class Protocol {
     OrderFn = (fn) => { return `${this.package}::${MODULES.order}::${fn}`; };
     RewardFn = (fn) => { return `${this.package}::${MODULES.reward}::${fn}`; };
     ServiceFn = (fn) => { return `${this.package}::${MODULES.service}::${fn}`; };
+    ResourceFn = (fn) => { return `${this.package}::${MODULES.resource}::${fn}`; };
     WowokFn = (fn) => { return `${this.package}::${MODULES.wowok}::${fn}`; };
     Query = async (objects, options = { showContent: true }) => {
         const client = new SuiClient({ url: this.NetworkUrl() });

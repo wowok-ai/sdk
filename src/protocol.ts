@@ -21,6 +21,8 @@ export enum MODULES {
     order = 'order',
     reward = 'reward',
     service = 'service',
+    resource = 'resource',
+    entity = 'entity',
     wowok = 'wowok',
 }
 
@@ -47,9 +49,13 @@ export type DiscountObject = TransactionResult | string;
 export type CoinObject = TransactionResult | string;
 export type VoteObject = TransactionResult | string;
 export type VoteAddress = TransactionResult;
+export type ResourceObject = TransactionResult | string;
+export type ResourceAddress = TransactionResult;
+export type EntityObject = TransactionResult | string;
+export type EntityAddress = TransactionResult;
 
 export type TxbObject = string | TransactionResult | GuardObject |  RepositoryObject | PermissionObject | MachineObject | PassportObject |
-    DemandObject | ServiceObject | RewardObject | OrderObject | DiscountObject | VoteObject | DemandObject;
+    DemandObject | ServiceObject | RewardObject | OrderObject | DiscountObject | VoteObject | DemandObject | ResourceObject | EntityObject;
 
 export type WowokObject = TransactionResult;
 export type FnCallType = `${string}::${string}::${string}`;
@@ -145,7 +151,8 @@ export class Protocol {
     protected network = '';
     protected package = '';
     protected signer = '';
-    protected everyone_guard = '';
+    protected wowok_object = '';
+    protected entity_object = '';
     protected graphql = '';
     protected txb: TransactionBlock | undefined;
 
@@ -158,13 +165,13 @@ export class Protocol {
         switch(network) {
             case ENTRYPOINT.localnet:
                 this.package = "0xe9721254e97dd074e06c5efe5c57be169b64b39ae48939d89c00bf2f62b19e10";
-                this.everyone_guard = "0xb2a3fe7881cb883743c4e962b7e3c7716a1cd47a67adad01dc79795def4f769d";
                 break;
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
                 this.package = "0x9a7fc338ab9fd0a8f4c108e2f3dbe53393b83529263eb31a391120997d962400";
-                this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
+                this.wowok_object = '';
+                this.entity_object= '';
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
             case ENTRYPOINT.mainnet:
@@ -172,7 +179,8 @@ export class Protocol {
         };
     }
     Package(): string { return this.package }
-    EveryoneGuard(): string { return this.everyone_guard }
+    WowokObject(): string { return this.wowok_object }
+    EntityObject(): string { return this.entity_object }
     GraphqlUrl() : string { return this.graphql }
     
     NetworkUrl() : string { 
@@ -201,6 +209,8 @@ export class Protocol {
     OrderFn = (fn:any) => { return `${this.package}::${MODULES.order}::${fn}`};
     RewardFn = (fn: any) => { return `${this.package}::${MODULES.reward}::${fn}`};
     ServiceFn = (fn: any) => { return `${this.package}::${MODULES.service}::${fn}`};
+    ResourceFn = (fn: any) => { return `${this.package}::${MODULES.resource}::${fn}`};
+    EntityFn = (fn: any) => { return `${this.package}::${MODULES.entity}::${fn}`};
     WowokFn = (fn: any) => { return `${this.package}::${MODULES.wowok}::${fn}`};
     
     Query = async (objects: Query_Param[], options:SuiObjectDataOptions={showContent:true}) : Promise<SuiObjectResponse[]> => {

@@ -1,4 +1,5 @@
 import { GuardObject, PassportObject, PermissionObject, RepositoryObject, MachineObject, ServiceAddress, ServiceObject, DiscountObject, OrderObject, OrderAddress, CoinObject, Protocol, TxbObject } from './protocol';
+import { Resource } from './resource';
 export type Service_Guard_Percent = {
     guard: GuardObject;
     percent: number;
@@ -57,6 +58,7 @@ export declare class Service {
     static New(protocol: Protocol, pay_token_type: string, permission: PermissionObject, description: string, payee_address: string, endpoint?: string, passport?: PassportObject): Service;
     launch(): ServiceAddress;
     destroy(): void;
+    mark(like: 'like' | 'unlike', resource: Resource): void;
     set_description(description: string, passport?: PassportObject): void;
     set_price(item: string, price: number, bNotFoundAssert?: boolean, passport?: PassportObject): void;
     set_stock(item: string, stock: number, bNotFoundAssert?: boolean, passport?: PassportObject): void;
