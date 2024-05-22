@@ -67,13 +67,15 @@ export class Progress {
             arguments: [Protocol.TXB_OBJECT(txb, this.object)],
         });
     }
-    mark(like, resource) {
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target: this.protocol.ProgressFn(like),
-            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
-        });
-    }
+    /* move to: Entity.mark
+        mark(like:'like' | 'unlike', resource:Resource)  {
+            let txb = this.protocol.CurrentSession();
+            txb.moveCall({
+                target:this.protocol.ProgressFn(like) as FnCallType,
+                arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
+            })
+        }
+    */
     set_namedOperator(name, addresses, passport) {
         if (!IsValidName(name)) {
             ERROR(Errors.IsValidName, 'name');

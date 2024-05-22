@@ -1,6 +1,5 @@
 import { type TransactionResult } from '@mysten/sui.js/transactions';
 import { GuardObject, PassportObject, PermissionObject, RewardAddress, Protocol, TxbObject } from './protocol';
-import { Resource } from './resource';
 export type CoinReward = TransactionResult;
 export type RewardGuardPortions = {
     guard: GuardObject;
@@ -18,7 +17,6 @@ export declare class Reward {
     static New(protocol: Protocol, earnest_type: string, permission: PermissionObject, description: string, minutes_duration: number, passport?: PassportObject): Reward;
     launch(): RewardAddress;
     destroy(): void;
-    mark(like: 'like' | 'unlike', resource: Resource): void;
     refund(passport?: PassportObject): void;
     expand_time(minutes_expand: number, passport?: PassportObject): void;
     add_guard(gurads: RewardGuardPortions[], passport?: PassportObject): void;

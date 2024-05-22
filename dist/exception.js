@@ -17,6 +17,7 @@ export var Errors;
     Errors["IsValidKey"] = "invalid key";
     Errors["Fail"] = "fail";
     Errors["IsValidIndentifier"] = "indentifier invalid";
+    Errors["isValidHttpUrl"] = "invalid url";
 })(Errors || (Errors = {}));
 export const ERROR = (error, info) => {
     const e = error + info ? (': ' + info) : '';

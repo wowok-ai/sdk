@@ -267,3 +267,13 @@ export function toFixed(x) {
     }
     return res;
 }
+export function isValidHttpUrl(url) {
+    let r;
+    try {
+        r = new URL(url);
+    }
+    catch (_) {
+        return false;
+    }
+    return r.protocol === "http:" || r.protocol === "https:";
+}

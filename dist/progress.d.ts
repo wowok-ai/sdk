@@ -1,5 +1,4 @@
 import { PermissionObject, RepositoryObject, PassportObject, MachineObject, ProgressObject, ProgressAddress, Protocol, TxbObject } from './protocol';
-import { Resource } from './resource';
 export type ProgressNext = {
     next_node_name: string;
     forward: string;
@@ -20,7 +19,6 @@ export declare class Progress {
     launch(): ProgressAddress;
     launch_as_child(parent: ProgressObject, parent_next: ProgressNext): ProgressAddress;
     destroy(): void;
-    mark(like: 'like' | 'unlike', resource: Resource): void;
     set_namedOperator(name: string, addresses: string[], passport?: PassportObject): void;
     bind_task(task_address: string, passport?: PassportObject): void;
     set_context_repository(repository?: RepositoryObject, passport?: PassportObject): void;

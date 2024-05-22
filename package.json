@@ -34,7 +34,9 @@
     "entity",
     "resource",  
     "grantor",
-    "grantee"
+    "grantee",
+    "move language",
+    "move"
   ],
   "author": "wowok",
   "license": "Apache-2.0",

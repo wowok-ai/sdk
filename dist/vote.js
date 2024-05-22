@@ -72,13 +72,6 @@ export class Vote {
             arguments: [Protocol.TXB_OBJECT(txb, this.object)]
         });
     }
-    mark(like, resource) {
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target: this.protocol.VoteFn(like),
-            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)]
-        });
-    }
     set_description(description, passport) {
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription);

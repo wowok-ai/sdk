@@ -64,14 +64,6 @@ export class Demand {
             typeArguments: [this.bounty_type]
         });
     }
-    mark(like, resource) {
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target: this.protocol.DemandFn(like),
-            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
-            typeArguments: [this.bounty_type]
-        });
-    }
     refund(passport) {
         let txb = this.protocol.CurrentSession();
         if (passport) {

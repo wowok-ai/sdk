@@ -86,7 +86,7 @@ export class Progress {
             arguments: [Protocol.TXB_OBJECT(txb, this.object)],
         })   
     }
-
+/* move to: Entity.mark
     mark(like:'like' | 'unlike', resource:Resource)  {
         let txb = this.protocol.CurrentSession();
         txb.moveCall({
@@ -94,7 +94,7 @@ export class Progress {
             arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
         })   
     }
-
+*/
     set_namedOperator(name:string, addresses:string[], passport?:PassportObject)  {
         if (!IsValidName(name)) {
             ERROR(Errors.IsValidName, 'name')

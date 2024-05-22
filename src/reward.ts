@@ -82,7 +82,7 @@ export class Reward {
             arguments: [Protocol.TXB_OBJECT(txb, this.object)],
         })   
     }
-
+/*
     mark(like:'like' | 'unlike', resource:Resource)  {
         let txb = this.protocol.CurrentSession();
         txb.moveCall({
@@ -90,7 +90,7 @@ export class Reward {
             arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
         })   
     }
-
+*/
     refund(passport?:PassportObject) {
         let txb = this.protocol.CurrentSession();
         if (passport) {

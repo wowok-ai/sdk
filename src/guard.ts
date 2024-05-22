@@ -1,14 +1,14 @@
 
 import { BCS } from '@mysten/bcs';
-import { Protocol, GuardAddress, FnCallType, Data_Type, MODULES, ContextType, ValueType,  OperatorType, VariableType, SER_VALUE} from './protocol';
+import { Protocol, GuardAddress, FnCallType, Data_Type, MODULES, ContextType, ValueType,  OperatorType, ConstantType, SER_VALUE} from './protocol';
 import { concatenate, array_equal } from './utils';
 import { IsValidDesription, Bcs, IsValidInt, IsValidAddress } from './utils';
 import { ERROR, Errors } from './exception';
 
-export type GuardVariable = Map<number, Guard_Vriable>;
+export type GuardConstant = Map<number, Guard_Vriable>;
 
 export interface Guard_Vriable {
-    type: VariableType ,
+    type: ConstantType ,
     value?: Uint8Array,
     witness?: Uint8Array,
 }
@@ -24,18 +24,18 @@ export class Guard {
             ERROR(Errors.IsValidDesription)
         }
         let bcs_input = maker.get_input()[0];
-        let variables = maker.get_variable();
+        let constants = maker.get_constant();
         if (bcs_input.length == 0 || bcs_input.length > Guard.MAX_INPUT_LENGTH) {
             ERROR(Errors.InvalidParam, 'launch input')
         }
     
         let bValid = true;
-        variables?.forEach((v, k) => {
-            if (!GuardVariableHelper.IsValidIndentifier(k)) bValid = false;
+        constants?.forEach((v, k) => {
+            if (!GuardConstantHelper.IsValidIndentifier(k)) bValid = false;
             if (!v.value && !v.witness) bValid =  false;
         })
         if (!bValid) {
-            ERROR(Errors.InvalidParam, 'launch variables')
+            ERROR(Errors.InvalidParam, 'launch constants')
         }
         
         let txb = protocol.CurrentSession();
@@ -47,23 +47,23 @@ export class Guard {
             arguments: [txb.pure(description , BCS.STRING), txb.pure([].slice.call(input.reverse()))],  
         });
 
-        variables?.forEach((v, k) => {
+        constants?.forEach((v, k) => {
             if (v.type == ContextType.TYPE_WITNESS_ID) {
                 if (!v.witness) {
-                    ERROR(Errors.InvalidParam, 'variables type')
+                    ERROR(Errors.InvalidParam, 'constants type')
                 }
 
                 txb.moveCall({
-                    target:protocol.GuardFn("variable_add") as FnCallType,
+                    target:protocol.GuardFn("constant_add") as FnCallType,
                     arguments:[guard, txb.pure(k, BCS.U8), txb.pure(v.type, BCS.U8), txb.pure([].slice.call(v.witness)), txb.pure(true, BCS.BOOL)]
                 })            
             } else {
                 if (!v.value)   {
-                    ERROR(Errors.InvalidParam, 'variables type')
+                    ERROR(Errors.InvalidParam, 'constants type')
                 }
     
                 txb.moveCall({
-                    target:protocol.GuardFn("variable_add") as FnCallType,
+                    target:protocol.GuardFn("constant_add") as FnCallType,
                     arguments:[guard, txb.pure(k, BCS.U8), txb.pure(v.type, BCS.U8), txb.pure([].slice.call(v.value)), txb.pure(true, BCS.BOOL)]
                 }) 
             }
@@ -231,7 +231,7 @@ export class Guard {
 
         [MODULES.entity, 'has_entity', 230, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
         [MODULES.entity, 'entity_like', 231, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
-        [MODULES.entity, 'entity_unlike', 232, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
+        [MODULES.entity, 'entity_dislike', 232, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
         [MODULES.entity, 'entity_infomation', 233, [ValueType.TYPE_ADDRESS], ValueType.TYPE_VEC_U8], 
     ];
     static BoolCmd = Guard.QUERIES.filter(q => q[4] == ValueType.TYPE_BOOL);
@@ -241,43 +241,43 @@ export class Guard {
     }
 }
 
-export class GuardVariableHelper {
+export class GuardConstantHelper {
     static IsValidIndentifier = (identifier:number) : boolean => {
         if (!IsValidInt(identifier) || identifier > 255) return false;
         return true
     }
-    static get_variable_value(variables:GuardVariable, identifier:number, type:VariableType) : Uint8Array | undefined {
-        if (variables.has(identifier)) {
-            let v = variables.get(identifier);
+    static get_constant_value(constants:GuardConstant, identifier:number, type:ConstantType) : Uint8Array | undefined {
+        if (constants.has(identifier)) {
+            let v = constants.get(identifier);
             if (v?.value && v.type == type) {
                 return v.value;
             }
         } 
     }
-    static get_variable_witness(variables:GuardVariable, identifier:number) : Uint8Array | undefined {
-        if (variables.has(identifier)) {
-            let v = variables.get(identifier);
+    static get_constant_witness(constants:GuardConstant, identifier:number) : Uint8Array | undefined {
+        if (constants.has(identifier)) {
+            let v = constants.get(identifier);
             if (v?.witness && v.type == ContextType.TYPE_WITNESS_ID) {
                 return v.witness;
             }
         } 
     }
 
-    static add_future_variable(variables:GuardVariable, identifier:number, witness:any, value?:any, bNeedSerialize=true)  {
-        if (!GuardVariableHelper.IsValidIndentifier(identifier)) ERROR(Errors.IsValidIndentifier, 'add_future_variable');
+    static add_future_constant(constants:GuardConstant, identifier:number, witness:any, value?:any, bNeedSerialize=true)  {
+        if (!GuardConstantHelper.IsValidIndentifier(identifier)) ERROR(Errors.IsValidIndentifier, 'add_future_constant');
         if (!witness && !value) ERROR(Errors.InvalidParam, 'both witness and value invalid');
-        let v = variables.get(identifier);
+        let v = constants.get(identifier);
         if (!v || v.type == ContextType.TYPE_WITNESS_ID) {
             if (bNeedSerialize) {
-                variables.set(identifier, {type:ContextType.TYPE_WITNESS_ID, value:value ? Bcs.getInstance().ser_address(value) : undefined, witness:witness ? Bcs.getInstance().ser_address(witness) : undefined})
+                constants.set(identifier, {type:ContextType.TYPE_WITNESS_ID, value:value ? Bcs.getInstance().ser_address(value) : undefined, witness:witness ? Bcs.getInstance().ser_address(witness) : undefined})
             } else {
-                variables.set(identifier, {type:ContextType.TYPE_WITNESS_ID, value:value?value:undefined, witness:witness?witness:undefined});             
+                constants.set(identifier, {type:ContextType.TYPE_WITNESS_ID, value:value?value:undefined, witness:witness?witness:undefined});             
             }                     
         } 
     }
     
-    static add_variable(variables:GuardVariable, identifier:number, type:ValueType, value:any, bNeedSerialize=true) {
-        if (!GuardVariableHelper.IsValidIndentifier(identifier)) return false;
+    static add_constant(constants:GuardConstant, identifier:number, type:ValueType, value:any, bNeedSerialize=true) {
+        if (!GuardConstantHelper.IsValidIndentifier(identifier)) return false;
         if (!value) return false;
     
         switch (type) {
@@ -300,26 +300,26 @@ export class GuardVariableHelper {
             case ValueType.TYPE_VEC_U128:
             case ValueType.TYPE_VEC_U256:
                 let ser = SER_VALUE.find(s=>s.type==type);
-                if (!ser) ERROR(Errors.Fail, 'add_variable: invalid type');
-                bNeedSerialize ? variables.set(identifier, {type:type, value:Bcs.getInstance().ser(ser!.name, value)}) :
-                variables.set(identifier,  {type:type, value:value})    
+                if (!ser) ERROR(Errors.Fail, 'add_constant: invalid type');
+                bNeedSerialize ? constants.set(identifier, {type:type, value:Bcs.getInstance().ser(ser!.name, value)}) :
+                constants.set(identifier,  {type:type, value:value})    
                 return         
             case ValueType.TYPE_VEC_U8:
                 if (typeof(value) === 'string') {
-                    variables.set(identifier, {type:type, value:Bcs.getInstance().ser_string(value)})                 
+                    constants.set(identifier, {type:type, value:Bcs.getInstance().ser_string(value)})                 
                 } else {
-                    variables.set(identifier,  {type:type, value:value})      
+                    constants.set(identifier,  {type:type, value:value})      
                 }
                 return;  
             default:
-                ERROR(Errors.Fail, 'add_variable  serialize not impl yet')
+                ERROR(Errors.Fail, 'add_constant  serialize not impl yet')
         }
     }
 }
 export class GuardMaker {
     protected data : Uint8Array[] = [];
     protected type_validator : Data_Type[] = [];
-    protected variable : GuardVariable = new Map();
+    protected constant : GuardConstant = new Map();
 
     private static index: number = 0;
     private static get_index() { 
@@ -331,13 +331,13 @@ export class GuardMaker {
 
     constructor() { }
 
-    add_variable(type:VariableType, value:any, bNeedSerialize=true) : number {
+    add_constant(type:ConstantType, value:any, bNeedSerialize=true) : number {
         let identifier = GuardMaker.get_index();
         if (type == ContextType.TYPE_WITNESS_ID) {
-            // add witness to variable
-            GuardVariableHelper.add_future_variable(this.variable, identifier, value, undefined, bNeedSerialize);
+            // add witness to constant
+            GuardConstantHelper.add_future_constant(this.constant, identifier, value, undefined, bNeedSerialize);
         } else {
-            GuardVariableHelper.add_variable(this.variable, identifier, type, value, bNeedSerialize);
+            GuardConstantHelper.add_constant(this.constant, identifier, type, value, bNeedSerialize);
         }
         return identifier
     }
@@ -398,7 +398,7 @@ export class GuardMaker {
             this.data.push(Bcs.getInstance().ser_address(param));
             this.type_validator.push(ValueType.TYPE_ADDRESS);
             break;   
-        case ContextType.TYPE_VARIABLE:
+        case ContextType.TYPE_CONSTANT:
             if (!param) {
                 ERROR(Errors.InvalidParam, 'param invalid');
             }
@@ -406,8 +406,8 @@ export class GuardMaker {
                 ERROR(Errors.InvalidParam, 'add_param param');
             }
             
-            var v = this.variable.get(param);
-            if (!v) ERROR(Errors.Fail, 'identifier not in variable');
+            var v = this.constant.get(param);
+            if (!v) ERROR(Errors.Fail, 'identifier not in constant');
             this.type_validator.push(v!.type);
             this.data.push(Bcs.getInstance().ser_u8(type));
             this.data.push(Bcs.getInstance().ser_u8(param));
@@ -418,7 +418,7 @@ export class GuardMaker {
         return this;
     }
 
-    // object_address_from: string for static address; number as identifier  invariable
+    // object_address_from: string for static address; number as identifier  inconstant
     add_query(module:MODULES, query_name:string, object_address_from:string | number, bWitness:boolean=false) : GuardMaker {
         let query_index = Guard.QUERIES.findIndex((q) => { return q[0] ==  module && q[1]  == query_name})
         if (query_index == -1)  {
@@ -426,7 +426,7 @@ export class GuardMaker {
         }
 
         if (typeof(object_address_from) == 'number' ) {
-            if (!GuardVariableHelper.IsValidIndentifier(object_address_from)) {
+            if (!GuardConstantHelper.IsValidIndentifier(object_address_from)) {
                 ERROR(Errors.InvalidParam, 'object_address_from');
             }
         } else {
@@ -451,11 +451,11 @@ export class GuardMaker {
                 this.data.push(Bcs.getInstance().ser_u8(ValueType.TYPE_ADDRESS)); 
             this.data.push(Bcs.getInstance().ser_address(object_address_from)); // object address            
         } else {
-            let v =  this.variable.get(object_address_from);
-            if (!v) ERROR(Errors.Fail, 'object_address_from not in variable');
+            let v =  this.constant.get(object_address_from);
+            if (!v) ERROR(Errors.Fail, 'object_address_from not in constant');
             if ((bWitness && v?.type == ContextType.TYPE_WITNESS_ID) || (!bWitness && v?.type == ValueType.TYPE_ADDRESS)) {
-                this.data.push(Bcs.getInstance().ser_u8(ContextType.TYPE_VARIABLE));
-                this.data.push(Bcs.getInstance().ser_u8(object_address_from)); // object identifer in variables
+                this.data.push(Bcs.getInstance().ser_u8(ContextType.TYPE_CONSTANT));
+                this.data.push(Bcs.getInstance().ser_u8(object_address_from)); // object identifer in constants
             } else {
                 ERROR(Errors.Fail, 'type bWitness not match')
             }
@@ -523,17 +523,17 @@ export class GuardMaker {
         return this.type_validator.length == 1 && this.type_validator[0] == ValueType.TYPE_BOOL && this.data.length == 1;
     }
 
-    combine(otherBuilt:GuardMaker, bAnd:boolean = true, bCombinVariable=false) : GuardMaker {
+    combine(otherBuilt:GuardMaker, bAnd:boolean = true, bCombinConstant=false) : GuardMaker {
         if (!otherBuilt.IsReady() || !this.IsReady()) { ERROR(Errors.Fail, 'both should built yet')};
         let maker = new GuardMaker();
-        this.variable.forEach((v, k) => {
-            maker.variable.set(k,  {type:v.type, value:v.value, witness:v.witness});
+        this.constant.forEach((v, k) => {
+            maker.constant.set(k,  {type:v.type, value:v.value, witness:v.witness});
         })
-        otherBuilt.variable.forEach((v, k) => {
-            if (maker.variable.has(k) && !bCombinVariable) {
-                ERROR(Errors.Fail, 'variable identifier exist');
+        otherBuilt.constant.forEach((v, k) => {
+            if (maker.constant.has(k) && !bCombinConstant) {
+                ERROR(Errors.Fail, 'constant identifier exist');
             }
-            maker.variable.set(k, {type:v.type, value:v.value, witness:v.witness});
+            maker.constant.set(k, {type:v.type, value:v.value, witness:v.witness});
         })
         let op = bAnd ? OperatorType.TYPE_LOGIC_AND :  OperatorType.TYPE_LOGIC_OR;
         maker.data.push(concatenate(Uint8Array, ...this.data, ...otherBuilt.data, Bcs.getInstance().ser_u8(op)));
@@ -542,7 +542,7 @@ export class GuardMaker {
         return maker
     }
 
-    get_variable() { return this.variable  }
+    get_constant() { return this.constant  }
     get_input() { return this.data }
 
     static input_combine(input1:Uint8Array, input2:Uint8Array, bAnd:boolean = true) : Uint8Array {

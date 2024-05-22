@@ -86,14 +86,6 @@ export class Vote {
         })
     }
 
-    mark(like:'like' | 'unlike', resource:Resource) {
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.VoteFn(like) as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)]
-        })
-    }
-
     set_description(description:string, passport?:PassportObject)  {
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription)

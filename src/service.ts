@@ -130,7 +130,7 @@ export class Service {
             typeArguments:[this.pay_token_type]
         })   
     }
-
+/*  move to: Entity.mark
     mark(like:'like' | 'unlike', resource:Resource) {
         let txb = this.protocol.CurrentSession();
         txb.moveCall({
@@ -139,7 +139,7 @@ export class Service {
             typeArguments:[this.pay_token_type]
         })   
     }
-
+*/
     set_description(description:string, passport?:PassportObject)  {
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription)

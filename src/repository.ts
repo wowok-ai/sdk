@@ -82,7 +82,7 @@ export class Repository {
             arguments: [Protocol.TXB_OBJECT(txb, this.object)],
         })   
     }
-
+/* move to: Entity.mark
     mark(like:'like' | 'unlike', resource:Resource)  {
         if (!Protocol.IsValidObjects([this.object])) return false;
         let txb = this.protocol.CurrentSession();
@@ -91,7 +91,7 @@ export class Repository {
             arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
         })   
     }
-
+*/
     add_data(data:Repository_Policy_Data)  {
         if (!Repository.IsValidName(data.key)) {
             ERROR(Errors.IsValidName)

@@ -1,7 +1,7 @@
-import { Protocol, GuardAddress, Data_Type, MODULES, ContextType, ValueType, OperatorType, VariableType } from './protocol';
-export type GuardVariable = Map<number, Guard_Vriable>;
+import { Protocol, GuardAddress, Data_Type, MODULES, ContextType, ValueType, OperatorType, ConstantType } from './protocol';
+export type GuardConstant = Map<number, Guard_Vriable>;
 export interface Guard_Vriable {
-    type: VariableType;
+    type: ConstantType;
     value?: Uint8Array;
     witness?: Uint8Array;
 }
@@ -15,29 +15,29 @@ export declare class Guard {
     static IsBoolCmd: (cmd: number) => boolean;
     static GetCmd: (cmd: number) => any;
 }
-export declare class GuardVariableHelper {
+export declare class GuardConstantHelper {
     static IsValidIndentifier: (identifier: number) => boolean;
-    static get_variable_value(variables: GuardVariable, identifier: number, type: VariableType): Uint8Array | undefined;
-    static get_variable_witness(variables: GuardVariable, identifier: number): Uint8Array | undefined;
-    static add_future_variable(variables: GuardVariable, identifier: number, witness: any, value?: any, bNeedSerialize?: boolean): void;
-    static add_variable(variables: GuardVariable, identifier: number, type: ValueType, value: any, bNeedSerialize?: boolean): false | undefined;
+    static get_constant_value(constants: GuardConstant, identifier: number, type: ConstantType): Uint8Array | undefined;
+    static get_constant_witness(constants: GuardConstant, identifier: number): Uint8Array | undefined;
+    static add_future_constant(constants: GuardConstant, identifier: number, witness: any, value?: any, bNeedSerialize?: boolean): void;
+    static add_constant(constants: GuardConstant, identifier: number, type: ValueType, value: any, bNeedSerialize?: boolean): false | undefined;
 }
 export declare class GuardMaker {
     protected data: Uint8Array[];
     protected type_validator: Data_Type[];
-    protected variable: GuardVariable;
+    protected constant: GuardConstant;
     private static index;
     private static get_index;
     constructor();
-    add_variable(type: VariableType, value: any, bNeedSerialize?: boolean): number;
+    add_constant(type: ConstantType, value: any, bNeedSerialize?: boolean): number;
     private serValueParam;
     add_param(type: ValueType | ContextType, param?: any): GuardMaker;
     add_query(module: MODULES, query_name: string, object_address_from: string | number, bWitness?: boolean): GuardMaker;
     add_logic(type: OperatorType): GuardMaker;
     build(bNot?: boolean): GuardMaker;
     IsReady(): boolean;
-    combine(otherBuilt: GuardMaker, bAnd?: boolean, bCombinVariable?: boolean): GuardMaker;
-    get_variable(): GuardVariable;
+    combine(otherBuilt: GuardMaker, bAnd?: boolean, bCombinConstant?: boolean): GuardMaker;
+    get_constant(): GuardConstant;
     get_input(): Uint8Array[];
     static input_combine(input1: Uint8Array, input2: Uint8Array, bAnd?: boolean): Uint8Array;
     static input_not(input: Uint8Array): Uint8Array;

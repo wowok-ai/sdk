@@ -25,39 +25,6 @@ export class Resource {
         return r
     }
 
-    static New(protocol:Protocol, description:string) : Resource {
-        if (!IsValidDesription(description)) {
-            ERROR(Errors.IsValidDesription)
-        }
-
-        let r = new Resource(protocol);
-        let txb = protocol.CurrentSession();
-
-        r.object = txb.moveCall({
-            target:protocol.ResourceFn('new') as FnCallType,
-            arguments:[txb.pure(description)],
-        })
-
-        return r
-    }
-
-    launch() : ResourceAddress {
-        let txb = this.protocol.CurrentSession();
-        return txb.moveCall({
-            target:this.protocol.ResourceFn('create') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object)],
-        })    
-    }
-
-    destroy()  {
-        if (!Protocol.IsValidObjects([this.object])) return false;
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.ResourceFn('destroy') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(txb, this.object)],
-        })   
-    }
-
     add(name:string, object:string)  {
         if (!IsValidName(name)) ERROR(Errors.IsValidName, 'Resource: add');
         if (!IsValidAddress(object)) ERROR(Errors.IsValidAddress, 'Resource: add');
@@ -69,8 +36,9 @@ export class Resource {
         });
     }
 
-    remove(name:string, object:string, removeall?:boolean)  {
+    remove(name:string, object?:string, removeall?:boolean)  {
         if (!IsValidName(name)) ERROR(Errors.IsValidName, 'Resource: remove');
+        if (!object && !removeall) ERROR(Errors.InvalidParam, 'Resource: remove, BOTH param undefined');
         
         let txb = this.protocol.CurrentSession();
         if (removeall) {
@@ -78,7 +46,7 @@ export class Resource {
                 target:this.protocol.ResourceFn('remove_all')  as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(name, BCS.STRING)]
             });
-        } else {
+        } else if(object) {
             if (!IsValidAddress(object)) ERROR(Errors.IsValidAddress, 'Resource: remove');
 
             txb.moveCall({

@@ -83,14 +83,16 @@ export class Service {
             typeArguments: [this.pay_token_type]
         });
     }
-    mark(like, resource) {
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target: this.protocol.ServiceFn(like),
-            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
-            typeArguments: [this.pay_token_type]
-        });
-    }
+    /*  move to: Entity.mark
+        mark(like:'like' | 'unlike', resource:Resource) {
+            let txb = this.protocol.CurrentSession();
+            txb.moveCall({
+                target:this.protocol.ServiceFn(like) as FnCallType,
+                arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
+                typeArguments:[this.pay_token_type]
+            })
+        }
+    */
     set_description(description, passport) {
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription);

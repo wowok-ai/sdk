@@ -30,7 +30,7 @@ export class Entity {
         return r
     }
 
-    mark(resource:Resource, address:string, like:'like' | 'unlike') {
+    mark(resource:Resource, address:string, like:'like' | 'dislike') {
         if (!IsValidAddress(address)) ERROR(Errors.IsValidAddress, like);
 
         let txb = this.protocol.CurrentSession();
@@ -53,5 +53,31 @@ export class Entity {
             target:this.protocol.EntityFn('avatar_update') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(JSON.stringify(info), BCS.STRING)]
         })
+    }
+
+    create_resource(description:string) : ResourceAddress {
+        if (!IsValidDesription(description)) ERROR(Errors.IsValidDesription, 'create_resource');
+        let txb = this.protocol.CurrentSession();
+        return txb.moveCall({
+            target:this.protocol.EntityFn('resource_create') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(description, BCS.STRING)]
+        })
+    }
+
+    destroy_resource(resource:Resource) {
+        let txb = this.protocol.CurrentSession();
+        return txb.moveCall({
+            target:this.protocol.EntityFn('resource_destroy') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, resource.get_object())]
+        })
+    }
+
+    transfer_resource(resource:Resource, new_address:string) {
+        if (!IsValidAddress(new_address)) ERROR(Errors.IsValidAddress, 'transfer_resource');
+        let txb = this.protocol.CurrentSession();
+        return txb.moveCall({
+            target:this.protocol.EntityFn('resource_transfer') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, resource.get_object()), txb.pure(new_address, BCS.ADDRESS)]
+        })   
     }
 }

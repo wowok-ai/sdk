@@ -19,6 +19,7 @@ export var MODULES;
     MODULES["reward"] = "reward";
     MODULES["service"] = "service";
     MODULES["resource"] = "resource";
+    MODULES["entity"] = "entity";
     MODULES["wowok"] = "wowok";
 })(MODULES || (MODULES = {}));
 export var OperatorType;
@@ -88,7 +89,7 @@ export var ContextType;
     ContextType[ContextType["TYPE_SIGNER"] = 60] = "TYPE_SIGNER";
     ContextType[ContextType["TYPE_CLOCK"] = 61] = "TYPE_CLOCK";
     ContextType[ContextType["TYPE_WITNESS_ID"] = 62] = "TYPE_WITNESS_ID";
-    ContextType[ContextType["TYPE_VARIABLE"] = 80] = "TYPE_VARIABLE";
+    ContextType[ContextType["TYPE_CONSTANT"] = 80] = "TYPE_CONSTANT";
 })(ContextType || (ContextType = {}));
 export var ENTRYPOINT;
 (function (ENTRYPOINT) {
@@ -101,7 +102,8 @@ export class Protocol {
     network = '';
     package = '';
     signer = '';
-    everyone_guard = '';
+    wowok_object = '';
+    entity_object = '';
     graphql = '';
     txb;
     constructor(network = ENTRYPOINT.testnet) {
@@ -112,14 +114,13 @@ export class Protocol {
         this.network = network;
         switch (network) {
             case ENTRYPOINT.localnet:
-                this.package = "0xe9721254e97dd074e06c5efe5c57be169b64b39ae48939d89c00bf2f62b19e10";
-                this.everyone_guard = "0xb2a3fe7881cb883743c4e962b7e3c7716a1cd47a67adad01dc79795def4f769d";
                 break;
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0x9a7fc338ab9fd0a8f4c108e2f3dbe53393b83529263eb31a391120997d962400";
-                this.everyone_guard = "0x78a41fcc4f566360839613f6b917fb101ae015e56b43143f496f265b6422fddc";
+                this.package = "0xe8e1dc46a09e7f6deed622f3c9235a009fe1638a728bd16329830ddec0939047";
+                this.wowok_object = '0x4473576ea37624641cba0327137615fa0e61805f79b2e87f5cedf2ab5c05ebec';
+                this.entity_object = '0xf54da7a6da3f9179b9a9878549b7296988474cb8cfd5c7417a448b62293a7c8d';
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
             case ENTRYPOINT.mainnet:
@@ -128,7 +129,8 @@ export class Protocol {
         ;
     }
     Package() { return this.package; }
-    EveryoneGuard() { return this.everyone_guard; }
+    WowokObject() { return this.wowok_object; }
+    EntityObject() { return this.entity_object; }
     GraphqlUrl() { return this.graphql; }
     NetworkUrl() {
         switch (this.network) {
@@ -159,6 +161,7 @@ export class Protocol {
     RewardFn = (fn) => { return `${this.package}::${MODULES.reward}::${fn}`; };
     ServiceFn = (fn) => { return `${this.package}::${MODULES.service}::${fn}`; };
     ResourceFn = (fn) => { return `${this.package}::${MODULES.resource}::${fn}`; };
+    EntityFn = (fn) => { return `${this.package}::${MODULES.entity}::${fn}`; };
     WowokFn = (fn) => { return `${this.package}::${MODULES.wowok}::${fn}`; };
     Query = async (objects, options = { showContent: true }) => {
         const client = new SuiClient({ url: this.NetworkUrl() });

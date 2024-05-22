@@ -69,4 +69,5 @@ export type ArgType = {
 };
 export declare const ParseType: (type: string) => ArgType;
 export declare function toFixed(x: number): string;
+export declare function isValidHttpUrl(url: string): boolean;
 //# sourceMappingURL=utils.d.ts.map

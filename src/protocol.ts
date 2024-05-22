@@ -4,7 +4,7 @@ import { Ed25519Keypair } from '@mysten/sui.js/keypairs/ed25519';
 import { BCS, getSuiMoveConfig, toHEX, fromHEX, BcsReader } from '@mysten/bcs';
 import { TransactionBlock, Inputs, TransactionResult, TransactionArgument } from '@mysten/sui.js/transactions';
 import { capitalize, IsValidArray } from './utils'
-import { GuardVariable } from './guard';
+import { GuardConstant } from './guard';
 
 
 export enum MODULES {
@@ -134,10 +134,10 @@ export enum ContextType {
     TYPE_SIGNER  = 60,
     TYPE_CLOCK = 61,
     TYPE_WITNESS_ID = 62, 
-    TYPE_VARIABLE = 80,
+    TYPE_CONSTANT = 80,
 }
 
-export type VariableType = ValueType | ContextType.TYPE_WITNESS_ID;
+export type ConstantType = ValueType | ContextType.TYPE_WITNESS_ID;
 export type Data_Type = ValueType | OperatorType | ContextType;
 
 export enum ENTRYPOINT {
@@ -164,14 +164,13 @@ export class Protocol {
         this.network = network;
         switch(network) {
             case ENTRYPOINT.localnet:
-                this.package = "0xe9721254e97dd074e06c5efe5c57be169b64b39ae48939d89c00bf2f62b19e10";
                 break;
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0x9a7fc338ab9fd0a8f4c108e2f3dbe53393b83529263eb31a391120997d962400";
-                this.wowok_object = '';
-                this.entity_object= '';
+                this.package = "0x2ac00805aa0ec3c62b575e412108bb295389bbfc86202fd7b73c69dbbb80769a";
+                this.wowok_object = '0x49d49fb41c63c3f6c838fca20c25741f20aa74a176391685446794bdaa9b7934';
+                this.entity_object= '0xd21d8d76f553b2db6c6d28a8b2ae3405bec92f2a300676d80fcc004ca40b0a77';
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
             case ENTRYPOINT.mainnet:
@@ -335,7 +334,7 @@ export class RpcResultParser {
 export type Query_Param = {
     objectid: string;
     callback: (protocol:Protocol, response:SuiObjectResponse, param:Query_Param, option:SuiObjectDataOptions)=>void;
-    parser?: (result:any[], guardid: string, chain_sense_bsc:Uint8Array, variable?:GuardVariable)  => boolean;
+    parser?: (result:any[], guardid: string, chain_sense_bsc:Uint8Array, constant?:GuardConstant)  => boolean;
     data?: any; // response data filted by callback
-    variables?: GuardVariable;
+    constants?: GuardConstant;
 };

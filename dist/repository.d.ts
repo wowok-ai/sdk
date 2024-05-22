@@ -1,6 +1,5 @@
 import { Protocol, ValueType, RepositoryAddress, PermissionObject, PassportObject, TxbObject } from './protocol';
 import { PermissionIndexType } from './permission';
-import { Resource } from './resource';
 export declare enum Repository_Policy_Mode {
     POLICY_MODE_FREE = 0,
     POLICY_MODE_STRICT = 1
@@ -30,7 +29,6 @@ export declare class Repository {
     static New(protocol: Protocol, permission: PermissionObject, description: string, policy_mode: Repository_Policy_Mode, passport?: PassportObject): Repository;
     launch(): RepositoryAddress;
     destroy(): false | undefined;
-    mark(like: 'like' | 'unlike', resource: Resource): false | undefined;
     add_data(data: Repository_Policy_Data): void;
     remove(address: string, key: string): void;
     add_reference(references: string[], passport?: PassportObject): void;

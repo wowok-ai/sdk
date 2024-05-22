@@ -123,13 +123,6 @@ export class Permission {
             arguments: [Protocol.TXB_OBJECT(txb, this.object)],
         });
     }
-    mark(like, resource) {
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target: this.protocol.PermissionFn(like),
-            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
-        });
-    }
     add_entity(entities) {
         if (!entities) {
             ERROR(Errors.InvalidParam, 'entities');

@@ -23,11 +23,11 @@ interface QueryInfo {
 interface GuardInfo {
     id: string;
     query_list: (string | QueryInfo)[]; // object or witness object query
-    variable: QueryInfo[]; // witness in variable & ValueType.TYPE_ADDRESS(for Query)
+    constant: QueryInfo[]; // witness in constant & ValueType.TYPE_ADDRESS(for Query)
     input_witness: QueryInfo[]; // witness in input
 }
 
-interface DeGuardVariable {
+interface DeGuardConstant {
     type: number;
     value: any;
     identifier?: number;
@@ -65,7 +65,7 @@ export class GuardParser {
     guardlist = () => { return this.guard_list }
 
     /// convert guard-on-chain to js object
-    static DeGuardObject = async (protocol: Protocol, guard: string) : Promise<{object:DeGuardData, variable:DeGuardVariable[]}> => {
+    static DeGuardObject = async (protocol: Protocol, guard: string) : Promise<{object:DeGuardData, constant:DeGuardConstant[]}> => {
         if (!IsValidAddress(guard)) {
             ERROR(Errors.IsValidAddress,  'GuardObject guard')
         }
@@ -81,8 +81,8 @@ export class GuardParser {
             ERROR(Errors.Fail, 'GuardObject object invalid')
         }
 
-        let  variables : DeGuardVariable[] = [];
-        content.fields.variables.forEach((v:any) => {
+        let  constants : DeGuardConstant[] = [];
+        content.fields.constants.forEach((v:any) => {
             let value : any;
             switch (v.fields.type) {
                 case ContextType.TYPE_WITNESS_ID:
@@ -113,11 +113,11 @@ export class GuardParser {
                     break;
 
                 default:
-                    ERROR(Errors.Fail, 'GuardObject variable type invalid')
+                    ERROR(Errors.Fail, 'GuardObject constant type invalid')
             }
-            variables.push({identifier:v.fields.identifier, type:v.fields.type,  value:value});
+            constants.push({identifier:v.fields.identifier, type:v.fields.type,  value:value});
         });
-        // console.log(variables)
+        // console.log(constants)
 
         let arr = [].slice.call(content.fields.input.fields.bytes.reverse());
         let data : DeGuardData[] = [];
@@ -139,10 +139,10 @@ export class GuardParser {
                 case OperatorType.TYPE_LOGIC_AND:
                 case OperatorType.TYPE_LOGIC_OR:
                     break;    
-                case ContextType.TYPE_VARIABLE:
+                case ContextType.TYPE_CONSTANT:
                     identifier = arr.shift()! as number;  // identifier
                     break;
-                case ContextType.TYPE_WITNESS_ID:  // add to variable 
+                case ContextType.TYPE_WITNESS_ID:  // add to constant 
                 case ValueType.TYPE_ADDRESS: 
                     value = '0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(arr)).toString();
                     arr.splice(0, 32); // address     
@@ -210,16 +210,16 @@ export class GuardParser {
                         arr.splice(0, 32); // address            
                         value = addr;
                         cmd = arr.shift()! as number; // cmd
-                    } else if (t[0] == ContextType.TYPE_VARIABLE) {
+                    } else if (t[0] == ContextType.TYPE_CONSTANT) {
                         let id = arr.splice(0, 1); // key
-                        let v = variables.find((v) => 
+                        let v = constants.find((v) => 
                             (v.identifier == id[0]) && 
                             ((v.type == ValueType.TYPE_ADDRESS) || (v.type == ContextType.TYPE_WITNESS_ID)));
-                        if (!v) { ERROR(Errors.Fail, 'GuardObject: indentifier not in  variable')}
+                        if (!v) { ERROR(Errors.Fail, 'GuardObject: indentifier not in  constant')}
                         identifier = id[0];
                         cmd = arr.shift()! as number; // cmd
                     } else {
-                        ERROR(Errors.Fail, 'GuardObject: variable type invalid');
+                        ERROR(Errors.Fail, 'GuardObject: constant type invalid');
                     }
                     break;
                 case ValueType.TYPE_OPTION_ADDRESS:
@@ -262,17 +262,17 @@ export class GuardParser {
         if (!data || data.length == 0) ERROR(Errors.Fail, 'GuardObject: data parsed error');
         let stack: DeGuardData[] = [];
         data.forEach((d) => {
-            this.ResolveData(variables, stack, d);
+            this.ResolveData(constants, stack, d);
         })
 
         if (stack.length != 1) {
             ERROR(Errors.Fail, 'GuardObject: parse error');
         }
     
-        return {object:stack.pop()!, variable:variables};
+        return {object:stack.pop()!, constant:constants};
     }
 
-    static ResolveData = (variables:  DeGuardVariable[], stack:DeGuardData[], current: DeGuardData) => {
+    static ResolveData = (constants:  DeGuardConstant[], stack:DeGuardData[], current: DeGuardData) => {
         switch (current.type) {
             case OperatorType.TYPE_LOGIC_ALWAYS_TRUE:
                 current.ret_type = ValueType.TYPE_BOOL;
@@ -393,8 +393,8 @@ export class GuardParser {
                 current.ret_type = ValueType.TYPE_ADDRESS;
                 stack.push(current);
                 return;
-            case ContextType.TYPE_VARIABLE:
-                let  v = variables.find((e) => e.identifier ==  current?.identifier);
+            case ContextType.TYPE_CONSTANT:
+                let  v = constants.find((e) => e.identifier ==  current?.identifier);
                 if (!v) ERROR(Errors.Fail, 'OperateParamCount: identifier  invalid ' + current.type);
                 
                 current.ret_type = v?.type;
@@ -426,8 +426,8 @@ export class GuardParser {
             let index = protocol.WOWOK_OBJECTS_TYPE().findIndex(v => {return v.includes('guard::Guard') && v == c.type});
             if (index == -1) return;
 
-            let info:GuardInfo = {id: c.fields.id.id, query_list:[],  variable:[], input_witness:[]};
-            me.parse_variable(info,  c.fields.variables);
+            let info:GuardInfo = {id: c.fields.id.id, query_list:[],  constant:[], input_witness:[]};
+            me.parse_constant(info,  c.fields.constants);
             if (c.fields.input.type == (protocol.Package() + '::bcs::BCS')) {
                 me.parse_bcs(info,  Uint8Array.from(c.fields.input.fields.bytes));
             }
@@ -436,12 +436,12 @@ export class GuardParser {
         return me
     }
 
-    parse_variable = (info:GuardInfo, variables:any)  => {
-        variables.forEach((v:any) => {
-            if (v.type == (this.protocol.Package() + '::guard::Variable')) {
+    parse_constant = (info:GuardInfo, constants:any)  => {
+        constants.forEach((v:any) => {
+            if (v.type == (this.protocol.Package() + '::guard::Constant')) {
                 // ValueType.TYPE_ADDRESS: Query_Cmd maybe used the address, so save it for using
                 if (v.fields.type == ContextType.TYPE_WITNESS_ID || v.fields.type == ValueType.TYPE_ADDRESS) {
-                    info.variable.push({identifier:v.fields.identifier,  index:this.get_index(), type:v.fields.type,
+                    info.constant.push({identifier:v.fields.identifier,  index:this.get_index(), type:v.fields.type,
                         value_or_witness:'0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(v.fields.value))});
                 }
             }
@@ -468,10 +468,10 @@ export class GuardParser {
                 case OperatorType.TYPE_LOGIC_AND:
                 case OperatorType.TYPE_LOGIC_OR:
                 break;    
-            case ContextType.TYPE_VARIABLE:
-                arr.splice(0, 1); // identifier of variable
+            case ContextType.TYPE_CONSTANT:
+                arr.splice(0, 1); // identifier of constant
                 break;
-            case ContextType.TYPE_WITNESS_ID:  // add to variable 
+            case ContextType.TYPE_WITNESS_ID:  // add to constant 
                 let addr = '0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(arr)).toString();
                 arr.splice(0, 32); // address     
                 info.input_witness.push({index:this.get_index(), type:ContextType.TYPE_WITNESS_ID, value_or_witness:addr})
@@ -506,19 +506,19 @@ export class GuardParser {
                     } else if (type[0] == ContextType.TYPE_WITNESS_ID){
                         info.query_list.push({index:this.get_index(), type:type[0], value_or_witness:addr});
                     }
-                } else if (type[0] == ContextType.TYPE_VARIABLE) {
+                } else if (type[0] == ContextType.TYPE_CONSTANT) {
                     let identifer = arr.splice(0, 2); // key + cmd
-                    let variable = info.variable.find((v) => 
+                    let constant = info.constant.find((v) => 
                         (v.identifier == identifer[0]) && 
                         ((v.type == ValueType.TYPE_ADDRESS) || (v.type == ContextType.TYPE_WITNESS_ID)));
-                    if (!variable) { ERROR(Errors.Fail, 'indentifier not in  variable')}
-                    if (variable?.type == ValueType.TYPE_ADDRESS) {
-                        info.query_list.push(variable.value_or_witness);
-                    } else if (variable?.type == ContextType.TYPE_WITNESS_ID) {
-                        info.query_list.push({identifier:identifer[0], type:variable.type, value_or_witness:variable.value_or_witness, index:this.get_index()});
+                    if (!constant) { ERROR(Errors.Fail, 'indentifier not in  constant')}
+                    if (constant?.type == ValueType.TYPE_ADDRESS) {
+                        info.query_list.push(constant.value_or_witness);
+                    } else if (constant?.type == ContextType.TYPE_WITNESS_ID) {
+                        info.query_list.push({identifier:identifer[0], type:constant.type, value_or_witness:constant.value_or_witness, index:this.get_index()});
                     } 
                 } else {
-                    ERROR(Errors.Fail, 'variable type invalid');
+                    ERROR(Errors.Fail, 'constant type invalid');
                 }
 
                 break;
@@ -543,7 +543,7 @@ export class GuardParser {
     done = async (fill?:FutrueFill[]) : Promise<PassportQuery>=> {
         let objects: string[] = [];
         this.guard_list.forEach((g) => {
-            g.variable.filter(v => v.type == ContextType.TYPE_WITNESS_ID).forEach((q) => {
+            g.constant.filter(v => v.type == ContextType.TYPE_WITNESS_ID).forEach((q) => {
                 objects.push(this.get_object(g.id, q, fill));
             })
             let list = g.query_list.map((q) => {
@@ -575,7 +575,7 @@ export class GuardParser {
                 query.push(object!);
             })
             res.forEach(q => {
-                let r1 = g.variable.find(v  => v.future == q.data?.objectId);
+                let r1 = g.constant.find(v  => v.future == q.data?.objectId);
                 let r2 = g.input_witness.find(v  => v.future == q.data?.objectId)
                 // not match r1 || r2 means query-cmd, not witness-cmd
                 if (r1 || r2) {

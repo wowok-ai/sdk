@@ -16,10 +16,10 @@ interface QueryInfo {
 interface GuardInfo {
     id: string;
     query_list: (string | QueryInfo)[];
-    variable: QueryInfo[];
+    constant: QueryInfo[];
     input_witness: QueryInfo[];
 }
-interface DeGuardVariable {
+interface DeGuardConstant {
     type: number;
     value: any;
     identifier?: number;
@@ -52,11 +52,11 @@ export declare class GuardParser {
     guardlist: () => GuardInfo[];
     static DeGuardObject: (protocol: Protocol, guard: string) => Promise<{
         object: DeGuardData;
-        variable: DeGuardVariable[];
+        constant: DeGuardConstant[];
     }>;
-    static ResolveData: (variables: DeGuardVariable[], stack: DeGuardData[], current: DeGuardData) => void;
+    static ResolveData: (constants: DeGuardConstant[], stack: DeGuardData[], current: DeGuardData) => void;
     static CreateAsync: (protocol: Protocol, guards: string[]) => Promise<GuardParser>;
-    parse_variable: (info: GuardInfo, variables: any) => void;
+    parse_constant: (info: GuardInfo, constants: any) => void;
     parse_bcs: (info: GuardInfo, chain_bytes: Uint8Array) => void;
     private get_object;
     done: (fill?: FutrueFill[]) => Promise<PassportQuery>;

@@ -1,6 +1,5 @@
 import { type TransactionResult } from '@mysten/sui.js/transactions';
 import { Protocol, PassportObject, PermissionObject, GuardObject, DemandAddress, TxbObject } from './protocol';
-import { Resource } from './resource';
 export declare class Demand {
     protected bounty_type: string;
     protected permission: PermissionObject;
@@ -13,7 +12,6 @@ export declare class Demand {
     static New(protocol: Protocol, bounty_type: string, permission: PermissionObject, description: string, bounty: TransactionResult, passport?: PassportObject): Demand;
     launch(): DemandAddress;
     destroy(): void;
-    mark(like: 'like' | 'unlike', resource: Resource): void;
     refund(passport?: PassportObject): void;
     expand_time(minutes_duration: number, passport?: PassportObject): void;
     set_guard(guard?: GuardObject, passport?: PassportObject): void;

@@ -1,6 +1,6 @@
 import { SuiObjectResponse, SuiObjectDataOptions, SuiTransactionBlockResponseOptions, SuiTransactionBlockResponse } from '@mysten/sui.js/client';
 import { TransactionBlock, TransactionResult } from '@mysten/sui.js/transactions';
-import { GuardVariable } from './guard';
+import { GuardConstant } from './guard';
 export declare enum MODULES {
     machine = "machine",
     node = "node",
@@ -16,6 +16,7 @@ export declare enum MODULES {
     reward = "reward",
     service = "service",
     resource = "resource",
+    entity = "entity",
     wowok = "wowok"
 }
 export type PermissionAddress = TransactionResult;
@@ -43,7 +44,9 @@ export type VoteObject = TransactionResult | string;
 export type VoteAddress = TransactionResult;
 export type ResourceObject = TransactionResult | string;
 export type ResourceAddress = TransactionResult;
-export type TxbObject = string | TransactionResult | GuardObject | RepositoryObject | PermissionObject | MachineObject | PassportObject | DemandObject | ServiceObject | RewardObject | OrderObject | DiscountObject | VoteObject | DemandObject | ResourceObject;
+export type EntityObject = TransactionResult | string;
+export type EntityAddress = TransactionResult;
+export type TxbObject = string | TransactionResult | GuardObject | RepositoryObject | PermissionObject | MachineObject | PassportObject | DemandObject | ServiceObject | RewardObject | OrderObject | DiscountObject | VoteObject | DemandObject | ResourceObject | EntityObject;
 export type WowokObject = TransactionResult;
 export type FnCallType = `${string}::${string}::${string}`;
 export declare enum OperatorType {
@@ -94,9 +97,9 @@ export declare enum ContextType {
     TYPE_SIGNER = 60,
     TYPE_CLOCK = 61,
     TYPE_WITNESS_ID = 62,
-    TYPE_VARIABLE = 80
+    TYPE_CONSTANT = 80
 }
-export type VariableType = ValueType | ContextType.TYPE_WITNESS_ID;
+export type ConstantType = ValueType | ContextType.TYPE_WITNESS_ID;
 export type Data_Type = ValueType | OperatorType | ContextType;
 export declare enum ENTRYPOINT {
     mainnet = "mainnet",
@@ -108,13 +111,15 @@ export declare class Protocol {
     protected network: string;
     protected package: string;
     protected signer: string;
-    protected everyone_guard: string;
+    protected wowok_object: string;
+    protected entity_object: string;
     protected graphql: string;
     protected txb: TransactionBlock | undefined;
     constructor(network?: ENTRYPOINT);
     UseNetwork(network?: ENTRYPOINT): void;
     Package(): string;
-    EveryoneGuard(): string;
+    WowokObject(): string;
+    EntityObject(): string;
     GraphqlUrl(): string;
     NetworkUrl(): string;
     MachineFn: (fn: any) => string;
@@ -131,6 +136,7 @@ export declare class Protocol {
     RewardFn: (fn: any) => string;
     ServiceFn: (fn: any) => string;
     ResourceFn: (fn: any) => string;
+    EntityFn: (fn: any) => string;
     WowokFn: (fn: any) => string;
     Query: (objects: Query_Param[], options?: SuiObjectDataOptions) => Promise<SuiObjectResponse[]>;
     Query_Raw: (objects: string[], options?: SuiObjectDataOptions) => Promise<SuiObjectResponse[]>;
@@ -175,9 +181,9 @@ export declare class RpcResultParser {
 export type Query_Param = {
     objectid: string;
     callback: (protocol: Protocol, response: SuiObjectResponse, param: Query_Param, option: SuiObjectDataOptions) => void;
-    parser?: (result: any[], guardid: string, chain_sense_bsc: Uint8Array, variable?: GuardVariable) => boolean;
+    parser?: (result: any[], guardid: string, chain_sense_bsc: Uint8Array, constant?: GuardConstant) => boolean;
     data?: any;
-    variables?: GuardVariable;
+    constants?: GuardConstant;
 };
 export {};
 //# sourceMappingURL=protocol.d.ts.map

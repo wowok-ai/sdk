@@ -62,15 +62,16 @@ export class Repository {
             arguments: [Protocol.TXB_OBJECT(txb, this.object)],
         });
     }
-    mark(like, resource) {
-        if (!Protocol.IsValidObjects([this.object]))
-            return false;
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target: this.protocol.RepositoryFn(like),
-            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
-        });
-    }
+    /* move to: Entity.mark
+        mark(like:'like' | 'unlike', resource:Resource)  {
+            if (!Protocol.IsValidObjects([this.object])) return false;
+            let txb = this.protocol.CurrentSession();
+            txb.moveCall({
+                target:this.protocol.RepositoryFn(like) as FnCallType,
+                arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
+            })
+        }
+    */
     add_data(data) {
         if (!Repository.IsValidName(data.key)) {
             ERROR(Errors.IsValidName);

@@ -1,5 +1,4 @@
 import { TxbObject, PermissionAddress, GuardObject, Protocol } from './protocol';
-import { Resource } from './resource';
 export declare enum PermissionIndex {
     repository = 100,
     repository_set_description_set = 101,
@@ -99,7 +98,6 @@ export declare class Permission {
     static New(protocol: Protocol, description: string): Permission;
     launch(): PermissionAddress;
     destroy(): void;
-    mark(like: 'like' | 'unlike', resource: Resource): void;
     add_entity(entities: Permission_Entity[]): void;
     set_guard(entity_address: string, index: PermissionIndexType, guard?: GuardObject): void;
     remove_index(entity_address: string, index: PermissionIndexType[]): void;
