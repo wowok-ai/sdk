@@ -5,10 +5,9 @@ Create, collaborate, and transact on your own terms with the AI-driven web3 coll
 
 Github: [https://github.com/wowok-ai/sdk](https://github.com/wowok-ai/sdk)   
 Examples: [https://github.com/wowok-ai/sdk-examples](https://github.com/wowok-ai/sdk-examples)    
-Website: [https://wowok-ai.github.io/wowok-ai](https://wowok-ai.github.io/wowok-ai)
+Introduction: [https://wowok-ai.github.io/wowok-ai](https://wowok-ai.github.io/wowok-ai)    
 Docs: [https://github.com/wowok-ai/sdk/wiki](https://github.com/wowok-ai/sdk/wiki)   
 
-Introduction: [https://wowok-ai.github.io/wowok-ai/](https://wowok-ai.github.io/wowok-ai/)    
 X: [https://x.com/Wowok_Ai](https://x.com/Wowok_Ai)
 
 
