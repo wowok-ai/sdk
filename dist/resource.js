@@ -1,6 +1,6 @@
 import { BCS } from '@mysten/bcs';
 import { Protocol } from './protocol';
-import { IsValidDesription, IsValidAddress, IsValidName, } from './utils';
+import { IsValidAddress, IsValidName, } from './utils';
 import { ERROR, Errors } from './exception';
 export class Resource {
     static MAX_WORDS_LEN = 102400;
@@ -19,34 +19,6 @@ export class Resource {
         r.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object);
         return r;
     }
-    static New(protocol, description) {
-        if (!IsValidDesription(description)) {
-            ERROR(Errors.IsValidDesription);
-        }
-        let r = new Resource(protocol);
-        let txb = protocol.CurrentSession();
-        r.object = txb.moveCall({
-            target: protocol.ResourceFn('new'),
-            arguments: [txb.pure(description)],
-        });
-        return r;
-    }
-    launch() {
-        let txb = this.protocol.CurrentSession();
-        return txb.moveCall({
-            target: this.protocol.ResourceFn('create'),
-            arguments: [Protocol.TXB_OBJECT(txb, this.object)],
-        });
-    }
-    destroy() {
-        if (!Protocol.IsValidObjects([this.object]))
-            return false;
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target: this.protocol.ResourceFn('destroy'),
-            arguments: [Protocol.TXB_OBJECT(txb, this.object)],
-        });
-    }
     add(name, object) {
         if (!IsValidName(name))
             ERROR(Errors.IsValidName, 'Resource: add');
@@ -61,6 +33,8 @@ export class Resource {
     remove(name, object, removeall) {
         if (!IsValidName(name))
             ERROR(Errors.IsValidName, 'Resource: remove');
+        if (!object && !removeall)
+            ERROR(Errors.InvalidParam, 'Resource: remove, BOTH param undefined');
         let txb = this.protocol.CurrentSession();
         if (removeall) {
             txb.moveCall({
@@ -68,7 +42,7 @@ export class Resource {
                 arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(name, BCS.STRING)]
             });
         }
-        else {
+        else if (object) {
             if (!IsValidAddress(object))
                 ERROR(Errors.IsValidAddress, 'Resource: remove');
             txb.moveCall({

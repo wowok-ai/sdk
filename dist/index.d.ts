@@ -11,4 +11,7 @@ export * from './passport';
 export * from './machine';
 export * from './service';
 export * from './graphql';
+export * from './entity';
+export * from './wowok';
+export * from './resource';
 //# sourceMappingURL=index.d.ts.map

@@ -6,7 +6,7 @@ export type Guard_Query_Object = {
     types: string[];
     id: string;
 };
-interface QueryInfo {
+export interface QueryInfo {
     identifier?: number;
     index: number;
     type: number;
@@ -19,12 +19,12 @@ interface GuardInfo {
     constant: QueryInfo[];
     input_witness: QueryInfo[];
 }
-interface DeGuardConstant {
+export interface DeGuardConstant {
     type: number;
     value: any;
     identifier?: number;
 }
-interface DeGuardData {
+export interface DeGuardData {
     type: number;
     value?: any;
     identifier?: number;
@@ -32,12 +32,12 @@ interface DeGuardData {
     child: DeGuardData[];
     ret_type?: number;
 }
-interface FutrueFill {
+export interface FutrueFill {
     guard: string;
     index: number;
     future: string;
 }
-interface PassportQuery {
+export interface PassportQuery {
     guard: GuardObject[];
     query: Guard_Query_Object[];
     witness: Guard_Query_Object[];
@@ -50,6 +50,10 @@ export declare class GuardParser {
     private get_index;
     private constructor();
     guardlist: () => GuardInfo[];
+    static DeGuardObject_FromData: (guard_constants: any, guard_input_bytes: any) => {
+        object: DeGuardData;
+        constant: DeGuardConstant[];
+    };
     static DeGuardObject: (protocol: Protocol, guard: string) => Promise<{
         object: DeGuardData;
         constant: DeGuardConstant[];

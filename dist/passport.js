@@ -15,27 +15,15 @@ export class GuardParser {
         this.guards = guards.map(g => protocol.CurrentSession().object(g));
     }
     guardlist = () => { return this.guard_list; };
-    /// convert guard-on-chain to js object
-    static DeGuardObject = async (protocol, guard) => {
-        if (!IsValidAddress(guard)) {
-            ERROR(Errors.IsValidAddress, 'GuardObject guard');
-        }
-        let res = await protocol.Query_Raw([guard]);
-        if (res.length == 0 || !res[0].data || res[0].data?.objectId != guard) {
-            ERROR(Errors.Fail, 'GuardObject query error');
-        }
-        // console.log(res[0].data?.content);
-        let content = res[0].data.content;
-        if (content?.type != protocol.Package() + '::guard::Guard') {
-            ERROR(Errors.Fail, 'GuardObject object invalid');
-        }
+    static DeGuardObject_FromData = (guard_constants, guard_input_bytes) => {
         let constants = [];
-        content.fields.constants.forEach((v) => {
+        guard_constants.forEach((c) => {
             let value;
-            switch (v.fields.type) {
+            let v = c?.fields ?? c; // graphql dosnot 'fields', but rpcall has.
+            switch (v.type) {
                 case ContextType.TYPE_WITNESS_ID:
                 case ValueType.TYPE_ADDRESS:
-                    value = '0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(v.fields.value)).toString();
+                    value = '0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(v.value)).toString();
                     break;
                 case ValueType.TYPE_BOOL:
                 case ValueType.TYPE_U8:
@@ -55,18 +43,19 @@ export class GuardParser {
                 case ValueType.TYPE_OPTION_U64:
                 case ValueType.TYPE_OPTION_U256:
                 case ValueType.TYPE_VEC_U256:
-                    let de = SER_VALUE.find(s => s.type == v.fields.type);
+                    let de = SER_VALUE.find(s => s.type == v.type);
                     if (!de)
                         ERROR(Errors.Fail, 'GuardObject de error');
-                    value = Bcs.getInstance().de(de.name, Uint8Array.from(v.fields.value));
+                    value = Bcs.getInstance().de(de.name, Uint8Array.from(v.value));
                     break;
                 default:
                     ERROR(Errors.Fail, 'GuardObject constant type invalid');
             }
-            constants.push({ identifier: v.fields.identifier, type: v.fields.type, value: value });
+            constants.push({ identifier: v.identifier, type: v.type, value: value });
         });
         // console.log(constants)
-        let arr = [].slice.call(content.fields.input.fields.bytes.reverse());
+        let bytes = Uint8Array.from(guard_input_bytes);
+        let arr = [].slice.call(bytes.reverse());
         let data = [];
         while (arr.length > 0) {
             let type = arr.shift();
@@ -227,6 +216,22 @@ export class GuardParser {
             ERROR(Errors.Fail, 'GuardObject: parse error');
         }
         return { object: stack.pop(), constant: constants };
+    };
+    /// convert guard-on-chain to js object
+    static DeGuardObject = async (protocol, guard) => {
+        if (!IsValidAddress(guard)) {
+            ERROR(Errors.IsValidAddress, 'GuardObject guard');
+        }
+        let res = await protocol.Query_Raw([guard]);
+        if (res.length == 0 || !res[0].data || res[0].data?.objectId != guard) {
+            ERROR(Errors.Fail, 'GuardObject query error');
+        }
+        // console.log(res[0].data?.content);
+        let content = res[0].data.content;
+        if (content?.type != protocol.Package() + '::guard::Guard') {
+            ERROR(Errors.Fail, 'GuardObject object invalid');
+        }
+        return GuardParser.DeGuardObject_FromData(content.fields.constants, content.fields.input.fields.bytes);
     };
     static ResolveData = (constants, stack, current) => {
         switch (current.type) {

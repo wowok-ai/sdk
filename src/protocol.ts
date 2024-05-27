@@ -106,28 +106,29 @@ export const IsValidValueType = (type:number) => { return ValueTypeArray.include
 interface ValueTypeString {
     type: ValueType;
     name: string;
+    description: string;
 }
 
 export const SER_VALUE: ValueTypeString[] = [
-    {type: ValueType.TYPE_BOOL, name: 'bool'},
-    {type: ValueType.TYPE_ADDRESS, name: 'address'},
-    {type: ValueType.TYPE_U64, name: 'u64'},
-    {type: ValueType.TYPE_U8, name: 'u8'},
-    {type: ValueType.TYPE_VEC_U8, name: 'vector<u8>'},
-    {type: ValueType.TYPE_U128, name: 'u128'},
-    {type: ValueType.TYPE_VEC_ADDRESS, name: 'vector<address>'},
-    {type: ValueType.TYPE_VEC_BOOL, name: 'vector<bool>'},
-    {type: ValueType.TYPE_VEC_VEC_U8, name: 'vector<vector<u8>>'},
-    {type: ValueType.TYPE_VEC_U64, name: 'vector<u64>'},
-    {type: ValueType.TYPE_VEC_U128, name: 'vector<u128>'},
-    {type: ValueType.TYPE_OPTION_ADDRESS, name: 'Option<address>'},
-    {type: ValueType.TYPE_OPTION_BOOL, name: 'Option<bool>'},
-    {type: ValueType.TYPE_OPTION_U8, name: 'Option<u8>'},
-    {type: ValueType.TYPE_OPTION_U64, name: 'Option<u64>'},
-    {type: ValueType.TYPE_OPTION_U128, name: 'Option<u128>'},
-    {type: ValueType.TYPE_OPTION_U256, name: 'Option<u256>'},
-    {type: ValueType.TYPE_VEC_U256, name: 'vector<u256>'},
-    {type: ValueType.TYPE_U256, name: 'u256'},
+    {type: ValueType.TYPE_BOOL, name: 'bool', description:'boolean. eg:true or false'},
+    {type: ValueType.TYPE_ADDRESS, name: 'address', description:'address or object-id. eg:0x6789af'},
+    {type: ValueType.TYPE_U64, name: 'number', description:'unsigned-64 number. eg:23870233'},
+    {type: ValueType.TYPE_U8, name: 'number', description:'unsigned-8 number. eg:255'},
+    {type: ValueType.TYPE_VEC_U8, name: '[number]', description:'unsigned-8 number array. eg:"wowok"'},
+    {type: ValueType.TYPE_U128, name: 'number', description:'unsigned-8 number. eg:12348900999'},
+    {type: ValueType.TYPE_VEC_ADDRESS, name: '[address]', description:'address array. eg:[0x2277f2, 0x3344af]'},
+    {type: ValueType.TYPE_VEC_BOOL, name: '[bool]', description:'boolean array. eg:[true, false, true]'},
+    {type: ValueType.TYPE_VEC_VEC_U8, name: '[[number]]', description:'array of unsigned-8 number array. eg:["i", "like", "wowok"]'},
+    {type: ValueType.TYPE_VEC_U64, name: '[number]', description:'unsigned-64 number array. eg:[123, 778888, 42312]'},
+    {type: ValueType.TYPE_VEC_U128, name: '[number]', description:'unsigned-128 number array. eg:[123, 778888, 42312]'},
+    {type: ValueType.TYPE_OPTION_ADDRESS, name: 'option', description:'option of address. eg:none or address'},
+    {type: ValueType.TYPE_OPTION_BOOL, name: 'option', description:'option of bool. eg:none or boolean value'},
+    {type: ValueType.TYPE_OPTION_U8, name: 'option', description:'option of u8. eg:none or u8 value'},
+    {type: ValueType.TYPE_OPTION_U64, name: 'option', description:'option of u64. eg:none or u64 value'},
+    {type: ValueType.TYPE_OPTION_U128, name: 'option', description:'option of u128. eg:none or u128 value'},
+    {type: ValueType.TYPE_OPTION_U256, name: 'option', description:'option of u256. eg:none or u256 value'},
+    {type: ValueType.TYPE_VEC_U256, name: '[number]', description:'unsigned-256 number array. eg:[123, 778888, 42312]'},
+    {type: ValueType.TYPE_U256, name: 'number', description:'unsigned-256 number. eg:12345678901233'},
 ]
 
 export enum ContextType {

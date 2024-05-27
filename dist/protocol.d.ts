@@ -91,6 +91,7 @@ export declare const IsValidValueType: (type: number) => boolean;
 interface ValueTypeString {
     type: ValueType;
     name: string;
+    description: string;
 }
 export declare const SER_VALUE: ValueTypeString[];
 export declare enum ContextType {

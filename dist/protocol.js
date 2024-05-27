@@ -64,25 +64,25 @@ export const ValueTypeArray = Object.values(ValueType).filter((v) => typeof (v) 
 export const IsValidOperatorType = (type) => { return OperatorTypeArray.includes(type); };
 export const IsValidValueType = (type) => { return ValueTypeArray.includes(type); };
 export const SER_VALUE = [
-    { type: ValueType.TYPE_BOOL, name: 'bool' },
-    { type: ValueType.TYPE_ADDRESS, name: 'address' },
-    { type: ValueType.TYPE_U64, name: 'u64' },
-    { type: ValueType.TYPE_U8, name: 'u8' },
-    { type: ValueType.TYPE_VEC_U8, name: 'vector<u8>' },
-    { type: ValueType.TYPE_U128, name: 'u128' },
-    { type: ValueType.TYPE_VEC_ADDRESS, name: 'vector<address>' },
-    { type: ValueType.TYPE_VEC_BOOL, name: 'vector<bool>' },
-    { type: ValueType.TYPE_VEC_VEC_U8, name: 'vector<vector<u8>>' },
-    { type: ValueType.TYPE_VEC_U64, name: 'vector<u64>' },
-    { type: ValueType.TYPE_VEC_U128, name: 'vector<u128>' },
-    { type: ValueType.TYPE_OPTION_ADDRESS, name: 'Option<address>' },
-    { type: ValueType.TYPE_OPTION_BOOL, name: 'Option<bool>' },
-    { type: ValueType.TYPE_OPTION_U8, name: 'Option<u8>' },
-    { type: ValueType.TYPE_OPTION_U64, name: 'Option<u64>' },
-    { type: ValueType.TYPE_OPTION_U128, name: 'Option<u128>' },
-    { type: ValueType.TYPE_OPTION_U256, name: 'Option<u256>' },
-    { type: ValueType.TYPE_VEC_U256, name: 'vector<u256>' },
-    { type: ValueType.TYPE_U256, name: 'u256' },
+    { type: ValueType.TYPE_BOOL, name: 'bool', description: 'boolean. eg:true or false' },
+    { type: ValueType.TYPE_ADDRESS, name: 'address', description: 'address or object-id. eg:0x6789af' },
+    { type: ValueType.TYPE_U64, name: 'number', description: 'unsigned-64 number. eg:23870233' },
+    { type: ValueType.TYPE_U8, name: 'number', description: 'unsigned-8 number. eg:255' },
+    { type: ValueType.TYPE_VEC_U8, name: '[number]', description: 'unsigned-8 number array. eg:"wowok"' },
+    { type: ValueType.TYPE_U128, name: 'number', description: 'unsigned-8 number. eg:12348900999' },
+    { type: ValueType.TYPE_VEC_ADDRESS, name: '[address]', description: 'address array. eg:[0x2277f2, 0x3344af]' },
+    { type: ValueType.TYPE_VEC_BOOL, name: '[bool]', description: 'boolean array. eg:[true, false, true]' },
+    { type: ValueType.TYPE_VEC_VEC_U8, name: '[[number]]', description: 'array of unsigned-8 number array. eg:["i", "like", "wowok"]' },
+    { type: ValueType.TYPE_VEC_U64, name: '[number]', description: 'unsigned-64 number array. eg:[123, 778888, 42312]' },
+    { type: ValueType.TYPE_VEC_U128, name: '[number]', description: 'unsigned-128 number array. eg:[123, 778888, 42312]' },
+    { type: ValueType.TYPE_OPTION_ADDRESS, name: 'option', description: 'option of address. eg:none or address' },
+    { type: ValueType.TYPE_OPTION_BOOL, name: 'option', description: 'option of bool. eg:none or boolean value' },
+    { type: ValueType.TYPE_OPTION_U8, name: 'option', description: 'option of u8. eg:none or u8 value' },
+    { type: ValueType.TYPE_OPTION_U64, name: 'option', description: 'option of u64. eg:none or u64 value' },
+    { type: ValueType.TYPE_OPTION_U128, name: 'option', description: 'option of u128. eg:none or u128 value' },
+    { type: ValueType.TYPE_OPTION_U256, name: 'option', description: 'option of u256. eg:none or u256 value' },
+    { type: ValueType.TYPE_VEC_U256, name: '[number]', description: 'unsigned-256 number array. eg:[123, 778888, 42312]' },
+    { type: ValueType.TYPE_U256, name: 'number', description: 'unsigned-256 number. eg:12345678901233' },
 ];
 export var ContextType;
 (function (ContextType) {
@@ -118,9 +118,9 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0xe8e1dc46a09e7f6deed622f3c9235a009fe1638a728bd16329830ddec0939047";
-                this.wowok_object = '0x4473576ea37624641cba0327137615fa0e61805f79b2e87f5cedf2ab5c05ebec';
-                this.entity_object = '0xf54da7a6da3f9179b9a9878549b7296988474cb8cfd5c7417a448b62293a7c8d';
+                this.package = "0x2ac00805aa0ec3c62b575e412108bb295389bbfc86202fd7b73c69dbbb80769a";
+                this.wowok_object = '0x49d49fb41c63c3f6c838fca20c25741f20aa74a176391685446794bdaa9b7934';
+                this.entity_object = '0xd21d8d76f553b2db6c6d28a8b2ae3405bec92f2a300676d80fcc004ca40b0a77';
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
             case ENTRYPOINT.mainnet:
