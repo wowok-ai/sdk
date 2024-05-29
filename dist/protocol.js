@@ -106,9 +106,17 @@ export class Protocol {
     entity_object = '';
     graphql = '';
     txb;
+    static _instance;
     constructor(network = ENTRYPOINT.testnet) {
         this.UseNetwork(network);
         this.NewSession();
+    }
+    static Instance() {
+        if (!Protocol._instance) {
+            Protocol._instance = new Protocol();
+        }
+        ;
+        return Protocol._instance;
     }
     UseNetwork(network = ENTRYPOINT.testnet) {
         this.network = network;

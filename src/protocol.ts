@@ -156,11 +156,19 @@ export class Protocol {
     protected entity_object = '';
     protected graphql = '';
     protected txb: TransactionBlock | undefined;
+    static _instance: any;
 
     constructor(network:ENTRYPOINT=ENTRYPOINT.testnet) {
         this.UseNetwork(network);
         this.NewSession();
     }
+
+    static Instance() {
+        if (!Protocol._instance) {
+            Protocol._instance = new Protocol();
+        }; return Protocol._instance
+    }
+
     UseNetwork(network:ENTRYPOINT=ENTRYPOINT.testnet) {
         this.network = network;
         switch(network) {

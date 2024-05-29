@@ -116,7 +116,9 @@ export declare class Protocol {
     protected entity_object: string;
     protected graphql: string;
     protected txb: TransactionBlock | undefined;
+    static _instance: any;
     constructor(network?: ENTRYPOINT);
+    static Instance(): any;
     UseNetwork(network?: ENTRYPOINT): void;
     Package(): string;
     WowokObject(): string;
