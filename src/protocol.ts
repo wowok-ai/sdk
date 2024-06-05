@@ -5,7 +5,7 @@ import { BCS, getSuiMoveConfig, toHEX, fromHEX, BcsReader } from '@mysten/bcs';
 import { TransactionBlock, Inputs, TransactionResult, TransactionArgument } from '@mysten/sui.js/transactions';
 import { capitalize, IsValidArray } from './utils'
 import { GuardConstant } from './guard';
-
+import { isValidSuiAddress, isValidSuiObjectId } from '@mysten/sui.js/utils'
 
 export enum MODULES {
     machine = 'machine',
@@ -281,6 +281,9 @@ export class Protocol {
     static IsValidObjects = (arr:TxbObject[]) : boolean => { 
         return IsValidArray(arr, (v:TxbObject)=>{ 
             if (!v)  return false
+            if (typeof(v) === 'string' && !isValidSuiObjectId(v)) {
+                return false
+            }
             return true
         })
     }  
