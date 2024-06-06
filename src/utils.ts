@@ -239,7 +239,7 @@ export const IsValidDesription = (description:string) : boolean => { return desc
 export const IsValidName = (name:string) : boolean => { if(!name) return false; return name.length <= MAX_NAME_LENGTH && name.length != 0 }
 export const IsValidName_AllowEmpty = (name:string) : boolean => { return name.length <= MAX_NAME_LENGTH }
 export const IsValidEndpoint = (endpoint:string) : boolean => { if (!endpoint) return false; return endpoint.length <= MAX_ENDPOINT_LENGTH }
-export const IsValidAddress = (addr:string) : boolean => { if (!addr || !IsValidAddress(addr)) return false; return true}
+export const IsValidAddress = (addr:string) : boolean => { if (!addr || !isValidSuiAddress(addr)) return false; return true}
 export const IsValidArgType = (argType: string) : boolean => { if (!argType) return false; return argType.length != 0 }
 export const IsValidUint = (value: number) : boolean => { return Number.isSafeInteger(value) && value != 0 }
 export const IsValidInt = (value: number) : boolean => { return Number.isSafeInteger(value) }

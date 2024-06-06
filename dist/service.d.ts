@@ -30,10 +30,10 @@ export type Customer_RequiredInfo = {
     customer_info_crypt: string[];
 };
 export declare enum BuyRequiredEnum {
-    address = "address",
-    phone = "phone",
-    name = "name",
-    postcode = "postcode"
+    address = "Address",
+    phone = "Phone",
+    name = "Name",
+    postcode = "Postcode"
 }
 export type Service_Buy = {
     item: string;

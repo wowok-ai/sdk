@@ -39,10 +39,10 @@ export type Customer_RequiredInfo = {
     customer_info_crypt: string[];
 }
 export enum BuyRequiredEnum {
-    address = 'address',
-    phone = 'phone',
-    name = 'name',
-    postcode = 'postcode'
+    address = 'Address',
+    phone = 'Phone',
+    name = 'Name',
+    postcode = 'Postcode'
 }
 export type Service_Buy = {
     item: string;
@@ -130,16 +130,7 @@ export class Service {
             typeArguments:[this.pay_token_type]
         })   
     }
-/*  move to: Entity.mark
-    mark(like:'like' | 'unlike', resource:Resource) {
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.ServiceFn(like) as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
-            typeArguments:[this.pay_token_type]
-        })   
-    }
-*/
+
     set_description(description:string, passport?:PassportObject)  {
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription)

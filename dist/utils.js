@@ -1,5 +1,6 @@
 import { BCS, getSuiMoveConfig } from '@mysten/bcs';
 import { ERROR, Errors } from './exception';
+import { isValidSuiAddress } from '@mysten/sui.js/utils';
 export const OPTION_NONE = 0;
 export const readOption = (arr, de) => {
     let o = arr.splice(0, 1);
@@ -219,7 +220,7 @@ export const IsValidName = (name) => { if (!name)
 export const IsValidName_AllowEmpty = (name) => { return name.length <= MAX_NAME_LENGTH; };
 export const IsValidEndpoint = (endpoint) => { if (!endpoint)
     return false; return endpoint.length <= MAX_ENDPOINT_LENGTH; };
-export const IsValidAddress = (addr) => { if (!addr)
+export const IsValidAddress = (addr) => { if (!addr || !isValidSuiAddress(addr))
     return false; return true; };
 export const IsValidArgType = (argType) => { if (!argType)
     return false; return argType.length != 0; };

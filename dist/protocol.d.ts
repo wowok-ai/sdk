@@ -118,7 +118,7 @@ export declare class Protocol {
     protected txb: TransactionBlock | undefined;
     static _instance: any;
     constructor(network?: ENTRYPOINT);
-    static Instance(): any;
+    static Instance(): Protocol;
     UseNetwork(network?: ENTRYPOINT): void;
     Package(): string;
     WowokObject(): string;
@@ -150,6 +150,11 @@ export declare class Protocol {
     static SUI_COIN_TYPE: string;
     WOWOK_TOKEN_TYPE: () => string;
     WOWOK_COIN_TYPE: () => string;
+    COINS_TYPE: () => {
+        name: string;
+        type: string;
+        decimals: number;
+    }[];
     static CLOCK_OBJECT: {
         Object: {
             ImmOrOwned: {

@@ -163,7 +163,7 @@ export class Protocol {
         this.NewSession();
     }
 
-    static Instance() {
+    static Instance() : Protocol {
         if (!Protocol._instance) {
             Protocol._instance = new Protocol();
         }; return Protocol._instance
@@ -177,9 +177,9 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0x2ac00805aa0ec3c62b575e412108bb295389bbfc86202fd7b73c69dbbb80769a";
-                this.wowok_object = '0x49d49fb41c63c3f6c838fca20c25741f20aa74a176391685446794bdaa9b7934';
-                this.entity_object= '0xd21d8d76f553b2db6c6d28a8b2ae3405bec92f2a300676d80fcc004ca40b0a77';
+                this.package = "0xd3cab93b07c18d3ef0557fb1f958dc57473c7add42f87c89ea7b7cceaa58e294";
+                this.wowok_object = '0x48224d5a1c30f7b0eda5874d794dd695ce929e59247ee4c472d10f3aa5323a24';
+                this.entity_object= '0xd0b3861a38359a2aa12523f47499aeab7bc9b83f8948a84c945d6990adbf6a86';
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
             case ENTRYPOINT.mainnet:
@@ -267,7 +267,24 @@ export class Protocol {
     static SUI_COIN_TYPE = '0x2::coin::Coin<0x2::sui::SUI>'; // COIN TYPE
     WOWOK_TOKEN_TYPE = () => { return this.package + '::wowok::WOWOK' }
     WOWOK_COIN_TYPE = () => {  return '0x2::coin::Coin<' + this.package + '::wowok::WOWOK>'}
-
+    COINS_TYPE = () => { 
+        switch(this.network) {
+            case ENTRYPOINT.testnet:
+                /*return [
+                    {name:'SUI', type:'0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI', decimals:9},
+                    {name:'WOW', type:this.WOWOK_TOKEN_TYPE(), decimals:9},
+                ];*/
+            case ENTRYPOINT.mainnet:
+                return [
+                    {name:'SUI', type:'0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI', decimals:9},
+                    {name:'WOW', type:this.WOWOK_TOKEN_TYPE(), decimals:9},
+                    {name:'USDT', type:'0xc060006111016b8a020ad5b33834984a437aaa7d3c74c18e09a95d48aceab08c::coin::COIN', decimals:6},
+                    {name:'USDC', type:'0x5d4b302506645c37ff133b98c4b50a5ae14841659738d6d733d59d0d217a93bf::coin::COIN', decimals:6},              
+                    {name:'WETH', type:'0xaf8cd5edc19c4512f4259f0bee101a40d41ebed738ade5874359610ef8eeced5::coin::COIN', decimals:8},
+                    {name:'WBNB', type:'0xb848cce11ef3a8f62eccea6eb5b35a12c4c2b1ee1af7755d02d7bd6218e8226f::coin::COIN', decimals:8},
+                ];
+        }; return [];
+    }
 
     static CLOCK_OBJECT = Inputs.SharedObjectRef({
         objectId:"0x6",
@@ -350,3 +367,4 @@ export type Query_Param = {
     data?: any; // response data filted by callback
     constants?: GuardConstant;
 };
+
