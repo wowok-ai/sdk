@@ -269,7 +269,8 @@ export class GuardConstantHelper {
         let v = constants.get(identifier);
         if (!v || v.type == ContextType.TYPE_WITNESS_ID) {
             if (bNeedSerialize) {
-                constants.set(identifier, {type:ContextType.TYPE_WITNESS_ID, value:value ? Bcs.getInstance().ser_address(value) : undefined, witness:witness ? Bcs.getInstance().ser_address(witness) : undefined})
+                constants.set(identifier, {type:ContextType.TYPE_WITNESS_ID, value:value ? Bcs.getInstance().ser(ValueType.TYPE_ADDRESS, value) : undefined, 
+                    witness:witness ? Bcs.getInstance().ser(ValueType.TYPE_ADDRESS, witness) : undefined})
             } else {
                 constants.set(identifier, {type:ContextType.TYPE_WITNESS_ID, value:value?value:undefined, witness:witness?witness:undefined});             
             }                     
@@ -301,12 +302,12 @@ export class GuardConstantHelper {
             case ValueType.TYPE_VEC_U256:
                 let ser = SER_VALUE.find(s=>s.type==type);
                 if (!ser) ERROR(Errors.Fail, 'add_constant: invalid type');
-                bNeedSerialize ? constants.set(identifier, {type:type, value:Bcs.getInstance().ser(ser!.name, value)}) :
+                bNeedSerialize ? constants.set(identifier, {type:type, value:Bcs.getInstance().ser(ser!.type, value)}) :
                 constants.set(identifier,  {type:type, value:value})    
                 return         
             case ValueType.TYPE_VEC_U8:
                 if (typeof(value) === 'string') {
-                    constants.set(identifier, {type:type, value:Bcs.getInstance().ser_string(value)})                 
+                    constants.set(identifier, {type:type, value:Bcs.getInstance().ser(ValueType.TYPE_STRING, value)})                 
                 } else {
                     constants.set(identifier,  {type:type, value:value})      
                 }
@@ -344,10 +345,10 @@ export class GuardMaker {
 
     private  serValueParam(type:ValueType, param?:any) {
         if (!param) ERROR(Errors.InvalidParam, 'param');
-        this.data.push(Bcs.getInstance().ser_u8(type));
+        this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type));
         let ser = SER_VALUE.find(s=>s.type==type);
         if (!ser) ERROR(Errors.Fail, 'serValueParam: invalid type');
-        this.data.push(Bcs.getInstance().ser(ser!.name, param));
+        this.data.push(Bcs.getInstance().ser(ser!.type, param));
         this.type_validator.push(type);
     }
 
@@ -376,26 +377,26 @@ export class GuardMaker {
             break;
         case ValueType.TYPE_VEC_U8:
             if (!param) ERROR(Errors.InvalidParam, 'param');
-            this.data.push(Bcs.getInstance().ser_u8(type));
+            this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type));
             if (typeof(param) == 'string') {
-                this.data.push(Bcs.getInstance().ser_string(param));
+                this.data.push(Bcs.getInstance().ser(ValueType.TYPE_STRING, param));
             } else {
-                this.data.push(Bcs.getInstance().ser_vector_u8(param));
+                this.data.push(Bcs.getInstance().ser(ValueType.TYPE_VEC_U8, param));
             }
             this.type_validator.push(type);
             break;
         case ContextType.TYPE_SIGNER:
-            this.data.push(Bcs.getInstance().ser_u8(type));
+            this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type));
             this.type_validator.push(ValueType.TYPE_ADDRESS);
             break;
         case ContextType.TYPE_CLOCK:
-            this.data.push(Bcs.getInstance().ser_u8(type));
+            this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type));
             this.type_validator.push(ValueType.TYPE_U64);
             break;
         case ContextType.TYPE_WITNESS_ID:
             if (!param) ERROR(Errors.InvalidParam, 'param');
-            this.data.push(Bcs.getInstance().ser_u8(type));
-            this.data.push(Bcs.getInstance().ser_address(param));
+            this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type));
+            this.data.push(Bcs.getInstance().ser(ValueType.TYPE_ADDRESS, param));
             this.type_validator.push(ValueType.TYPE_ADDRESS);
             break;   
         case ContextType.TYPE_CONSTANT:
@@ -409,8 +410,8 @@ export class GuardMaker {
             var v = this.constant.get(param);
             if (!v) ERROR(Errors.Fail, 'identifier not in constant');
             this.type_validator.push(v!.type);
-            this.data.push(Bcs.getInstance().ser_u8(type));
-            this.data.push(Bcs.getInstance().ser_u8(param));
+            this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type));
+            this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, param));
             break;
         default:
             ERROR(Errors.InvalidParam, 'add_param type');
@@ -445,23 +446,23 @@ export class GuardMaker {
             ERROR(Errors.Fail, 'array_equal');
         }
         
-        this.data.push(Bcs.getInstance().ser_u8(OperatorType.TYPE_QUERY)); // QUERY TYPE
+        this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, OperatorType.TYPE_QUERY)); // QUERY TYPE
         if (typeof(object_address_from) == 'string') {
-            bWitness ? this.data.push(Bcs.getInstance().ser_u8(ContextType.TYPE_WITNESS_ID)) :
-                this.data.push(Bcs.getInstance().ser_u8(ValueType.TYPE_ADDRESS)); 
-            this.data.push(Bcs.getInstance().ser_address(object_address_from)); // object address            
+            bWitness ? this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, ContextType.TYPE_WITNESS_ID)) :
+                this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, ValueType.TYPE_ADDRESS)); 
+            this.data.push(Bcs.getInstance().ser(ValueType.TYPE_ADDRESS, object_address_from)); // object address            
         } else {
             let v =  this.constant.get(object_address_from);
             if (!v) ERROR(Errors.Fail, 'object_address_from not in constant');
             if ((bWitness && v?.type == ContextType.TYPE_WITNESS_ID) || (!bWitness && v?.type == ValueType.TYPE_ADDRESS)) {
-                this.data.push(Bcs.getInstance().ser_u8(ContextType.TYPE_CONSTANT));
-                this.data.push(Bcs.getInstance().ser_u8(object_address_from)); // object identifer in constants
+                this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, ContextType.TYPE_CONSTANT));
+                this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, object_address_from)); // object identifer in constants
             } else {
                 ERROR(Errors.Fail, 'type bWitness not match')
             }
         }
 
-        this.data.push(Bcs.getInstance().ser_u8(Guard.QUERIES[query_index][2])); // cmd
+        this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, Guard.QUERIES[query_index][2])); // cmd
         this.type_validator.splice(offset, Guard.QUERIES[query_index][3].length); // delete type stack
         this.type_validator.push(Guard.QUERIES[query_index][4]); // add the return value type to type stack
         return this;
@@ -499,7 +500,7 @@ export class GuardMaker {
             default:
                 ERROR(Errors.InvalidParam, 'type') 
         }
-        this.data.push(Bcs.getInstance().ser_u8(type)); // TYPE     
+        this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type)); // TYPE     
         this.type_validator.splice(this.type_validator.length - splice_len); // delete type stack   
         this.type_validator.push(ValueType.TYPE_BOOL); // add bool to type stack
         return this;
@@ -536,7 +537,7 @@ export class GuardMaker {
             maker.constant.set(k, {type:v.type, value:v.value, witness:v.witness});
         })
         let op = bAnd ? OperatorType.TYPE_LOGIC_AND :  OperatorType.TYPE_LOGIC_OR;
-        maker.data.push(concatenate(Uint8Array, ...this.data, ...otherBuilt.data, Bcs.getInstance().ser_u8(op)));
+        maker.data.push(concatenate(Uint8Array, ...this.data, ...otherBuilt.data, Bcs.getInstance().ser(ValueType.TYPE_U8, op)));
         this.data.splice(0, this.data.length-1);
         maker.type_validator = this.type_validator;
         return maker
@@ -547,10 +548,10 @@ export class GuardMaker {
 
     static input_combine(input1:Uint8Array, input2:Uint8Array, bAnd:boolean = true) : Uint8Array {
         let op = bAnd ? OperatorType.TYPE_LOGIC_AND :  OperatorType.TYPE_LOGIC_OR;
-        return concatenate(Uint8Array, input1, input2, Bcs.getInstance().ser_u8(op)) as  Uint8Array;
+        return concatenate(Uint8Array, input1, input2, Bcs.getInstance().ser(ValueType.TYPE_U8, op)) as  Uint8Array;
     }
     static input_not(input:Uint8Array) : Uint8Array {
-        return concatenate(Uint8Array, input, Bcs.getInstance().ser_u8(OperatorType.TYPE_LOGIC_NOT)) as Uint8Array;
+        return concatenate(Uint8Array, input, Bcs.getInstance().ser(ValueType.TYPE_U8, OperatorType.TYPE_LOGIC_NOT)) as Uint8Array;
     }
 
     static match_u256(type:number) : boolean {

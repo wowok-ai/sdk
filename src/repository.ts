@@ -82,16 +82,7 @@ export class Repository {
             arguments: [Protocol.TXB_OBJECT(txb, this.object)],
         })   
     }
-/* move to: Entity.mark
-    mark(like:'like' | 'unlike', resource:Resource)  {
-        if (!Protocol.IsValidObjects([this.object])) return false;
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.RepositoryFn(like) as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
-        })   
-    }
-*/
+
     add_data(data:Repository_Policy_Data)  {
         if (!Repository.IsValidName(data.key)) {
             ERROR(Errors.IsValidName)
@@ -235,7 +226,7 @@ export class Repository {
 
         let txb = this.protocol.CurrentSession();
         policies.forEach((policy) => {
-            let permission_index = policy?.permission ? txb.pure(Bcs.getInstance().ser_option_u64(policy.permission)) : OptionNone(txb);
+            let permission_index = policy?.permission ? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_U64, policy.permission)) : OptionNone(txb);
             if (passport) {
                 txb.moveCall({
                     target:this.protocol.RepositoryFn('policy_add_with_passport') as FnCallType,
@@ -277,7 +268,7 @@ export class Repository {
                 txb.moveCall({
                     target:this.protocol.RepositoryFn('policy_remove_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), 
-                        txb.pure(Bcs.getInstance().ser_vector_string(array_unique(policy_keys))), 
+                        txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(policy_keys))), 
                         Protocol.TXB_OBJECT(txb, this.permission)]
                 })                
             }
@@ -291,7 +282,7 @@ export class Repository {
                 txb.moveCall({
                     target:this.protocol.RepositoryFn('policy_remove') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(txb, this.object), 
-                        txb.pure(Bcs.getInstance().ser_vector_string(array_unique(policy_keys))), 
+                        txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(policy_keys))), 
                         Protocol.TXB_OBJECT(txb, this.permission)]
                 })                
             }
@@ -371,7 +362,7 @@ export class Repository {
             if(!Permission.IsValidPermissionIndex(permission_index)) {
                 ERROR(Errors.IsValidPermissionIndex)
             }
-            index = txb.pure(Bcs.getInstance().ser_option_u64(permission_index));
+            index = txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_U64, permission_index));
         }
 
         if (passport) {

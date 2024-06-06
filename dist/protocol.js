@@ -57,8 +57,11 @@ export var ValueType;
     ValueType[ValueType["TYPE_OPTION_U64"] = 114] = "TYPE_OPTION_U64";
     ValueType[ValueType["TYPE_OPTION_U128"] = 115] = "TYPE_OPTION_U128";
     ValueType[ValueType["TYPE_OPTION_U256"] = 116] = "TYPE_OPTION_U256";
-    ValueType[ValueType["TYPE_VEC_U256"] = 117] = "TYPE_VEC_U256";
-    ValueType[ValueType["TYPE_U256"] = 118] = "TYPE_U256";
+    ValueType[ValueType["TYPE_OPTION_STRING"] = 117] = "TYPE_OPTION_STRING";
+    ValueType[ValueType["TYPE_VEC_U256"] = 118] = "TYPE_VEC_U256";
+    ValueType[ValueType["TYPE_STRING"] = 119] = "TYPE_STRING";
+    ValueType[ValueType["TYPE_VEC_STRING"] = 120] = "TYPE_VEC_STRING";
+    ValueType[ValueType["TYPE_U256"] = 121] = "TYPE_U256";
 })(ValueType || (ValueType = {}));
 export const OperatorTypeArray = Object.values(OperatorType).filter((v) => typeof (v) === 'number');
 export const ValueTypeArray = Object.values(ValueType).filter((v) => typeof (v) === 'number');
@@ -69,7 +72,7 @@ export const SER_VALUE = [
     { type: ValueType.TYPE_ADDRESS, name: 'address', description: 'address or object-id. eg:0x6789af' },
     { type: ValueType.TYPE_U64, name: 'number', description: 'unsigned-64 number. eg:23870233' },
     { type: ValueType.TYPE_U8, name: 'number', description: 'unsigned-8 number. eg:255' },
-    { type: ValueType.TYPE_VEC_U8, name: '[number]', description: 'unsigned-8 number array. eg:"wowok"' },
+    { type: ValueType.TYPE_VEC_U8, name: '[number]', description: 'unsigned-8 number array. eg:"[1,2,3]"' },
     { type: ValueType.TYPE_U128, name: 'number', description: 'unsigned-8 number. eg:12348900999' },
     { type: ValueType.TYPE_VEC_ADDRESS, name: '[address]', description: 'address array. eg:[0x2277f2, 0x3344af]' },
     { type: ValueType.TYPE_VEC_BOOL, name: '[bool]', description: 'boolean array. eg:[true, false, true]' },
@@ -83,6 +86,9 @@ export const SER_VALUE = [
     { type: ValueType.TYPE_OPTION_U128, name: 'option', description: 'option of u128. eg:none or u128 value' },
     { type: ValueType.TYPE_OPTION_U256, name: 'option', description: 'option of u256. eg:none or u256 value' },
     { type: ValueType.TYPE_VEC_U256, name: '[number]', description: 'unsigned-256 number array. eg:[123, 778888, 42312]' },
+    { type: ValueType.TYPE_VEC_STRING, name: '[string]', description: 'ascii string array. eg:["abc", "hi"]' },
+    { type: ValueType.TYPE_STRING, name: 'string', description: 'ascii string. eg:"wowok"' },
+    { type: ValueType.TYPE_OPTION_STRING, name: 'option', description: 'option of string. eg:none or string value' },
     { type: ValueType.TYPE_U256, name: 'number', description: 'unsigned-256 number. eg:12345678901233' },
 ];
 export var ContextType;

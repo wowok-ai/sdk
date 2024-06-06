@@ -2,7 +2,7 @@ import { BCS } from '@mysten/bcs';
 import { FnCallType, PassportObject, PermissionObject, GuardObject, VoteAddress, Protocol, TxbObject} from './protocol';
 import { IsValidDesription, IsValidUint, IsValidAddress, OptionNone, Bcs, array_unique, IsValidArray, IsValidName } from './utils';
 import { ERROR, Errors } from './exception';
-import { Resource } from './resource';
+import { ValueType } from './protocol';
 
 export const MAX_AGREES_COUNT = 200;
 export const MAX_CHOICE_COUNT = 200;
@@ -51,7 +51,7 @@ export class Vote {
 
         let v = new Vote(protocol, permission);    
         let txb  = protocol.CurrentSession();
-        let reference = reference_address?  txb.pure(Bcs.getInstance().ser_option_address(reference_address)) : OptionNone(txb);
+        let reference = reference_address?  txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_ADDRESS, reference_address)) : OptionNone(txb);
         let choice_count = max_choice_count ? max_choice_count : 1;
 
         if (passport) {
@@ -112,7 +112,7 @@ export class Vote {
         }
 
         let txb = this.protocol.CurrentSession();
-        let reference = reference_address?  txb.pure(Bcs.getInstance().ser_option_address(reference_address)) : OptionNone(txb); 
+        let reference = reference_address?  txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_ADDRESS, reference_address)) : OptionNone(txb); 
         if (passport) {
             txb.moveCall({
                 target:this.protocol.VoteFn('reference_set_with_passport') as FnCallType,
@@ -207,7 +207,7 @@ export class Vote {
         let txb = this.protocol.CurrentSession();
         options.forEach((option) => {
             let reference = option?.reference_address ? 
-                txb.pure(Bcs.getInstance().ser_option_address(option.reference_address)) : 
+                txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_ADDRESS, option.reference_address)) : 
                 OptionNone(txb); 
 
             if (passport) {
@@ -244,7 +244,7 @@ export class Vote {
                 txb.moveCall({
                     target:this.protocol.VoteFn('agrees_remove_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), 
-                        txb.pure(Bcs.getInstance().ser_vector_string(array_unique(options))), 
+                        txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(options))), 
                         Protocol.TXB_OBJECT(txb, this.permission)]
                 })             
             }
@@ -258,7 +258,7 @@ export class Vote {
                 txb.moveCall({
                     target:this.protocol.VoteFn('agrees_remove') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(txb, this.object), 
-                        txb.pure(Bcs.getInstance().ser_vector_string(array_unique(options))), 
+                        txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(options))), 
                         Protocol.TXB_OBJECT(txb, this.permission)]
                 })        
             }
@@ -360,13 +360,13 @@ export class Vote {
             txb.moveCall({
                 target:this.protocol.VoteFn('with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), 
-                    txb.pure(Bcs.getInstance().ser_vector_string(array_unique(options)))]
+                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(options)))]
             })  
         } else {
             txb.moveCall({
                 target:this.protocol.VoteFn('this.object') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), 
-                    txb.pure(Bcs.getInstance().ser_vector_string(array_unique(options)))]
+                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(options)))]
             })           
         }
         

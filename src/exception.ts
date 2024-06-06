@@ -18,6 +18,7 @@ export enum Errors {
     Fail = 'fail',
     IsValidIndentifier = 'indentifier invalid',
     isValidHttpUrl = 'invalid url',
+    bcsTypeInvalid = 'invalid bcs type',
 }
 
 export const ERROR = (error:Errors, info?:any) =>  {

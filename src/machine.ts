@@ -5,7 +5,7 @@ import { IsValidInt, IsValidUint, Bcs, array_unique, IsValidArray, IsValidAddres
     IsValidEndpoint, OptionNone, IsValidDesription} from './utils'
 import { Permission, PermissionIndexType } from './permission';
 import { Errors, ERROR}  from './exception'
-import { Resource } from './resource';
+import { ValueType } from './protocol';
 
 
 export type MachineNodeObject = TransactionResult | String;
@@ -59,7 +59,7 @@ export class Machine {
 
         let m = new Machine(protocol, permission);
         let txb = protocol.CurrentSession();
-        let ep = endpoint? txb.pure(Bcs.getInstance().ser_option_string(endpoint)) : OptionNone(txb);
+        let ep = endpoint? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_STRING, endpoint)) : OptionNone(txb);
     
         if (passport) {
             m.object = txb.moveCall({
@@ -104,11 +104,11 @@ export class Machine {
                 arguments:[txb.pure(node.name), txb.pure(node.description)]
             });
             node.pairs.forEach((pair) => {
-                let threshold = pair?.threshold ? txb.pure(Bcs.getInstance().ser_option_u64(pair.threshold)) : OptionNone(txb);
+                let threshold = pair?.threshold ? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_U64, pair.threshold)) : OptionNone(txb);
 
                 pair.forwards.forEach((forward) => {
                     let weight = forward?.weight ? forward.weight : 1;
-                    let perm = forward?.permission ? txb.pure(Bcs.getInstance().ser_option_u64(forward.permission)) : OptionNone(txb); 
+                    let perm = forward?.permission ? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_U64, forward.permission)) : OptionNone(txb); 
                     let namedOperator = forward?.namedOperator ?  txb.pure(forward.namedOperator) : txb.pure('');
                     let f;
 
@@ -169,13 +169,13 @@ export class Machine {
         if (passport) {
             txb.moveCall({
                 target:this.protocol.MachineFn('node_remove_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb,  this.object), txb.pure(Bcs.getInstance().ser_vector_string(nodes_name)), 
+                arguments:[passport, Protocol.TXB_OBJECT(txb,  this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, nodes_name)), 
                     txb.pure(bTransferMyself, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
             });  
         } else {
             txb.moveCall({
                 target:this.protocol.MachineFn('node_remove') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb,  this.object), txb.pure(Bcs.getInstance().ser_vector_string(nodes_name)), txb.pure(bTransferMyself, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+                arguments:[Protocol.TXB_OBJECT(txb,  this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, nodes_name)), txb.pure(bTransferMyself, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
             });
         } 
     }
@@ -288,7 +288,7 @@ export class Machine {
         }
 
         let txb = this.protocol.CurrentSession();
-        let ep = endpoint? txb.pure(Bcs.getInstance().ser_option_string(endpoint)) : OptionNone(txb);
+        let ep = endpoint? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_STRING, endpoint)) : OptionNone(txb);
         
         if (passport) {
             txb.moveCall({

@@ -2,7 +2,7 @@ import { BCS } from '@mysten/bcs';
 import { FnCallType, TxbObject, PermissionObject, PermissionAddress, GuardObject, Protocol} from './protocol';
 import { array_unique, IsValidAddress, IsValidArray,  IsValidDesription, IsValidUint, Bcs} from './utils';
 import { ERROR, Errors } from './exception';
-import { Resource } from './resource';
+import { ValueType } from './protocol';
 
 export enum PermissionIndex {
     repository = 100,
@@ -236,7 +236,7 @@ export class  Permission {
         txb.moveCall({
             target:this.protocol.PermissionFn('remove_index') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(entity_address, BCS.ADDRESS), 
-                txb.pure(Bcs.getInstance().ser_vector_u64(array_unique(index)))]
+                txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, array_unique(index)))]
         })            
     }
     remove_entity(entity_address:string[])  {

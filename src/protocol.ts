@@ -94,8 +94,12 @@ export enum ValueType {
     TYPE_OPTION_U64 = 114,
     TYPE_OPTION_U128 = 115,
     TYPE_OPTION_U256 = 116,
-    TYPE_VEC_U256 = 117,
-    TYPE_U256 = 118,
+    TYPE_OPTION_STRING = 117,
+    TYPE_OPTION_VEC_U8 = 118,
+    TYPE_VEC_U256 = 119,
+    TYPE_STRING = 120,
+    TYPE_VEC_STRING = 121,
+    TYPE_U256 = 122,
 }
 
 export const OperatorTypeArray = (Object.values(OperatorType) as []).filter((v)=>typeof(v) === 'number') as number[];
@@ -114,7 +118,7 @@ export const SER_VALUE: ValueTypeString[] = [
     {type: ValueType.TYPE_ADDRESS, name: 'address', description:'address or object-id. eg:0x6789af'},
     {type: ValueType.TYPE_U64, name: 'number', description:'unsigned-64 number. eg:23870233'},
     {type: ValueType.TYPE_U8, name: 'number', description:'unsigned-8 number. eg:255'},
-    {type: ValueType.TYPE_VEC_U8, name: '[number]', description:'unsigned-8 number array. eg:"wowok"'},
+    {type: ValueType.TYPE_VEC_U8, name: '[number]', description:'unsigned-8 number array. eg:"[1,2,3]"'},
     {type: ValueType.TYPE_U128, name: 'number', description:'unsigned-8 number. eg:12348900999'},
     {type: ValueType.TYPE_VEC_ADDRESS, name: '[address]', description:'address array. eg:[0x2277f2, 0x3344af]'},
     {type: ValueType.TYPE_VEC_BOOL, name: '[bool]', description:'boolean array. eg:[true, false, true]'},
@@ -128,6 +132,9 @@ export const SER_VALUE: ValueTypeString[] = [
     {type: ValueType.TYPE_OPTION_U128, name: 'option', description:'option of u128. eg:none or u128 value'},
     {type: ValueType.TYPE_OPTION_U256, name: 'option', description:'option of u256. eg:none or u256 value'},
     {type: ValueType.TYPE_VEC_U256, name: '[number]', description:'unsigned-256 number array. eg:[123, 778888, 42312]'},
+    {type: ValueType.TYPE_VEC_STRING, name: '[string]', description:'ascii string array. eg:["abc", "hi"]'},
+    {type: ValueType.TYPE_STRING, name: 'string', description:'ascii string. eg:"wowok"'},
+    {type: ValueType.TYPE_OPTION_STRING, name: 'option', description:'option of string. eg:none or string value'},
     {type: ValueType.TYPE_U256, name: 'number', description:'unsigned-256 number. eg:12345678901233'},
 ]
 
@@ -177,9 +184,9 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0xd3cab93b07c18d3ef0557fb1f958dc57473c7add42f87c89ea7b7cceaa58e294";
-                this.wowok_object = '0x48224d5a1c30f7b0eda5874d794dd695ce929e59247ee4c472d10f3aa5323a24';
-                this.entity_object= '0xd0b3861a38359a2aa12523f47499aeab7bc9b83f8948a84c945d6990adbf6a86';
+                this.package = "0x36cf5c284b715bfad79d281f040c225affe36be0e4c79646b946cfe4808243c8";
+                this.wowok_object = '0x1fb5abaf85afa41a4b7766c07b3894dd5f81938693bf7c19c354f97f28ea2791';
+                this.entity_object= '0xea38eaef3446eec1b131f21ca6a6f8b2b38bb16f5b660bafea5904b6a49128e9';
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
             case ENTRYPOINT.mainnet:

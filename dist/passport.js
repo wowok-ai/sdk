@@ -1,7 +1,6 @@
 import { Inputs } from '@mysten/sui.js/transactions';
 import { Protocol, ContextType, OperatorType, ValueType, SER_VALUE } from './protocol';
-import { parse_object_type, array_unique, Bcs, ulebDecode, IsValidAddress, IsValidArray, readOption } from './utils';
-import { BCS } from '@mysten/bcs';
+import { parse_object_type, array_unique, Bcs, ulebDecode, IsValidAddress, IsValidArray, readOption, readOptionString } from './utils';
 import { ERROR, Errors } from './exception';
 import { Guard } from './guard';
 export class GuardParser {
@@ -23,7 +22,7 @@ export class GuardParser {
             switch (v.type) {
                 case ContextType.TYPE_WITNESS_ID:
                 case ValueType.TYPE_ADDRESS:
-                    value = '0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(v.value)).toString();
+                    value = '0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(v.value)).toString();
                     break;
                 case ValueType.TYPE_BOOL:
                 case ValueType.TYPE_U8:
@@ -46,7 +45,7 @@ export class GuardParser {
                     let de = SER_VALUE.find(s => s.type == v.type);
                     if (!de)
                         ERROR(Errors.Fail, 'GuardObject de error');
-                    value = Bcs.getInstance().de(de.name, Uint8Array.from(v.value));
+                    value = Bcs.getInstance().de(de.type, Uint8Array.from(v.value));
                     break;
                 default:
                     ERROR(Errors.Fail, 'GuardObject constant type invalid');
@@ -82,62 +81,61 @@ export class GuardParser {
                     break;
                 case ContextType.TYPE_WITNESS_ID: // add to constant 
                 case ValueType.TYPE_ADDRESS:
-                    value = '0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(arr)).toString();
+                    value = '0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(arr)).toString();
                     arr.splice(0, 32); // address     
                     break;
                 case ValueType.TYPE_BOOL:
-                    value = Bcs.getInstance().de(BCS.BOOL, Uint8Array.from(arr));
-                    arr.shift();
-                    break;
                 case ValueType.TYPE_U8:
-                    value = Bcs.getInstance().de(BCS.U8, Uint8Array.from(arr));
+                    value = Bcs.getInstance().de(type, Uint8Array.from(arr));
                     arr.shift();
                     break;
                 case ValueType.TYPE_U64:
-                    value = Bcs.getInstance().de(BCS.U64, Uint8Array.from(arr));
+                    value = Bcs.getInstance().de(type, Uint8Array.from(arr));
                     arr.splice(0, 8);
                     break;
                 case ValueType.TYPE_U128:
-                    value = Bcs.getInstance().de(BCS.U128, Uint8Array.from(arr));
+                    value = Bcs.getInstance().de(type, Uint8Array.from(arr));
                     arr.splice(0, 16);
                     break;
                 case ValueType.TYPE_U256:
-                    value = Bcs.getInstance().de(BCS.U256, Uint8Array.from(arr));
+                    value = Bcs.getInstance().de(type, Uint8Array.from(arr));
                     arr.splice(0, 32);
                     break;
                 case ValueType.TYPE_VEC_U8:
                 case ValueType.TYPE_VEC_BOOL:
+                case ValueType.TYPE_STRING:
                     let r = ulebDecode(Uint8Array.from(arr));
-                    value = Bcs.getInstance().de('vector<u8>', Uint8Array.from(arr));
+                    value = Bcs.getInstance().de(type, Uint8Array.from(arr));
                     arr.splice(0, r.value + r.length);
                     break;
                 case ValueType.TYPE_VEC_ADDRESS:
                     r = ulebDecode(Uint8Array.from(arr));
-                    value = Bcs.getInstance().de('vector<address>', Uint8Array.from(arr));
+                    value = Bcs.getInstance().de(type, Uint8Array.from(arr));
                     arr.splice(0, r.value * 32 + r.length);
                     break;
                 case ValueType.TYPE_VEC_U128:
                     r = ulebDecode(Uint8Array.from(arr));
-                    value = Bcs.getInstance().de('vector<u128>', Uint8Array.from(arr));
+                    value = Bcs.getInstance().de(type, Uint8Array.from(arr));
                     arr.splice(0, r.value * 16 + r.length);
                     break;
                 case ValueType.TYPE_VEC_U256:
                     r = ulebDecode(Uint8Array.from(arr));
-                    value = Bcs.getInstance().de('vector<u256>', Uint8Array.from(arr));
+                    value = Bcs.getInstance().de(type, Uint8Array.from(arr));
                     arr.splice(0, r.value * 32 + r.length);
                     break;
                 case ValueType.TYPE_VEC_U64:
                     r = ulebDecode(Uint8Array.from(arr));
-                    value = Bcs.getInstance().de('vector<u64>', Uint8Array.from(arr));
+                    value = Bcs.getInstance().de(type, Uint8Array.from(arr));
                     arr.splice(0, r.value * 8 + r.length);
                     break;
                 case ValueType.TYPE_VEC_VEC_U8:
+                case ValueType.TYPE_VEC_STRING:
                     r = ulebDecode(Uint8Array.from(arr));
                     arr.splice(0, r.length);
                     let res = [];
                     for (let i = 0; i < r.value; i++) {
                         let r2 = ulebDecode(Uint8Array.from(arr));
-                        res.push(Bcs.getInstance().de('vector<u8>', Uint8Array.from(arr)));
+                        res.push(Bcs.getInstance().de(ValueType.TYPE_VEC_U8, Uint8Array.from(arr)));
                         arr.splice(0, r2.length + r2.value);
                     }
                     value = res;
@@ -145,7 +143,7 @@ export class GuardParser {
                 case OperatorType.TYPE_QUERY:
                     let t = arr.splice(0, 1); // data-type
                     if (t[0] == ValueType.TYPE_ADDRESS || t[0] == ContextType.TYPE_WITNESS_ID) {
-                        let addr = '0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(arr)).toString();
+                        let addr = '0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(arr)).toString();
                         arr.splice(0, 32); // address            
                         value = addr;
                         cmd = arr.shift(); // cmd
@@ -165,40 +163,44 @@ export class GuardParser {
                     }
                     break;
                 case ValueType.TYPE_OPTION_ADDRESS:
-                    let read = readOption(arr, BCS.ADDRESS);
+                    let read = readOption(arr, ValueType.TYPE_ADDRESS);
                     value = read.value;
                     if (!read.bNone)
                         arr.splice(0, 32);
                     break;
                 case ValueType.TYPE_OPTION_BOOL:
-                    read = readOption(arr, BCS.BOOL);
+                    read = readOption(arr, ValueType.TYPE_BOOL);
                     value = read.value;
                     if (!read.bNone)
                         arr.splice(0, 1);
                     break;
                 case ValueType.TYPE_OPTION_U8:
-                    read = readOption(arr, BCS.U8);
+                    read = readOption(arr, ValueType.TYPE_U8);
                     value = read.value;
                     if (!read.bNone)
                         arr.splice(0, 1);
                     break;
                 case ValueType.TYPE_OPTION_U128:
-                    read = readOption(arr, BCS.U128);
+                    read = readOption(arr, ValueType.TYPE_U128);
                     value = read.value;
                     if (!read.bNone)
                         arr.splice(0, 16);
                     break;
                 case ValueType.TYPE_OPTION_U256:
-                    read = readOption(arr, BCS.U256);
+                    read = readOption(arr, ValueType.TYPE_U256);
                     value = read.value;
                     if (!read.bNone)
                         arr.splice(0, 32);
                     break;
                 case ValueType.TYPE_OPTION_U64:
-                    read = readOption(arr, BCS.U64);
+                    read = readOption(arr, ValueType.TYPE_U64);
                     value = read.value;
                     if (!read.bNone)
                         arr.splice(0, 8);
+                    break;
+                case ValueType.TYPE_OPTION_STRING:
+                    read = readOptionString(arr); // splice in it
+                    value = read.value;
                     break;
                 default:
                     ERROR(Errors.Fail, 'GuardObject: parse_bcs types');
@@ -407,7 +409,7 @@ export class GuardParser {
                 // ValueType.TYPE_ADDRESS: Query_Cmd maybe used the address, so save it for using
                 if (v.fields.type == ContextType.TYPE_WITNESS_ID || v.fields.type == ValueType.TYPE_ADDRESS) {
                     info.constant.push({ identifier: v.fields.identifier, index: this.get_index(), type: v.fields.type,
-                        value_or_witness: '0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(v.fields.value)) });
+                        value_or_witness: '0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(v.fields.value)) });
                 }
             }
         });
@@ -436,7 +438,7 @@ export class GuardParser {
                     arr.splice(0, 1); // identifier of constant
                     break;
                 case ContextType.TYPE_WITNESS_ID: // add to constant 
-                    let addr = '0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(arr)).toString();
+                    let addr = '0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(arr)).toString();
                     arr.splice(0, 32); // address     
                     info.input_witness.push({ index: this.get_index(), type: ContextType.TYPE_WITNESS_ID, value_or_witness: addr });
                     break;
@@ -463,7 +465,7 @@ export class GuardParser {
                 case OperatorType.TYPE_QUERY:
                     let type = arr.splice(0, 1);
                     if (type[0] == ValueType.TYPE_ADDRESS || type[0] == ContextType.TYPE_WITNESS_ID) {
-                        let addr = '0x' + Bcs.getInstance().de(BCS.ADDRESS, Uint8Array.from(arr)).toString();
+                        let addr = '0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(arr)).toString();
                         arr.splice(0, 33); // address + cmd              
                         if (type[0] == ValueType.TYPE_ADDRESS) {
                             info.query_list.push(addr);

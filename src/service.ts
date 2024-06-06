@@ -2,7 +2,7 @@ import { bcs, BCS, toHEX, fromHEX, getSuiMoveConfig } from '@mysten/bcs';
 import { IsValidArray, IsValidPercent, IsValidName_AllowEmpty, Bcs, array_unique, IsValidArgType, IsValidDesription, 
     IsValidAddress, IsValidEndpoint, OptionNone, IsValidUint, IsValidInt, IsValidName, } from './utils'
 import { FnCallType, GuardObject, PassportObject, PermissionObject, RepositoryObject, MachineObject, ServiceAddress, 
-    ServiceObject, DiscountObject, OrderObject, OrderAddress, CoinObject, Protocol, 
+    ServiceObject, DiscountObject, OrderObject, OrderAddress, CoinObject, Protocol, ValueType,
     TxbObject} from './protocol';
 import { ERROR, Errors } from './exception';
 import { Resource } from './resource';
@@ -96,7 +96,7 @@ export class Service {
 
         let s = new Service(protocol, pay_token_type, permission);
         let txb = protocol.CurrentSession();
-        let ep = endpoint? txb.pure(Bcs.getInstance().ser_option_string(endpoint)) : OptionNone(txb);
+        let ep = endpoint? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_STRING, endpoint)) : OptionNone(txb);
         
         if (passport) {
             s.object = txb.moveCall({
@@ -501,16 +501,16 @@ export class Service {
         if (passport) {
             txb.moveCall({
                 target:this.protocol.ServiceFn('sales_add_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser_vector_string(names)), 
-                    txb.pure(Bcs.getInstance().ser_vector_u64(price)), txb.pure(Bcs.getInstance().ser_vector_u64(stock)), 
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, names)), 
+                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, price)), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, stock)), 
                     Protocol.TXB_OBJECT(txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
         } else {
             txb.moveCall({
                 target:this.protocol.ServiceFn('sales_add') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser_vector_string(names)), 
-                    txb.pure(Bcs.getInstance().ser_vector_u64(price)), txb.pure(Bcs.getInstance().ser_vector_u64(stock)), 
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, names)), 
+                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, price)), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, stock)), 
                     Protocol.TXB_OBJECT(txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
@@ -536,7 +536,7 @@ export class Service {
             } else {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('sales_remove_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser_vector_string(array_unique(sales!))), 
+                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(sales!))), 
                         Protocol.TXB_OBJECT(txb, this.permission)],
                     typeArguments:[this.pay_token_type]
                 })            
@@ -551,7 +551,7 @@ export class Service {
             } else {
                 txb.moveCall({
                     target:this.protocol.ServiceFn('sales_remove') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser_vector_string(array_unique(sales!))), 
+                    arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(sales!))), 
                         Protocol.TXB_OBJECT(txb, this.permission)],
                     typeArguments:[this.pay_token_type]
                 })            
@@ -581,9 +581,9 @@ export class Service {
         let txb = this.protocol.CurrentSession();
         discount_dispatch.forEach((discount) => {
             let price_greater = discount.discount?.price_greater ? 
-                txb.pure(Bcs.getInstance().ser_option_u64(discount.discount.price_greater)) : OptionNone(txb);
+                txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_U64, discount.discount.price_greater)) : OptionNone(txb);
             let time_start = discount.discount?.time_start ? 
-                txb.pure(Bcs.getInstance().ser_option_u64(discount.discount.time_start)) : OptionNone(txb);
+                txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_U64, discount.discount.time_start)) : OptionNone(txb);
 
             if (passport) {
                 txb.moveCall({
@@ -702,7 +702,7 @@ export class Service {
         }
 
         let txb = this.protocol.CurrentSession();
-        let ep = endpoint? txb.pure(Bcs.getInstance().ser_option_string(endpoint)) : OptionNone(txb);
+        let ep = endpoint? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_STRING, endpoint)) : OptionNone(txb);
         
         if (passport) {
             txb.moveCall({
@@ -765,7 +765,7 @@ export class Service {
             txb.moveCall({
                 target:this.protocol.ServiceFn('required_set_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), 
-                    txb.pure(Bcs.getInstance().ser_vector_vector_u8(array_unique(customer_required))), 
+                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_VEC_U8, array_unique(customer_required))), 
                     txb.pure(pubkey, 'vector<u8>'), Protocol.TXB_OBJECT(txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })         
@@ -773,7 +773,7 @@ export class Service {
             txb.moveCall({
                 target:this.protocol.ServiceFn('required_set') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), 
-                    txb.pure(Bcs.getInstance().ser_vector_vector_u8(array_unique(customer_required))), 
+                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_VEC_U8, array_unique(customer_required))), 
                     txb.pure(pubkey, 'vector<u8>'), Protocol.TXB_OBJECT(txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })         
@@ -894,7 +894,7 @@ export class Service {
             arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), 
                 txb.pure(customer_info_crypto.pubkey, 'vector<u8>'), 
                 txb.pure(customer_info_crypto.customer_pubkey, 'vector<u8>'), 
-                txb.pure(Bcs.getInstance().ser_vector_vector_u8(array_unique(customer_info_crypto.customer_info_crypt)))],
+                txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_VEC_U8, array_unique(customer_info_crypto.customer_info_crypt)))],
             typeArguments:[this.pay_token_type]
         })    
         
@@ -926,16 +926,16 @@ export class Service {
             if (discount) {
                 order = txb.moveCall({
                     target:this.protocol.ServiceFn('dicount_buy_with_passport') as FnCallType,
-                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser_vector_string(name)), 
-                        txb.pure(Bcs.getInstance().ser_vector_u64(price)), txb.pure(Bcs.getInstance().ser_vector_u64(stock)), 
+                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, name)), 
+                        txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, price)), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, stock)), 
                         Protocol.TXB_OBJECT(txb, coin), Protocol.TXB_OBJECT(txb, discount), txb.object(Protocol.CLOCK_OBJECT)],                   
                     typeArguments:[this.pay_token_type]            
             })} else {
                 order = txb.moveCall({
                     target:this.protocol.ServiceFn('buy_with_passport') as FnCallType,
-                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser_vector_string(name)), 
-                        txb.pure(Bcs.getInstance().ser_vector_u64(price)), 
-                        txb.pure(Bcs.getInstance().ser_vector_u64(stock)), 
+                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, name)), 
+                        txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, price)), 
+                        txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, stock)), 
                         Protocol.TXB_OBJECT(txb, coin)],
                     typeArguments:[this.pay_token_type]            
             })}             
@@ -943,18 +943,18 @@ export class Service {
             if (discount) {
                 order = txb.moveCall({
                     target:this.protocol.ServiceFn('disoucnt_buy') as FnCallType,
-                    arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser_vector_string(name)), 
-                        txb.pure(Bcs.getInstance().ser_vector_u64(price)), 
-                        txb.pure(Bcs.getInstance().ser_vector_u64(stock)), 
+                    arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, name)), 
+                        txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, price)), 
+                        txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, stock)), 
                         Protocol.TXB_OBJECT(txb, coin), 
                         Protocol.TXB_OBJECT(txb, discount), txb.object(Protocol.CLOCK_OBJECT)],                
                     typeArguments:[this.pay_token_type]            
             })} else {
                 order = txb.moveCall({
                     target:this.protocol.ServiceFn('buy') as FnCallType,
-                    arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser_vector_string(name)), 
-                        txb.pure(Bcs.getInstance().ser_vector_u64(price)), 
-                        txb.pure(Bcs.getInstance().ser_vector_u64(stock)), 
+                    arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, name)), 
+                        txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, price)), 
+                        txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, stock)), 
                         Protocol.TXB_OBJECT(txb, coin)],
                     typeArguments:[this.pay_token_type]            
             })}           

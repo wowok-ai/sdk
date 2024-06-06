@@ -1,6 +1,6 @@
 import { BCS } from '@mysten/bcs';
 import { FnCallType, PermissionObject, RepositoryObject, PassportObject, MachineObject, 
-    ProgressObject, ProgressAddress, Protocol,
+    ProgressObject, ProgressAddress, Protocol, ValueType,
     TxbObject} from './protocol';
 import { Bcs, array_unique,IsValidName, IsValidAddress, IsValidArray, OptionNone, IsValidInt  } from './utils'
 import { ERROR, Errors } from './exception';
@@ -86,15 +86,7 @@ export class Progress {
             arguments: [Protocol.TXB_OBJECT(txb, this.object)],
         })   
     }
-/* move to: Entity.mark
-    mark(like:'like' | 'unlike', resource:Resource)  {
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.ProgressFn(like) as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(txb, resource.get_object()), Protocol.TXB_OBJECT(txb, this.object)],
-        })   
-    }
-*/
+
     set_namedOperator(name:string, addresses:string[], passport?:PassportObject)  {
         if (!IsValidName(name)) {
             ERROR(Errors.IsValidName, 'name')
@@ -252,8 +244,8 @@ export class Progress {
         }
 
         let txb = this.protocol.CurrentSession();
-        let diliverable = deliverables_address? txb.pure(Bcs.getInstance().ser_option_address(deliverables_address)) : OptionNone(txb)
-        let sub = sub_id? txb.pure(Bcs.getInstance().ser_option_address(sub_id)) : OptionNone(txb)
+        let diliverable = deliverables_address? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_ADDRESS, deliverables_address)) : OptionNone(txb)
+        let sub = sub_id? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_ADDRESS, sub_id)) : OptionNone(txb)
         
         if (passport) {
             txb.moveCall({

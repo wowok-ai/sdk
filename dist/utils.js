@@ -1,11 +1,28 @@
 import { BCS, getSuiMoveConfig } from '@mysten/bcs';
 import { ERROR, Errors } from './exception';
 import { isValidSuiAddress } from '@mysten/sui.js/utils';
+import { ValueType } from './protocol';
 export const OPTION_NONE = 0;
 export const readOption = (arr, de) => {
     let o = arr.splice(0, 1);
     if (o[0] == 1) { // true
         return { bNone: false, value: Bcs.getInstance().de(de, Uint8Array.from(arr)) };
+    }
+    else if (o[0] == 0) {
+        return { bNone: true, value: OPTION_NONE };
+    }
+    else {
+        ERROR(Errors.Fail, 'readOption: option invalid');
+        return { bNone: true, value: OPTION_NONE };
+    }
+};
+export const readOptionString = (arr) => {
+    let o = arr.splice(0, 1);
+    if (o[0] == 1) { // true
+        let r = ulebDecode(Uint8Array.from(arr));
+        let value = Bcs.getInstance().de(ValueType.TYPE_STRING, Uint8Array.from(arr));
+        arr.splice(0, r.value + r.length);
+        return { bNone: false, value: value };
     }
     else if (o[0] == 0) {
         return { bNone: true, value: OPTION_NONE };
@@ -113,62 +130,106 @@ export class Bcs {
         ;
         return Bcs._instance;
     }
-    ser_option_string(data) {
-        return this.bcs.ser('Option<string>', { 'some': data }).toBytes();
-    }
-    ser_option_u64(data) {
-        return this.bcs.ser('Option<u64>', { 'some': data }).toBytes();
-    }
-    ser_option_address(data) {
-        return this.bcs.ser('Option<address>', { 'some': data }).toBytes();
-    }
-    ser_vector_string(data) {
-        return this.bcs.ser('vector<string>', data).toBytes();
-    }
-    ser_vector_vector_u8(data) {
-        return this.bcs.ser('vector<vector<u8>>', data).toBytes();
-    }
-    ser_vector_u64(data) {
-        return this.bcs.ser('vector<u64>', data).toBytes();
-    }
-    ser_vector_u8(data) {
-        return this.bcs.ser('vector<u8>', data).toBytes();
-    }
-    ser_vector_address(data) {
-        return this.bcs.ser('vector<address>', data).toBytes();
-    }
-    ser_vector_bool(data) {
-        return this.bcs.ser('vector<bool>', data).toBytes();
-    }
-    ser_vector_u128(data) {
-        return this.bcs.ser('vector<u128>', data).toBytes();
-    }
-    ser_address(data) {
-        return this.bcs.ser(BCS.ADDRESS, data).toBytes();
-    }
-    ser_bool(data) {
-        return this.bcs.ser(BCS.BOOL, data).toBytes();
-    }
-    ser_u8(data) {
-        return this.bcs.ser(BCS.U8, data).toBytes();
-    }
-    ser_u64(data) {
-        return this.bcs.ser(BCS.U64, data).toBytes();
-    }
-    ser_u128(data) {
-        return this.bcs.ser(BCS.U128, data).toBytes();
-    }
-    ser_u256(data) {
-        return this.bcs.ser(BCS.U256, data).toBytes();
-    }
-    ser_string(data) {
-        return this.bcs.ser(BCS.STRING, data).toBytes();
-    }
     ser(type, data) {
-        return this.bcs.ser(type, data).toBytes();
+        switch (type) {
+            case ValueType.TYPE_BOOL:
+                return this.bcs.ser(BCS.BOOL, data).toBytes();
+            case ValueType.TYPE_ADDRESS:
+                return this.bcs.ser(BCS.ADDRESS, data).toBytes();
+            case ValueType.TYPE_U64:
+                return this.bcs.ser(BCS.U64, data).toBytes();
+            case ValueType.TYPE_U8:
+                return this.bcs.ser(BCS.U8, data).toBytes();
+            case ValueType.TYPE_VEC_U8:
+                return this.bcs.ser('vector<u8>', data).toBytes();
+            case ValueType.TYPE_U128:
+                return this.bcs.ser(BCS.U128, data).toBytes();
+            case ValueType.TYPE_VEC_ADDRESS:
+                return this.bcs.ser('vector<address>', data).toBytes();
+            case ValueType.TYPE_VEC_BOOL:
+                return this.bcs.ser('vector<bool>', data).toBytes();
+            case ValueType.TYPE_VEC_VEC_U8:
+                return this.bcs.ser('vector<vector<u8>>', data).toBytes();
+            case ValueType.TYPE_VEC_U64:
+                return this.bcs.ser('vector<u64>', data).toBytes();
+            case ValueType.TYPE_VEC_U128:
+                return this.bcs.ser('vector<u128>', data).toBytes();
+            case ValueType.TYPE_OPTION_ADDRESS:
+                return this.bcs.ser('Option<address>', { 'some': data }).toBytes();
+            case ValueType.TYPE_OPTION_BOOL:
+                return this.bcs.ser('Option<bool>', { 'some': data }).toBytes();
+            case ValueType.TYPE_OPTION_U8:
+                return this.bcs.ser('Option<u8>', { 'some': data }).toBytes();
+            case ValueType.TYPE_OPTION_U64:
+                return this.bcs.ser('Option<u64>', { 'some': data }).toBytes();
+            case ValueType.TYPE_OPTION_U128:
+                return this.bcs.ser('Option<u128>', { 'some': data }).toBytes();
+            case ValueType.TYPE_OPTION_U256:
+                return this.bcs.ser('Option<u256>', { 'some': data }).toBytes();
+            case ValueType.TYPE_OPTION_STRING:
+                return this.bcs.ser('Option<string>', { 'some': data }).toBytes();
+            case ValueType.TYPE_VEC_U256:
+                return this.bcs.ser('vector<u256>', data).toBytes();
+            case ValueType.TYPE_U256:
+                return this.bcs.ser(BCS.U256, data).toBytes();
+            case ValueType.TYPE_STRING:
+                return this.bcs.ser(BCS.STRING, data).toBytes();
+            case ValueType.TYPE_VEC_STRING:
+                return this.bcs.ser('vector<string>', data).toBytes();
+            default:
+                ERROR(Errors.bcsTypeInvalid, 'ser');
+        }
+        return new Uint8Array();
     }
     de(type, data) {
-        return this.bcs.de(type, data);
+        switch (type) {
+            case ValueType.TYPE_BOOL:
+                return this.bcs.de(BCS.BOOL, data).toBytes();
+            case ValueType.TYPE_ADDRESS:
+                return this.bcs.de(BCS.ADDRESS, data).toBytes();
+            case ValueType.TYPE_U64:
+                return this.bcs.de(BCS.U64, data).toBytes();
+            case ValueType.TYPE_U8:
+                return this.bcs.de(BCS.U8, data).toBytes();
+            case ValueType.TYPE_VEC_U8:
+                return this.bcs.de('vector<u8>', data).toBytes();
+            case ValueType.TYPE_U128:
+                return this.bcs.de(BCS.U128, data).toBytes();
+            case ValueType.TYPE_VEC_ADDRESS:
+                return this.bcs.de('vector<address>', data).toBytes();
+            case ValueType.TYPE_VEC_BOOL:
+                return this.bcs.de('vector<bool>', data).toBytes();
+            case ValueType.TYPE_VEC_VEC_U8:
+                return this.bcs.de('vector<vector<u8>>', data).toBytes();
+            case ValueType.TYPE_VEC_U64:
+                return this.bcs.de('vector<u64>', data).toBytes();
+            case ValueType.TYPE_VEC_U128:
+                return this.bcs.de('vector<u128>', data).toBytes();
+            case ValueType.TYPE_OPTION_ADDRESS:
+                return this.bcs.de('Option<address>', data).toBytes();
+            case ValueType.TYPE_OPTION_BOOL:
+                return this.bcs.de('Option<bool>', data).toBytes();
+            case ValueType.TYPE_OPTION_U8:
+                return this.bcs.de('Option<u8>', data).toBytes();
+            case ValueType.TYPE_OPTION_U64:
+                return this.bcs.de('Option<u64>', data).toBytes();
+            case ValueType.TYPE_OPTION_U128:
+                return this.bcs.de('Option<u128>', data).toBytes();
+            case ValueType.TYPE_OPTION_U256:
+                return this.bcs.de('Option<u256>', data).toBytes();
+            case ValueType.TYPE_OPTION_STRING:
+                return this.bcs.de('Option<string>', data).toBytes();
+            case ValueType.TYPE_VEC_U256:
+                return this.bcs.de('vector<u256>', data).toBytes();
+            case ValueType.TYPE_STRING:
+                return this.bcs.de(BCS.STRING, data).toBytes();
+            case ValueType.TYPE_VEC_STRING:
+                return this.bcs.de('vector<string>', data).toBytes();
+            case ValueType.TYPE_U256:
+                return this.bcs.de(BCS.U256, data).toBytes();
+            default:
+                ERROR(Errors.bcsTypeInvalid, 'de');
+        }
     }
 }
 export function stringToUint8Array(str) {

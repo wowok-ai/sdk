@@ -18,6 +18,7 @@ export var Errors;
     Errors["Fail"] = "fail";
     Errors["IsValidIndentifier"] = "indentifier invalid";
     Errors["isValidHttpUrl"] = "invalid url";
+    Errors["bcsTypeInvalid"] = "invalid bcs type";
 })(Errors || (Errors = {}));
 export const ERROR = (error, info) => {
     const e = error + info ? (': ' + info) : '';

@@ -1,7 +1,12 @@
-import { BCS, TypeName, StructTypeDefinition } from '@mysten/bcs';
+import { BCS } from '@mysten/bcs';
 import { TransactionBlock, TransactionArgument } from '@mysten/sui.js/transactions';
+import { ValueType } from './protocol';
 export declare const OPTION_NONE = 0;
-export declare const readOption: (arr: number[], de: string) => {
+export declare const readOption: (arr: number[], de: ValueType) => {
+    bNone: boolean;
+    value: any;
+};
+export declare const readOptionString: (arr: number[]) => {
     bNone: boolean;
     value: any;
 };
@@ -24,25 +29,8 @@ export declare class Bcs {
     private static _instance;
     private constructor();
     static getInstance(): Bcs;
-    ser_option_string(data: string): Uint8Array;
-    ser_option_u64(data: number): Uint8Array;
-    ser_option_address(data: string): Uint8Array;
-    ser_vector_string(data: string[]): Uint8Array;
-    ser_vector_vector_u8(data: string[]): Uint8Array;
-    ser_vector_u64(data: number[]): Uint8Array;
-    ser_vector_u8(data: number[]): Uint8Array;
-    ser_vector_address(data: number[]): Uint8Array;
-    ser_vector_bool(data: number[]): Uint8Array;
-    ser_vector_u128(data: number[]): Uint8Array;
-    ser_address(data: string): Uint8Array;
-    ser_bool(data: boolean): Uint8Array;
-    ser_u8(data: number): Uint8Array;
-    ser_u64(data: number): Uint8Array;
-    ser_u128(data: number): Uint8Array;
-    ser_u256(data: number): Uint8Array;
-    ser_string(data: string): Uint8Array;
-    ser(type: TypeName | StructTypeDefinition, data: Uint8Array): Uint8Array;
-    de(type: TypeName | StructTypeDefinition, data: Uint8Array): any;
+    ser(type: ValueType, data: Uint8Array | any): Uint8Array;
+    de(type: ValueType, data: Uint8Array | any): any;
 }
 export declare function stringToUint8Array(str: string): Uint8Array;
 export declare function numToUint8Array(num: number): Uint8Array;
