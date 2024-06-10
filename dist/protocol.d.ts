@@ -82,10 +82,11 @@ export declare enum ValueType {
     TYPE_OPTION_U128 = 115,
     TYPE_OPTION_U256 = 116,
     TYPE_OPTION_STRING = 117,
-    TYPE_VEC_U256 = 118,
-    TYPE_STRING = 119,
-    TYPE_VEC_STRING = 120,
-    TYPE_U256 = 121
+    TYPE_OPTION_VEC_U8 = 118,
+    TYPE_VEC_U256 = 119,
+    TYPE_STRING = 120,
+    TYPE_VEC_STRING = 121,
+    TYPE_U256 = 122
 }
 export declare const OperatorTypeArray: number[];
 export declare const ValueTypeArray: number[];

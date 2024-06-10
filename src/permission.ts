@@ -37,9 +37,9 @@ export enum PermissionIndex {
     service_repository_add = 206,
     service_repository_remove = 207,
     service_add_withdraw_guards = 208,
-    service_remove_withdraw_guards  = 209,
+    service_remove_withdraw_guards  = 208,
     service_add_refund_guards = 210,
-    service_remove_refund_guards = 211,
+    service_remove_refund_guards = 210,
     service_add_sales = 212,
     service_remove_sales = 213,
     service_discount_transfer = 214,
@@ -102,7 +102,7 @@ export class  Permission {
     protected protocol;
     protected object : TxbObject;
     
-    get_object() { this.object }
+    get_object()  { return this.object }
     private constructor(protocol:Protocol) {
         this.protocol = protocol;
         this.object = '';
@@ -117,7 +117,6 @@ export class  Permission {
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription)
         }
-
         let p = new Permission(protocol);
         let txb = protocol.CurrentSession();
         p.object = txb.moveCall({

@@ -9,16 +9,17 @@ export var Service_Discount_Type;
 })(Service_Discount_Type || (Service_Discount_Type = {}));
 export var BuyRequiredEnum;
 (function (BuyRequiredEnum) {
-    BuyRequiredEnum["address"] = "Address";
-    BuyRequiredEnum["phone"] = "Phone";
-    BuyRequiredEnum["name"] = "Name";
-    BuyRequiredEnum["postcode"] = "Postcode";
+    BuyRequiredEnum["address"] = "address";
+    BuyRequiredEnum["phone"] = "phone";
+    BuyRequiredEnum["name"] = "name";
+    BuyRequiredEnum["postcode"] = "postcode";
 })(BuyRequiredEnum || (BuyRequiredEnum = {}));
 export class Service {
     pay_token_type;
     permission;
     object;
     protocol;
+    static token2coin = (token) => { return '0x2::coin::Coin<' + token + '>'; };
     get_pay_type() { return this.pay_token_type; }
     get_object() { return this.object; }
     constructor(protocol, pay_token_type, permission) {
@@ -27,17 +28,17 @@ export class Service {
         this.permission = permission;
         this.object = '';
     }
-    static From(protocol, pay_token_type, permission, object) {
-        let s = new Service(protocol, pay_token_type, permission);
+    static From(protocol, token_type, permission, object) {
+        let s = new Service(protocol, this.token2coin(token_type), permission);
         s.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object);
         return s;
     }
-    static New(protocol, pay_token_type, permission, description, payee_address, endpoint, passport) {
+    static New(protocol, token_type, permission, description, payee_address, endpoint, passport) {
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects);
         }
-        if (!IsValidArgType(pay_token_type)) {
-            ERROR(Errors.IsValidArgType, 'this.pay_token_type');
+        if (!IsValidArgType(token_type)) {
+            ERROR(Errors.IsValidArgType, 'New: pay_token_type');
         }
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription);
@@ -48,6 +49,7 @@ export class Service {
         if (endpoint && !IsValidEndpoint(endpoint)) {
             ERROR(Errors.IsValidEndpoint);
         }
+        let pay_token_type = this.token2coin(token_type);
         let s = new Service(protocol, pay_token_type, permission);
         let txb = protocol.CurrentSession();
         let ep = endpoint ? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_STRING, endpoint)) : OptionNone(txb);
@@ -61,7 +63,7 @@ export class Service {
         else {
             s.object = txb.moveCall({
                 target: protocol.ServiceFn('new'),
-                arguments: [txb.pure(description), txb.pure(payee_address, BCS.ADDRESS), ep, Protocol.TXB_OBJECT(txb, permission)],
+                arguments: [txb.pure(description, BCS.STRING), txb.pure(payee_address, BCS.ADDRESS), ep, Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments: [pay_token_type],
             });
         }
@@ -224,10 +226,9 @@ export class Service {
         }
     }
     repository_add(repository, passport) {
-        if (!Protocol.IsValidObjects([this.object, this.permission, repository]))
-            return false;
-        if (!IsValidArgType(this.pay_token_type))
-            return false;
+        if (!Protocol.IsValidObjects([repository])) {
+            ERROR(Errors.IsValidObjects, 'repository_add');
+        }
         let txb = this.protocol.CurrentSession();
         if (passport) {
             txb.moveCall({
@@ -733,13 +734,16 @@ export class Service {
         if (!customer_required) {
             ERROR(Errors.InvalidParam, 'customer_required');
         }
+        let req = array_unique(customer_required);
+        console.log(req);
+        console.log(this.pay_token_type);
         let txb = this.protocol.CurrentSession();
         if (passport) {
             txb.moveCall({
                 target: this.protocol.ServiceFn('required_set_with_passport'),
                 arguments: [passport, Protocol.TXB_OBJECT(txb, this.object),
-                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_VEC_U8, array_unique(customer_required))),
-                    txb.pure(pubkey, 'vector<u8>'), Protocol.TXB_OBJECT(txb, this.permission)],
+                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, req)),
+                    txb.pure(pubkey, BCS.STRING), Protocol.TXB_OBJECT(txb, this.permission)],
                 typeArguments: [this.pay_token_type]
             });
         }
@@ -747,8 +751,8 @@ export class Service {
             txb.moveCall({
                 target: this.protocol.ServiceFn('required_set'),
                 arguments: [Protocol.TXB_OBJECT(txb, this.object),
-                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_VEC_U8, array_unique(customer_required))),
-                    txb.pure(pubkey, 'vector<u8>'), Protocol.TXB_OBJECT(txb, this.permission)],
+                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, req)),
+                    txb.pure(pubkey, BCS.STRING), Protocol.TXB_OBJECT(txb, this.permission)],
                 typeArguments: [this.pay_token_type]
             });
         }
@@ -983,5 +987,7 @@ export class Service {
         this.permission = new_permission;
     }
     static MAX_DISCOUNT_COUNT_ONCE = 200;
-    static MAX_DISCOUNT_RECEIVER_COUNT = 200;
+    static MAX_DISCOUNT_RECEIVER_COUNT = 20;
+    static MAX_GUARD_COUNT = 16;
+    static MAX_REPOSITORY_COUNT = 16;
 }

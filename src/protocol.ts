@@ -184,9 +184,9 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0x36cf5c284b715bfad79d281f040c225affe36be0e4c79646b946cfe4808243c8";
-                this.wowok_object = '0x1fb5abaf85afa41a4b7766c07b3894dd5f81938693bf7c19c354f97f28ea2791';
-                this.entity_object= '0xea38eaef3446eec1b131f21ca6a6f8b2b38bb16f5b660bafea5904b6a49128e9';
+                this.package = "0x10edb3f8e11008c8c5cfe951989d10c353d885377fe6cbdfedea3b315fa6b06c";
+                this.wowok_object = '0xb2a940236a1811ff43eaf902e165155687f9c756dcdd1fc70096551bffcb89fc';
+                this.entity_object= '0x8dc27895c123c9736649a800fc58e621b7747d56f0b15a560d09a4412c42ae28';
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
             case ENTRYPOINT.mainnet:

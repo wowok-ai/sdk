@@ -32,9 +32,9 @@ export declare enum PermissionIndex {
     service_repository_add = 206,
     service_repository_remove = 207,
     service_add_withdraw_guards = 208,
-    service_remove_withdraw_guards = 209,
+    service_remove_withdraw_guards = 208,
     service_add_refund_guards = 210,
-    service_remove_refund_guards = 211,
+    service_remove_refund_guards = 210,
     service_add_sales = 212,
     service_remove_sales = 213,
     service_discount_transfer = 214,
@@ -92,7 +92,7 @@ export type Permission_Entity = {
 export declare class Permission {
     protected protocol: Protocol;
     protected object: TxbObject;
-    get_object(): void;
+    get_object(): TxbObject;
     private constructor();
     static From(protocol: Protocol, object: TxbObject): Permission;
     static New(protocol: Protocol, description: string): Permission;

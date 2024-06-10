@@ -39,11 +39,12 @@ export type Customer_RequiredInfo = {
     customer_info_crypt: string[];
 }
 export enum BuyRequiredEnum {
-    address = 'Address',
-    phone = 'Phone',
-    name = 'Name',
-    postcode = 'Postcode'
+    address = 'address',
+    phone = 'phone',
+    name = 'name',
+    postcode = 'postcode'
 }
+
 export type Service_Buy = {
     item: string;
     max_price: number;
@@ -62,6 +63,8 @@ export class Service {
     protected object : TxbObject;
     protected protocol;
 
+    static token2coin = (token:string) => { return '0x2::coin::Coin<' + token + '>'};
+
     get_pay_type() {  return this.pay_token_type }
     get_object() { return this.object }
     private constructor(protocol: Protocol, pay_token_type:string, permission:PermissionObject) {
@@ -70,18 +73,18 @@ export class Service {
         this.permission = permission
         this.object = ''
     }
-    static From(protocol: Protocol, pay_token_type:string, permission:PermissionObject, object:TxbObject) : Service {
-        let s = new Service(protocol, pay_token_type, permission);
+    static From(protocol: Protocol, token_type:string, permission:PermissionObject, object:TxbObject) : Service {
+        let s = new Service(protocol, this.token2coin(token_type), permission);
         s.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object);
         return s
     }
-    static New(protocol: Protocol, pay_token_type:string, permission:PermissionObject, description:string, 
+    static New(protocol: Protocol, token_type:string, permission:PermissionObject, description:string, 
         payee_address:string, endpoint?:string, passport?:PassportObject) : Service {
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects)
         }
-        if (!IsValidArgType(pay_token_type)) {
-            ERROR(Errors.IsValidArgType, 'this.pay_token_type')
+        if (!IsValidArgType(token_type)) {
+            ERROR(Errors.IsValidArgType, 'New: pay_token_type') 
         }
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription)
@@ -94,10 +97,12 @@ export class Service {
             ERROR(Errors.IsValidEndpoint)
         }
 
+        let pay_token_type = this.token2coin(token_type);
         let s = new Service(protocol, pay_token_type, permission);
         let txb = protocol.CurrentSession();
         let ep = endpoint? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_STRING, endpoint)) : OptionNone(txb);
         
+
         if (passport) {
             s.object = txb.moveCall({
                 target:protocol.ServiceFn('new_with_passport') as FnCallType,
@@ -107,7 +112,7 @@ export class Service {
         } else {
             s.object = txb.moveCall({
                 target:protocol.ServiceFn('new') as FnCallType,
-                arguments:[txb.pure(description), txb.pure(payee_address, BCS.ADDRESS), ep, Protocol.TXB_OBJECT(txb, permission)],
+                arguments:[txb.pure(description, BCS.STRING), txb.pure(payee_address, BCS.ADDRESS), ep, Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments:[pay_token_type],
             })
         }
@@ -272,8 +277,9 @@ export class Service {
         }
     }
     repository_add(repository:RepositoryObject, passport?:PassportObject) {
-        if (!Protocol.IsValidObjects([this.object, this.permission, repository])) return false;
-        if (!IsValidArgType(this.pay_token_type)) return false;
+        if (!Protocol.IsValidObjects([repository])) {
+            ERROR(Errors.IsValidObjects, 'repository_add');
+        }
 
         let txb = this.protocol.CurrentSession();
         if (passport) {
@@ -289,7 +295,6 @@ export class Service {
                 typeArguments:[this.pay_token_type]
             })
         }
-        
     }
     repository_remove(repository_address?:string[], removeall?:boolean, passport?:PassportObject) {
         if (!removeall && !repository_address) {
@@ -760,21 +765,24 @@ export class Service {
             ERROR(Errors.InvalidParam, 'customer_required')
         }
 
+        let req = array_unique(customer_required) as string[];
+        console.log(req)
+        console.log(this.pay_token_type)
         let txb = this.protocol.CurrentSession();
         if (passport) {
             txb.moveCall({
                 target:this.protocol.ServiceFn('required_set_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), 
-                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_VEC_U8, array_unique(customer_required))), 
-                    txb.pure(pubkey, 'vector<u8>'), Protocol.TXB_OBJECT(txb, this.permission)],
+                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, req)), 
+                    txb.pure(pubkey, BCS.STRING), Protocol.TXB_OBJECT(txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })         
         } else {
             txb.moveCall({
                 target:this.protocol.ServiceFn('required_set') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), 
-                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_VEC_U8, array_unique(customer_required))), 
-                    txb.pure(pubkey, 'vector<u8>'), Protocol.TXB_OBJECT(txb, this.permission)],
+                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, req)), 
+                    txb.pure(pubkey, BCS.STRING), Protocol.TXB_OBJECT(txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })         
         }
@@ -1007,5 +1015,7 @@ export class Service {
     }
 
     static MAX_DISCOUNT_COUNT_ONCE = 200;
-    static MAX_DISCOUNT_RECEIVER_COUNT = 200;
+    static MAX_DISCOUNT_RECEIVER_COUNT = 20;
+    static MAX_GUARD_COUNT = 16;
+    static MAX_REPOSITORY_COUNT = 16;
 }

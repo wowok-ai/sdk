@@ -58,10 +58,11 @@ export var ValueType;
     ValueType[ValueType["TYPE_OPTION_U128"] = 115] = "TYPE_OPTION_U128";
     ValueType[ValueType["TYPE_OPTION_U256"] = 116] = "TYPE_OPTION_U256";
     ValueType[ValueType["TYPE_OPTION_STRING"] = 117] = "TYPE_OPTION_STRING";
-    ValueType[ValueType["TYPE_VEC_U256"] = 118] = "TYPE_VEC_U256";
-    ValueType[ValueType["TYPE_STRING"] = 119] = "TYPE_STRING";
-    ValueType[ValueType["TYPE_VEC_STRING"] = 120] = "TYPE_VEC_STRING";
-    ValueType[ValueType["TYPE_U256"] = 121] = "TYPE_U256";
+    ValueType[ValueType["TYPE_OPTION_VEC_U8"] = 118] = "TYPE_OPTION_VEC_U8";
+    ValueType[ValueType["TYPE_VEC_U256"] = 119] = "TYPE_VEC_U256";
+    ValueType[ValueType["TYPE_STRING"] = 120] = "TYPE_STRING";
+    ValueType[ValueType["TYPE_VEC_STRING"] = 121] = "TYPE_VEC_STRING";
+    ValueType[ValueType["TYPE_U256"] = 122] = "TYPE_U256";
 })(ValueType || (ValueType = {}));
 export const OperatorTypeArray = Object.values(OperatorType).filter((v) => typeof (v) === 'number');
 export const ValueTypeArray = Object.values(ValueType).filter((v) => typeof (v) === 'number');
@@ -133,9 +134,9 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0xd3cab93b07c18d3ef0557fb1f958dc57473c7add42f87c89ea7b7cceaa58e294";
-                this.wowok_object = '0x48224d5a1c30f7b0eda5874d794dd695ce929e59247ee4c472d10f3aa5323a24';
-                this.entity_object = '0xd0b3861a38359a2aa12523f47499aeab7bc9b83f8948a84c945d6990adbf6a86';
+                this.package = "0x10edb3f8e11008c8c5cfe951989d10c353d885377fe6cbdfedea3b315fa6b06c";
+                this.wowok_object = '0xb2a940236a1811ff43eaf902e165155687f9c756dcdd1fc70096551bffcb89fc';
+                this.entity_object = '0x8dc27895c123c9736649a800fc58e621b7747d56f0b15a560d09a4412c42ae28';
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
             case ENTRYPOINT.mainnet:

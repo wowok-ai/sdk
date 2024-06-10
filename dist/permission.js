@@ -37,9 +37,9 @@ export var PermissionIndex;
     PermissionIndex[PermissionIndex["service_repository_add"] = 206] = "service_repository_add";
     PermissionIndex[PermissionIndex["service_repository_remove"] = 207] = "service_repository_remove";
     PermissionIndex[PermissionIndex["service_add_withdraw_guards"] = 208] = "service_add_withdraw_guards";
-    PermissionIndex[PermissionIndex["service_remove_withdraw_guards"] = 209] = "service_remove_withdraw_guards";
+    PermissionIndex[PermissionIndex["service_remove_withdraw_guards"] = 208] = "service_remove_withdraw_guards";
     PermissionIndex[PermissionIndex["service_add_refund_guards"] = 210] = "service_add_refund_guards";
-    PermissionIndex[PermissionIndex["service_remove_refund_guards"] = 211] = "service_remove_refund_guards";
+    PermissionIndex[PermissionIndex["service_remove_refund_guards"] = 210] = "service_remove_refund_guards";
     PermissionIndex[PermissionIndex["service_add_sales"] = 212] = "service_add_sales";
     PermissionIndex[PermissionIndex["service_remove_sales"] = 213] = "service_remove_sales";
     PermissionIndex[PermissionIndex["service_discount_transfer"] = 214] = "service_discount_transfer";
@@ -88,7 +88,7 @@ export var PermissionIndex;
 export class Permission {
     protocol;
     object;
-    get_object() { this.object; }
+    get_object() { return this.object; }
     constructor(protocol) {
         this.protocol = protocol;
         this.object = '';

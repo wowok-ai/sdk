@@ -298,11 +298,44 @@ export const IsValidDesription = (description:string) : boolean => { return desc
 export const IsValidName = (name:string) : boolean => { if(!name) return false; return name.length <= MAX_NAME_LENGTH && name.length != 0 }
 export const IsValidName_AllowEmpty = (name:string) : boolean => { return name.length <= MAX_NAME_LENGTH }
 export const IsValidEndpoint = (endpoint:string) : boolean => { if (!endpoint) return false; return endpoint.length <= MAX_ENDPOINT_LENGTH }
-export const IsValidAddress = (addr:string) : boolean => { if (!addr || !isValidSuiAddress(addr)) return false; return true}
-export const IsValidArgType = (argType: string) : boolean => { if (!argType) return false; return argType.length != 0 }
-export const IsValidUint = (value: number) : boolean => { return Number.isSafeInteger(value) && value != 0 }
-export const IsValidInt = (value: number) : boolean => { return Number.isSafeInteger(value) }
-export const IsValidPercent = (value: number) : boolean => { return Number.isSafeInteger(value) && value > 0 && value <= 100 }
+export const IsValidAddress = (addr:string) : boolean => { 
+    if (!addr || !isValidSuiAddress(addr)) {
+        return false; 
+    }
+    return true
+}
+export const IsValidArgType = (argType: string) : boolean => { 
+    if (!argType || argType.length === 0) {
+        return false; 
+    }
+    let arr = argType.split('::');
+    if (arr.length !== 3) {
+        return false;
+    } 
+    if (!IsValidAddress(arr[0]) || arr[1].length === 0 || arr[2].length === 0) {
+        return false;
+    }
+    return true;
+}
+
+export const IsValidUint = (value: number | string) : boolean => { 
+    if (typeof(value) === 'string') {
+        value = parseInt(value as string);
+    }
+    return Number.isSafeInteger(value) && value > 0 
+}
+export const IsValidInt = (value: number | string) : boolean => { 
+    if (typeof(value) === 'string') {
+        value = parseInt(value as string);
+    }
+    return Number.isSafeInteger(value) 
+}
+export const IsValidPercent = (value: number | string) : boolean => { 
+    if (typeof(value) === 'string') {
+        value = parseInt(value as string);
+    }
+    return Number.isSafeInteger(value) && value > 0 && value <= 100 
+}
 export const IsValidArray = (arr: any[], validFunc:any) : boolean => {
     let bValid = true;
     arr.forEach((v) => {
@@ -321,13 +354,18 @@ export type ArgType = {
     token: string;
 }
 export const ParseType = (type:string) : ArgType => {
-    let i = type.indexOf('<');
-    if (i > 0 && type.length > 12) {
-        let c = type.slice(0, i);
-        if (c === '0x2::coin::Coin' || c === '0x0000000000000000000000000000000000000000000000000000000000000002::coin::Coin') {
-            let coin = type.slice(i+1, type.length-1); // < >>
-            let t = coin.lastIndexOf('::');
-            return {isCoin:true, coin:coin, token:coin.slice(t+2)}
+    if (type) {
+        const COIN = '0x0000000000000000000000000000000000000000000000000000000000000002::coin::Coin<';
+        let i = type.indexOf(COIN);
+        if (i > 0) {
+            let coin = type.slice(i+COIN.length, type.length-1);
+            if (coin.indexOf('<') === -1) {
+                while (coin[coin.length-1] == '>') {
+                    coin = coin.slice(0, -1);
+                };
+                let t = coin.lastIndexOf('::');      
+                return {isCoin:true, coin:coin, token:coin.slice(t+2)}         
+            }
         }
     }
     return  {isCoin:false, coin:'', token:''}

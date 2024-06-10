@@ -30,10 +30,10 @@ export type Customer_RequiredInfo = {
     customer_info_crypt: string[];
 };
 export declare enum BuyRequiredEnum {
-    address = "Address",
-    phone = "Phone",
-    name = "Name",
-    postcode = "Postcode"
+    address = "address",
+    phone = "phone",
+    name = "name",
+    postcode = "postcode"
 }
 export type Service_Buy = {
     item: string;
@@ -50,11 +50,12 @@ export declare class Service {
     protected permission: PermissionObject;
     protected object: TxbObject;
     protected protocol: Protocol;
+    static token2coin: (token: string) => string;
     get_pay_type(): string;
     get_object(): TxbObject;
     private constructor();
-    static From(protocol: Protocol, pay_token_type: string, permission: PermissionObject, object: TxbObject): Service;
-    static New(protocol: Protocol, pay_token_type: string, permission: PermissionObject, description: string, payee_address: string, endpoint?: string, passport?: PassportObject): Service;
+    static From(protocol: Protocol, token_type: string, permission: PermissionObject, object: TxbObject): Service;
+    static New(protocol: Protocol, token_type: string, permission: PermissionObject, description: string, payee_address: string, endpoint?: string, passport?: PassportObject): Service;
     launch(): ServiceAddress;
     destroy(): void;
     set_description(description: string, passport?: PassportObject): void;
@@ -63,7 +64,7 @@ export declare class Service {
     add_stock(item: string, stock_add: number, bNotFoundAssert?: boolean, passport?: PassportObject): void;
     reduce_stock(item: string, stock_reduce: number, bNotFoundAssert?: boolean, passport?: PassportObject): void;
     set_payee(payee: string, passport?: PassportObject): void;
-    repository_add(repository: RepositoryObject, passport?: PassportObject): false | undefined;
+    repository_add(repository: RepositoryObject, passport?: PassportObject): void;
     repository_remove(repository_address?: string[], removeall?: boolean, passport?: PassportObject): void;
     add_withdraw_guards(guards: Service_Guard_Percent[], passport?: PassportObject): void;
     remove_withdraw_guards(guard_address?: string[], removeall?: boolean, passport?: PassportObject): void;
@@ -91,5 +92,7 @@ export declare class Service {
     change_permission(new_permission: PermissionObject): void;
     static MAX_DISCOUNT_COUNT_ONCE: number;
     static MAX_DISCOUNT_RECEIVER_COUNT: number;
+    static MAX_GUARD_COUNT: number;
+    static MAX_REPOSITORY_COUNT: number;
 }
 //# sourceMappingURL=service.d.ts.map

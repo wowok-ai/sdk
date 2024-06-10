@@ -184,49 +184,49 @@ export class Bcs {
     de(type, data) {
         switch (type) {
             case ValueType.TYPE_BOOL:
-                return this.bcs.de(BCS.BOOL, data).toBytes();
+                return this.bcs.de(BCS.BOOL, data);
             case ValueType.TYPE_ADDRESS:
-                return this.bcs.de(BCS.ADDRESS, data).toBytes();
+                return this.bcs.de(BCS.ADDRESS, data);
             case ValueType.TYPE_U64:
-                return this.bcs.de(BCS.U64, data).toBytes();
+                return this.bcs.de(BCS.U64, data);
             case ValueType.TYPE_U8:
-                return this.bcs.de(BCS.U8, data).toBytes();
+                return this.bcs.de(BCS.U8, data);
             case ValueType.TYPE_VEC_U8:
-                return this.bcs.de('vector<u8>', data).toBytes();
+                return this.bcs.de('vector<u8>', data);
             case ValueType.TYPE_U128:
-                return this.bcs.de(BCS.U128, data).toBytes();
+                return this.bcs.de(BCS.U128, data);
             case ValueType.TYPE_VEC_ADDRESS:
-                return this.bcs.de('vector<address>', data).toBytes();
+                return this.bcs.de('vector<address>', data);
             case ValueType.TYPE_VEC_BOOL:
-                return this.bcs.de('vector<bool>', data).toBytes();
+                return this.bcs.de('vector<bool>', data);
             case ValueType.TYPE_VEC_VEC_U8:
-                return this.bcs.de('vector<vector<u8>>', data).toBytes();
+                return this.bcs.de('vector<vector<u8>>', data);
             case ValueType.TYPE_VEC_U64:
-                return this.bcs.de('vector<u64>', data).toBytes();
+                return this.bcs.de('vector<u64>', data);
             case ValueType.TYPE_VEC_U128:
-                return this.bcs.de('vector<u128>', data).toBytes();
+                return this.bcs.de('vector<u128>', data);
             case ValueType.TYPE_OPTION_ADDRESS:
-                return this.bcs.de('Option<address>', data).toBytes();
+                return this.bcs.de('Option<address>', data);
             case ValueType.TYPE_OPTION_BOOL:
-                return this.bcs.de('Option<bool>', data).toBytes();
+                return this.bcs.de('Option<bool>', data);
             case ValueType.TYPE_OPTION_U8:
-                return this.bcs.de('Option<u8>', data).toBytes();
+                return this.bcs.de('Option<u8>', data);
             case ValueType.TYPE_OPTION_U64:
-                return this.bcs.de('Option<u64>', data).toBytes();
+                return this.bcs.de('Option<u64>', data);
             case ValueType.TYPE_OPTION_U128:
-                return this.bcs.de('Option<u128>', data).toBytes();
+                return this.bcs.de('Option<u128>', data);
             case ValueType.TYPE_OPTION_U256:
-                return this.bcs.de('Option<u256>', data).toBytes();
+                return this.bcs.de('Option<u256>', data);
             case ValueType.TYPE_OPTION_STRING:
-                return this.bcs.de('Option<string>', data).toBytes();
+                return this.bcs.de('Option<string>', data);
             case ValueType.TYPE_VEC_U256:
-                return this.bcs.de('vector<u256>', data).toBytes();
+                return this.bcs.de('vector<u256>', data);
             case ValueType.TYPE_STRING:
-                return this.bcs.de(BCS.STRING, data).toBytes();
+                return this.bcs.de(BCS.STRING, data);
             case ValueType.TYPE_VEC_STRING:
-                return this.bcs.de('vector<string>', data).toBytes();
+                return this.bcs.de('vector<string>', data);
             case ValueType.TYPE_U256:
-                return this.bcs.de(BCS.U256, data).toBytes();
+                return this.bcs.de(BCS.U256, data);
             default:
                 ERROR(Errors.bcsTypeInvalid, 'de');
         }
@@ -281,13 +281,43 @@ export const IsValidName = (name) => { if (!name)
 export const IsValidName_AllowEmpty = (name) => { return name.length <= MAX_NAME_LENGTH; };
 export const IsValidEndpoint = (endpoint) => { if (!endpoint)
     return false; return endpoint.length <= MAX_ENDPOINT_LENGTH; };
-export const IsValidAddress = (addr) => { if (!addr || !isValidSuiAddress(addr))
-    return false; return true; };
-export const IsValidArgType = (argType) => { if (!argType)
-    return false; return argType.length != 0; };
-export const IsValidUint = (value) => { return Number.isSafeInteger(value) && value != 0; };
-export const IsValidInt = (value) => { return Number.isSafeInteger(value); };
-export const IsValidPercent = (value) => { return Number.isSafeInteger(value) && value > 0 && value <= 100; };
+export const IsValidAddress = (addr) => {
+    if (!addr || !isValidSuiAddress(addr)) {
+        return false;
+    }
+    return true;
+};
+export const IsValidArgType = (argType) => {
+    if (!argType || argType.length === 0) {
+        return false;
+    }
+    let arr = argType.split('::');
+    if (arr.length !== 3) {
+        return false;
+    }
+    if (!IsValidAddress(arr[0]) || arr[1].length === 0 || arr[2].length === 0) {
+        return false;
+    }
+    return true;
+};
+export const IsValidUint = (value) => {
+    if (typeof (value) === 'string') {
+        value = parseInt(value);
+    }
+    return Number.isSafeInteger(value) && value > 0;
+};
+export const IsValidInt = (value) => {
+    if (typeof (value) === 'string') {
+        value = parseInt(value);
+    }
+    return Number.isSafeInteger(value);
+};
+export const IsValidPercent = (value) => {
+    if (typeof (value) === 'string') {
+        value = parseInt(value);
+    }
+    return Number.isSafeInteger(value) && value > 0 && value <= 100;
+};
 export const IsValidArray = (arr, validFunc) => {
     let bValid = true;
     arr.forEach((v) => {
@@ -299,13 +329,19 @@ export const IsValidArray = (arr, validFunc) => {
 };
 export const OptionNone = (txb) => { return txb.pure([], BCS.U8); };
 export const ParseType = (type) => {
-    let i = type.indexOf('<');
-    if (i > 0 && type.length > 12) {
-        let c = type.slice(0, i);
-        if (c === '0x2::coin::Coin' || c === '0x0000000000000000000000000000000000000000000000000000000000000002::coin::Coin') {
-            let coin = type.slice(i + 1, type.length - 1); // < >>
-            let t = coin.lastIndexOf('::');
-            return { isCoin: true, coin: coin, token: coin.slice(t + 2) };
+    if (type) {
+        const COIN = '0x0000000000000000000000000000000000000000000000000000000000000002::coin::Coin<';
+        let i = type.indexOf(COIN);
+        if (i > 0) {
+            let coin = type.slice(i + COIN.length, type.length - 1);
+            if (coin.indexOf('<') === -1) {
+                while (coin[coin.length - 1] == '>') {
+                    coin = coin.slice(0, -1);
+                }
+                ;
+                let t = coin.lastIndexOf('::');
+                return { isCoin: true, coin: coin, token: coin.slice(t + 2) };
+            }
         }
     }
     return { isCoin: false, coin: '', token: '' };
