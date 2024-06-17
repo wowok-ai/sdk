@@ -28,13 +28,16 @@ export declare enum PermissionIndex {
     service_set_stock = 203,
     service_add_stock = 203,
     service_reduce_stock = 203,
+    service_set_sale_endpoint = 204,
     service_set_payee = 205,
     service_repository_add = 206,
     service_repository_remove = 207,
     service_add_withdraw_guards = 208,
-    service_remove_withdraw_guards = 208,
+    service_remove_withdraw_guards = 209,
+    service_removeall_withdraw_guards = 209,
     service_add_refund_guards = 210,
-    service_remove_refund_guards = 210,
+    service_remove_refund_guards = 211,
+    service_removeall_refund_guards = 211,
     service_add_sales = 212,
     service_remove_sales = 213,
     service_discount_transfer = 214,
@@ -80,6 +83,14 @@ export declare enum PermissionIndex {
     progress_unhold = 654,
     user_defined_start = 10000
 }
+export interface PermissionInfoType {
+    index: number;
+    name: string;
+    description: string;
+    module: string;
+    guard?: string;
+}
+export declare const PermissionInfo: PermissionInfoType[];
 export type PermissionIndexType = PermissionIndex | number;
 export type Permission_Index = {
     index: PermissionIndexType;
@@ -98,6 +109,9 @@ export declare class Permission {
     static New(protocol: Protocol, description: string): Permission;
     launch(): PermissionAddress;
     destroy(): void;
+    add_userdefine(index: number, name: string): void;
+    remove_userdefine(index: number): void;
+    change_entity(old_entity: string, new_entity: string): void;
     add_entity(entities: Permission_Entity[]): void;
     set_guard(entity_address: string, index: PermissionIndexType, guard?: GuardObject): void;
     remove_index(entity_address: string, index: PermissionIndexType[]): void;

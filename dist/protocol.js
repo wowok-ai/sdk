@@ -134,9 +134,9 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0x10edb3f8e11008c8c5cfe951989d10c353d885377fe6cbdfedea3b315fa6b06c";
-                this.wowok_object = '0xb2a940236a1811ff43eaf902e165155687f9c756dcdd1fc70096551bffcb89fc';
-                this.entity_object = '0x8dc27895c123c9736649a800fc58e621b7747d56f0b15a560d09a4412c42ae28';
+                this.package = "0x5052bdc17ccc55d8a932bd3135a0359a84cbceabf4419eea0b29eff3f447fc45";
+                this.wowok_object = '0x9df9472d99d721bd3d9cc00cfd183ba7e892f2ec969e88cefab5cae57c599d3f';
+                this.entity_object = '0x981df44bc839de4c120bf018487b4ef65f3e2aaabef8790045816f2353a29ed5';
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
             case ENTRYPOINT.mainnet:
@@ -214,9 +214,9 @@ export class Protocol {
         return response;
     };
     // used in service, discount, order, because service has COIN wrapper for TOKEN
-    static SUI_TOKEN_TYPE = '0x2::sui::SUI'; // TOKEN_TYPE
+    static SUI_TOKEN_TYPE = '0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI'; // TOKEN_TYPE
     // used in demand, reward, ...
-    static SUI_COIN_TYPE = '0x2::coin::Coin<0x2::sui::SUI>'; // COIN TYPE
+    static SUI_COIN_TYPE = '0x0000000000000000000000000000000000000000000000000000000000000002::coin::Coin<0x2::sui::SUI>'; // COIN TYPE
     WOWOK_TOKEN_TYPE = () => { return this.package + '::wowok::WOWOK'; };
     WOWOK_COIN_TYPE = () => { return '0x2::coin::Coin<' + this.package + '::wowok::WOWOK>'; };
     COINS_TYPE = () => {

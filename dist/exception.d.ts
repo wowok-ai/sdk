@@ -4,7 +4,8 @@ export declare enum Errors {
     IsValidName_AllowEmpty = "invalid name",
     IsValidEndpoint = "invalid endpoint",
     IsValidAddress = "invalid address",
-    IsValidArgType = "invalid argumentType",
+    IsValidArgType = "invalid argument type",
+    IsValidTokenType = "invalid token type",
     IsValidUint = "invalid uint",
     IsValidInt = "invalid int",
     IsValidPercent = "invalid percent",
@@ -17,6 +18,7 @@ export declare enum Errors {
     Fail = "fail",
     IsValidIndentifier = "indentifier invalid",
     isValidHttpUrl = "invalid url",
+    IsValidUserDefinedIndex = "invalid user defined permission index",
     bcsTypeInvalid = "invalid bcs type"
 }
 export declare const ERROR: (error: Errors, info?: any) => never;

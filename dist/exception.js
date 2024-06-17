@@ -5,7 +5,8 @@ export var Errors;
     Errors["IsValidName_AllowEmpty"] = "invalid name";
     Errors["IsValidEndpoint"] = "invalid endpoint";
     Errors["IsValidAddress"] = "invalid address";
-    Errors["IsValidArgType"] = "invalid argumentType";
+    Errors["IsValidArgType"] = "invalid argument type";
+    Errors["IsValidTokenType"] = "invalid token type";
     Errors["IsValidUint"] = "invalid uint";
     Errors["IsValidInt"] = "invalid int";
     Errors["IsValidPercent"] = "invalid percent";
@@ -18,6 +19,7 @@ export var Errors;
     Errors["Fail"] = "fail";
     Errors["IsValidIndentifier"] = "indentifier invalid";
     Errors["isValidHttpUrl"] = "invalid url";
+    Errors["IsValidUserDefinedIndex"] = "invalid user defined permission index";
     Errors["bcsTypeInvalid"] = "invalid bcs type";
 })(Errors || (Errors = {}));
 export const ERROR = (error, info) => {

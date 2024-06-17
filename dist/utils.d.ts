@@ -44,6 +44,7 @@ export declare const IsValidName: (name: string) => boolean;
 export declare const IsValidName_AllowEmpty: (name: string) => boolean;
 export declare const IsValidEndpoint: (endpoint: string) => boolean;
 export declare const IsValidAddress: (addr: string) => boolean;
+export declare const IsValidTokenType: (argType: string) => boolean;
 export declare const IsValidArgType: (argType: string) => boolean;
 export declare const IsValidUint: (value: number | string) => boolean;
 export declare const IsValidInt: (value: number | string) => boolean;

@@ -264,7 +264,6 @@ export function numToUint8Array(num:number) : Uint8Array {
     return new Uint8Array(a)
 } 
 
-// 判断是否为数组
 export const isArr = (origin: any): boolean => {
     let str = '[object Array]'
     return Object.prototype.toString.call(origin) == str ? true : false
@@ -304,7 +303,7 @@ export const IsValidAddress = (addr:string) : boolean => {
     }
     return true
 }
-export const IsValidArgType = (argType: string) : boolean => { 
+export const IsValidTokenType = (argType: string) : boolean => { 
     if (!argType || argType.length === 0) {
         return false; 
     }
@@ -312,12 +311,21 @@ export const IsValidArgType = (argType: string) : boolean => {
     if (arr.length !== 3) {
         return false;
     } 
-    if (!IsValidAddress(arr[0]) || arr[1].length === 0 || arr[2].length === 0) {
+    if ((!IsValidAddress(arr[0]) && arr[0] != '0x2') || arr[1].length === 0 || arr[2].length === 0) {
         return false;
     }
     return true;
 }
-
+export const IsValidArgType = (argType: string) : boolean => { 
+    if (!argType || argType.length === 0) {
+        return false; 
+    }
+    let arr = argType.split('::');
+    if (arr.length < 3) {
+        return false;
+    } 
+    return true;
+}
 export const IsValidUint = (value: number | string) : boolean => { 
     if (typeof(value) === 'string') {
         value = parseInt(value as string);
@@ -398,5 +406,5 @@ export function isValidHttpUrl(url:string) : boolean {
       return false;  
     }
   
-    return r.protocol === "http:" || r.protocol === "https:";
+    return r.protocol === "http:" || r.protocol === "https:" || r.protocol === 'ipfs:';
 }

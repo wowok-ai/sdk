@@ -251,7 +251,6 @@ export function numToUint8Array(num) {
     }
     return new Uint8Array(a);
 }
-// 判断是否为数组
 export const isArr = (origin) => {
     let str = '[object Array]';
     return Object.prototype.toString.call(origin) == str ? true : false;
@@ -287,7 +286,7 @@ export const IsValidAddress = (addr) => {
     }
     return true;
 };
-export const IsValidArgType = (argType) => {
+export const IsValidTokenType = (argType) => {
     if (!argType || argType.length === 0) {
         return false;
     }
@@ -295,7 +294,17 @@ export const IsValidArgType = (argType) => {
     if (arr.length !== 3) {
         return false;
     }
-    if (!IsValidAddress(arr[0]) || arr[1].length === 0 || arr[2].length === 0) {
+    if ((!IsValidAddress(arr[0]) && arr[0] != '0x2') || arr[1].length === 0 || arr[2].length === 0) {
+        return false;
+    }
+    return true;
+};
+export const IsValidArgType = (argType) => {
+    if (!argType || argType.length === 0) {
+        return false;
+    }
+    let arr = argType.split('::');
+    if (arr.length < 3) {
         return false;
     }
     return true;
@@ -373,5 +382,5 @@ export function isValidHttpUrl(url) {
     catch (_) {
         return false;
     }
-    return r.protocol === "http:" || r.protocol === "https:";
+    return r.protocol === "http:" || r.protocol === "https:" || r.protocol === 'ipfs:';
 }

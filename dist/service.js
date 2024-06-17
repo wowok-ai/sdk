@@ -1,5 +1,5 @@
 import { BCS } from '@mysten/bcs';
-import { IsValidArray, IsValidPercent, IsValidName_AllowEmpty, Bcs, array_unique, IsValidArgType, IsValidDesription, IsValidAddress, IsValidEndpoint, OptionNone, IsValidUint, IsValidInt, IsValidName, } from './utils';
+import { IsValidArray, IsValidPercent, IsValidName_AllowEmpty, Bcs, array_unique, IsValidTokenType, IsValidDesription, IsValidAddress, IsValidEndpoint, OptionNone, IsValidUint, IsValidInt, IsValidName, } from './utils';
 import { Protocol, ValueType } from './protocol';
 import { ERROR, Errors } from './exception';
 export var Service_Discount_Type;
@@ -19,7 +19,7 @@ export class Service {
     permission;
     object;
     protocol;
-    static token2coin = (token) => { return '0x2::coin::Coin<' + token + '>'; };
+    //static token2coin = (token:string) => { return '0x2::coin::Coin<' + token + '>'};
     get_pay_type() { return this.pay_token_type; }
     get_object() { return this.object; }
     constructor(protocol, pay_token_type, permission) {
@@ -29,7 +29,7 @@ export class Service {
         this.object = '';
     }
     static From(protocol, token_type, permission, object) {
-        let s = new Service(protocol, this.token2coin(token_type), permission);
+        let s = new Service(protocol, token_type, permission);
         s.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object);
         return s;
     }
@@ -37,8 +37,8 @@ export class Service {
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects);
         }
-        if (!IsValidArgType(token_type)) {
-            ERROR(Errors.IsValidArgType, 'New: pay_token_type');
+        if (!IsValidTokenType(token_type)) {
+            ERROR(Errors.IsValidTokenType, 'New: pay_token_type');
         }
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription);
@@ -49,7 +49,7 @@ export class Service {
         if (endpoint && !IsValidEndpoint(endpoint)) {
             ERROR(Errors.IsValidEndpoint);
         }
-        let pay_token_type = this.token2coin(token_type);
+        let pay_token_type = token_type;
         let s = new Service(protocol, pay_token_type, permission);
         let txb = protocol.CurrentSession();
         let ep = endpoint ? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_STRING, endpoint)) : OptionNone(txb);
@@ -200,6 +200,32 @@ export class Service {
             txb.moveCall({
                 target: this.protocol.ServiceFn('stock_reduce'),
                 arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(stock_reduce, BCS.U64),
+                    txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments: [this.pay_token_type]
+            });
+        }
+    }
+    set_sale_endpoint(item, endpoint, bNotFoundAssert = true, passport) {
+        if (!IsValidName(item)) {
+            ERROR(Errors.IsValidName, 'set_sale_endpoint');
+        }
+        if (endpoint && !IsValidEndpoint(endpoint)) {
+            ERROR(Errors.IsValidEndpoint, 'set_sale_endpoint');
+        }
+        let txb = this.protocol.CurrentSession();
+        let ep = endpoint ? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_STRING, endpoint)) : OptionNone(txb);
+        if (passport) {
+            txb.moveCall({
+                target: this.protocol.ServiceFn('sale_endpoint_set_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), ep,
+                    txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments: [this.pay_token_type]
+            });
+        }
+        else {
+            txb.moveCall({
+                target: this.protocol.ServiceFn('sale_endpoint_set'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), ep,
                     txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
                 typeArguments: [this.pay_token_type]
             });
@@ -452,24 +478,30 @@ export class Service {
         });
         return bValid;
     }
-    add_sale(sales, passport) {
+    add_sale(sales, bExistAssert = false, passport) {
         if (!sales || !this.is_valid_sale(sales)) {
-            ERROR(Errors.InvalidParam, 'Service_Sale');
+            ERROR(Errors.InvalidParam, 'add_sale');
         }
         let names = [];
         let price = [];
         let stock = [];
+        let endpoint = [];
         sales.forEach((s) => {
+            if (s.endpoint && !IsValidEndpoint(s.endpoint)) {
+                ERROR(Errors.IsValidEndpoint, 'add_sale');
+            }
             names.push(s.item);
             price.push(s.price);
             stock.push(s.stock);
+            endpoint.push(s.endpoint ?? '');
         });
         let txb = this.protocol.CurrentSession();
         if (passport) {
             txb.moveCall({
                 target: this.protocol.ServiceFn('sales_add_with_passport'),
                 arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, names)),
-                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, price)), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, stock)),
+                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, endpoint)), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, price)),
+                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, stock)), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_BOOL, bExistAssert)),
                     Protocol.TXB_OBJECT(txb, this.permission)],
                 typeArguments: [this.pay_token_type]
             });
@@ -478,14 +510,16 @@ export class Service {
             txb.moveCall({
                 target: this.protocol.ServiceFn('sales_add'),
                 arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, names)),
+                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, endpoint)),
                     txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, price)), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, stock)),
+                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_BOOL, bExistAssert)),
                     Protocol.TXB_OBJECT(txb, this.permission)],
                 typeArguments: [this.pay_token_type]
             });
         }
     }
-    remove_sales(sales, removeall, passport) {
-        if (!removeall && !sales) {
+    remove_sales(sales, passport) {
+        if (!sales) {
             ERROR(Errors.AllInvalid, 'sales & removeall');
         }
         if (sales && !IsValidArray(sales, IsValidName)) {
@@ -493,38 +527,20 @@ export class Service {
         }
         let txb = this.protocol.CurrentSession();
         if (passport) {
-            if (removeall) {
-                txb.moveCall({
-                    target: this.protocol.ServiceFn('sales_remove_all_with_passport'),
-                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments: [this.pay_token_type]
-                });
-            }
-            else {
-                txb.moveCall({
-                    target: this.protocol.ServiceFn('sales_remove_with_passport'),
-                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(sales))),
-                        Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments: [this.pay_token_type]
-                });
-            }
+            txb.moveCall({
+                target: this.protocol.ServiceFn('sales_remove_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(sales))),
+                    Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments: [this.pay_token_type]
+            });
         }
         else {
-            if (removeall) {
-                txb.moveCall({
-                    target: this.protocol.ServiceFn('sales_remove_all'),
-                    arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments: [this.pay_token_type]
-                });
-            }
-            else {
-                txb.moveCall({
-                    target: this.protocol.ServiceFn('sales_remove'),
-                    arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(sales))),
-                        Protocol.TXB_OBJECT(txb, this.permission)],
-                    typeArguments: [this.pay_token_type]
-                });
-            }
+            txb.moveCall({
+                target: this.protocol.ServiceFn('sales_remove'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(sales))),
+                    Protocol.TXB_OBJECT(txb, this.permission)],
+                typeArguments: [this.pay_token_type]
+            });
         }
     }
     discount_transfer(discount_dispatch, passport) {
@@ -735,8 +751,6 @@ export class Service {
             ERROR(Errors.InvalidParam, 'customer_required');
         }
         let req = array_unique(customer_required);
-        console.log(req);
-        console.log(this.pay_token_type);
         let txb = this.protocol.CurrentSession();
         if (passport) {
             txb.moveCall({
@@ -893,7 +907,7 @@ export class Service {
             names.push(v.item);
         });
         if (!bValid) {
-            ERROR(Errors.InvalidParam, 'buy_items');
+            ERROR(Errors.InvalidParam, 'buy_items 2');
         }
         let name = [];
         let price = [];
@@ -990,4 +1004,24 @@ export class Service {
     static MAX_DISCOUNT_RECEIVER_COUNT = 20;
     static MAX_GUARD_COUNT = 16;
     static MAX_REPOSITORY_COUNT = 16;
+    static parseTypeFromServiceType = (chain_type) => {
+        if (chain_type) {
+            const s = 'service::Service<';
+            const i = chain_type.indexOf(s);
+            if (i > 0) {
+                let r = chain_type.slice(i + s.length, chain_type.length - 1);
+                let arr = r.split('::');
+                return { token_type: r, token: arr[2] };
+            }
+        }
+        return { token_type: '', token: '' };
+    };
+    static endpoint = (service_endpoint, item_endpoint, item_name) => {
+        if (item_endpoint) {
+            return item_endpoint;
+        }
+        else if (service_endpoint) {
+            return service_endpoint + '/sales/' + encodeURI(item_name);
+        }
+    };
 }

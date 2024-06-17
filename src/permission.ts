@@ -1,6 +1,6 @@
 import { BCS } from '@mysten/bcs';
 import { FnCallType, TxbObject, PermissionObject, PermissionAddress, GuardObject, Protocol} from './protocol';
-import { array_unique, IsValidAddress, IsValidArray,  IsValidDesription, IsValidUint, Bcs} from './utils';
+import { array_unique, IsValidAddress, IsValidArray,  IsValidDesription, IsValidUint, Bcs, IsValidName} from './utils';
 import { ERROR, Errors } from './exception';
 import { ValueType } from './protocol';
 
@@ -15,6 +15,7 @@ export enum PermissionIndex {
     repository_reference_add = 107,
     repository_reference_remove = 108,
     repository_reference_removeall = 108,
+
     vote = 150,
     vote_set_description = 151,
     vote_set_reference = 152, 
@@ -27,19 +28,23 @@ export enum PermissionIndex {
     vote_lock_deadline = 159,
     vote_expand_deadline = 160,
     vote_lock_guard = 161,
+
     service = 200,
     service_set_description = 201,
     service_set_price = 202,
     service_set_stock = 203,
     service_add_stock = 203,
     service_reduce_stock = 203,
+    service_set_sale_endpoint = 204,
     service_set_payee = 205,
     service_repository_add = 206,
     service_repository_remove = 207,
     service_add_withdraw_guards = 208,
-    service_remove_withdraw_guards  = 208,
+    service_remove_withdraw_guards  = 209,
+    service_removeall_withdraw_guards  = 209,
     service_add_refund_guards = 210,
-    service_remove_refund_guards = 210,
+    service_remove_refund_guards = 211,
+    service_removeall_refund_guards = 211,
     service_add_sales = 212,
     service_remove_sales = 213,
     service_discount_transfer = 214,
@@ -54,6 +59,7 @@ export enum PermissionIndex {
     service_change_required_pubkey = 222,
     service_change_order_required_pubkey = 224,
     service_pause = 225,
+
     reward = 240,
     reward_refund = 241,
     reward_expand_time = 242,
@@ -85,6 +91,95 @@ export enum PermissionIndex {
     progress_unhold = 654,
     user_defined_start = 10000,
 }
+
+export interface PermissionInfoType {
+    index: number;
+    name:string;
+    description:string;
+    module: string;
+    guard?: string;
+}
+
+export const PermissionInfo : PermissionInfoType[] = [
+    {index:PermissionIndex.repository, name:'Repository', description:'repository', module: 'repository'},
+    {index:PermissionIndex.repository_set_description_set, name:'Description', description:'repository_set_description_set', module: 'repository'},
+    {index:PermissionIndex.repository_set_policy_mode, name:'Policy mode', description:'repository_set_policy_mode', module: 'repository'},
+    {index:PermissionIndex.repository_add_policies, name:'Add Policy', description:'brepository_add_policies', module: 'repository'},
+    {index:PermissionIndex.repository_remove_policies, name:'Remove Policy', description:'build machine', module: 'repository'},
+    {index:PermissionIndex.repository_set_policy_description, name:'Policy Description', description:'build machine', module: 'repository'},
+    {index:PermissionIndex.repository_set_policy_permission, name:'Policy Permission', description:'build machine',  module: 'repository'},
+    {index:PermissionIndex.repository_reference_add, name:'Add Reference', description:'build machine', module: 'repository'},
+    {index:PermissionIndex.repository_reference_remove, name:'Remove Reference', description:'build machine', module: 'repository'},
+
+    {index:PermissionIndex.vote, name:'Vote', description:'build machine', module: 'vote'},
+    {index:PermissionIndex.vote_set_description, name:'Description', description:'build machine', module: 'vote'},
+    {index:PermissionIndex.vote_set_reference, name:'Reference', description:'build machine', module: 'vote'},
+    {index:PermissionIndex.vote_add_guard, name:'Add Guard', description:'build machine', module: 'vote'},
+    {index:PermissionIndex.vote_remove_guard, name:'Remove Guard', description:'build machine', module: 'vote'},
+    {index:PermissionIndex.vote_add_option, name:'Add Option', description:'build machine', module: 'vote'},
+    {index:PermissionIndex.vote_remove_option, name:'Remove Option', description:'build machine', module: 'vote'},
+    {index:PermissionIndex.vote_set_max_choice_count, name:'Choice count', description:'build machine', module: 'vote'},
+    {index:PermissionIndex.vote_open_voting, name:'Open voting', description:'build machine', module: 'vote'},
+    {index:PermissionIndex.vote_lock_deadline, name:'Lock deadline', description:'build machine', module: 'vote'},
+    {index:PermissionIndex.vote_expand_deadline, name:'Expand deadline', description:'build machine', module: 'vote'},
+    {index:PermissionIndex.vote_lock_guard, name:'Lock Guard', description:'build machine', module: 'vote'},
+
+    {index:PermissionIndex.service, name:'Service', description:'build machine', module: 'service'},
+    {index:PermissionIndex.service_set_description, name:'Description', description:'build machine', module: 'service'},
+    {index:PermissionIndex.service_set_price, name:'Price', description:'build machine', module: 'service'},
+    {index:PermissionIndex.service_set_stock, name:'Inventory', description:'build machine', module: 'service'},
+    {index:PermissionIndex.service_set_payee, name:'Payee', description:'build machine', module: 'service'},
+    {index:PermissionIndex.service_repository_add, name:'Add Repository', description:'build machine', module: 'service'},
+    {index:PermissionIndex.service_repository_remove, name:'Remove Repository', description:'build machine', module: 'service'},
+    {index:PermissionIndex.service_add_withdraw_guards, name:'Add Withdraw Guard', description:'build machine', module: 'service'},
+    {index:PermissionIndex.service_remove_withdraw_guards, name:'Remove Withdraw Guard', description:'build machine', module: 'service'},
+    {index:PermissionIndex.service_add_refund_guards, name:'Add Refund Guard', description:'build machine', module: 'service'},
+    {index:PermissionIndex.service_remove_refund_guards, name:'Remove Refund Guard', description:'build machine', module: 'service'},
+    {index:PermissionIndex.service_add_sales, name:'Add sales', description:'build machine', module: 'service'},
+    {index:PermissionIndex.service_remove_sales, name:'Remove sales', description:'build machine', module: 'service'},
+    {index:PermissionIndex.service_discount_transfer, name:'Discount', description:'build machine', module: 'service'},
+    {index:PermissionIndex.service_withdraw, name:'Withdraw', description:'build machine', module: 'service'},
+    {index:PermissionIndex.service_set_buy_guard, name:'Buyer Guard', description:'build machine', module: 'service'},
+    {index:PermissionIndex.service_set_machine, name:'Machine', description:'build machine', module: 'service'},
+    {index:PermissionIndex.service_set_endpoint, name:'Endpoint', description:'build machine', module: 'service'},
+    {index:PermissionIndex.service_publish, name:'Publish', description:'build machine', module: 'service'},
+    {index:PermissionIndex.service_clone, name:'Clone', description:'build machine', module: 'service'},
+    {index:PermissionIndex.service_set_customer_required, name:'Buyer info', description:'build machine', module: 'service'},
+    {index:PermissionIndex.service_change_order_required_pubkey, name:'Order pubkey', description:'build machine', module: 'service'},
+    {index:PermissionIndex.service_pause, name:'Pause', description:'build machine', module: 'service'},
+
+    {index:PermissionIndex.reward, name:'Reward', description:'build machine', module: 'reward'},
+    {index:PermissionIndex.reward_refund, name:'Refund', description:'build machine', module: 'reward'},
+    {index:PermissionIndex.reward_expand_time, name:'Expand deadline', description:'build machine', module: 'reward'},
+    {index:PermissionIndex.reward_add_guard, name:'Add Guard', description:'build machine', module: 'reward'},
+    {index:PermissionIndex.reward_remove_guard, name:'Remove Guard', description:'build machine', module: 'reward'},
+    {index:PermissionIndex.reward_set_description, name:'Description', description:'build machine', module: 'reward'},
+    {index:PermissionIndex.reward_lock_guards, name:'Lock Guard', description:'build machine', module: 'reward'},
+
+    {index:PermissionIndex.demand, name:'Demand', description:'build machine', module: 'demand'},
+    {index:PermissionIndex.demand_refund, name:'Refund', description:'build machine', module: 'demand'},
+    {index:PermissionIndex.demand_expand_time, name:'Expand deadline', description:'build machine', module: 'demand'},
+    {index:PermissionIndex.demand_set_guard, name:'Guard', description:'build machine', module: 'demand'},
+    {index:PermissionIndex.demand_set_description, name:'Description', description:'build machine', module: 'demand'},
+    {index:PermissionIndex.demand_yes, name:'Yes', description:'build machine', module: 'demand'},
+
+    {index:PermissionIndex.machine, name: 'Machine', description:'build machine', module: 'machine'},
+    {index:PermissionIndex.machine_set_description, name: 'Description', description:'machine_set_description', module: 'machine'},
+    {index:PermissionIndex.machine_add_repository, name: 'Add Repository', description:'machine_add_repository', module: 'machine'},
+    {index:PermissionIndex.machine_remove_repository, name: 'Remove Repository', description:'machine_remove_repository', module: 'machine'},
+    {index:PermissionIndex.machine_clone, name: 'Clone', description:'machine_clone', module: 'machine'},
+    {index:PermissionIndex.machine_add_node, name: 'Add node', description:'machine_add_node/2', module: 'machine'},
+    {index:PermissionIndex.machine_remove_node, name: 'Remove node', description:'machine_remove_node', module: 'machine'},
+    {index:PermissionIndex.machine_set_endpoint, name: 'Endpoint', description:'machine_set_endpoint', module: 'machine'},
+    {index:PermissionIndex.machine_pause, name: 'Pause', description:'machine_pause', module: 'machine'},
+    {index:PermissionIndex.machine_publish, name: 'Publish', description:'machine_publish', module: 'machine'},
+
+    {index:PermissionIndex.progress, name: 'Progress', description:'build progress', module: 'progress'},
+    {index:PermissionIndex.progress_set_namedOperator, name: 'Operator', description:'progress_set_namedOperator', module: 'progress'},
+    {index:PermissionIndex.progress_bind_task, name: 'Bind', description:'progress_bind_task', module: 'progress'},
+    {index:PermissionIndex.progress_set_context_repository, name: 'Repository', description:'progress_set_context_repository', module: 'progress'},
+    {index:PermissionIndex.progress_unhold, name: 'Unhold', description:'progress_unhold', module: 'progress'},
+]
 
 export type PermissionIndexType = PermissionIndex | number;
 
@@ -141,8 +236,47 @@ export class  Permission {
             arguments: [Protocol.TXB_OBJECT(txb, this.object)],
         })  
     }
+    add_userdefine(index: number, name:string) {
+        if (!Permission.IsValidUserDefinedIndex(index)) {
+            ERROR(Errors.IsValidUserDefinedIndex, 'add_userdefine');
+        }
+
+        if (!IsValidName(name)) {
+            ERROR(Errors.IsValidName, 'add_userdefine');
+        }
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target:this.protocol.PermissionFn('user_define_add') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(index, BCS.U64), txb.pure(name, BCS.STRING)]
+        })   
+    }
+    
+    remove_userdefine(index: number) {
+        if (!Permission.IsValidUserDefinedIndex(index)) {
+            ERROR(Errors.IsValidUserDefinedIndex, 'add_userdefine');
+        }
+
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target:this.protocol.PermissionFn('user_define_remove') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(index, BCS.U64)]
+        })   
+    }
+
+    change_entity(old_entity: string, new_entity: string) {
+        if (!IsValidAddress(old_entity) || !IsValidAddress(new_entity)) {
+            ERROR(Errors.IsValidAddress, 'change_entity')
+        }
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target:this.protocol.PermissionFn('change_entity') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(old_entity, BCS.ADDRESS), 
+                txb.pure(new_entity, BCS.ADDRESS) ]
+        })     
+    }
 
     add_entity(entities:Permission_Entity[])  {
+        console.log(entities)
         if (!entities) {
             ERROR(Errors.InvalidParam, 'entities');
         }
@@ -179,13 +313,13 @@ export class  Permission {
                     }
                 }      
             }    
-            if (indexes.length > 0) {
+            //if (indexes.length > 0) {
                 txb.moveCall({
                     target:this.protocol.PermissionFn('add_batch') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(entity.entity_address, BCS.ADDRESS), 
                         txb.pure(indexes, 'vector<u64>')]
                 })            
-            }
+            //}
         } 
         // set guards
         guards.forEach(({entity_address, index, guard}) => {
@@ -219,8 +353,7 @@ export class  Permission {
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(entity_address, BCS.ADDRESS), 
                     txb.pure(index, BCS.U64)]
             })       
-        }
-        ;
+        };
     }
 
     remove_index(entity_address:string, index:PermissionIndexType[])  {

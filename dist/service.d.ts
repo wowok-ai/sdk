@@ -7,6 +7,7 @@ export type Service_Sale = {
     item: string;
     price: number;
     stock: number;
+    endpoint?: string;
 };
 export declare enum Service_Discount_Type {
     ratio = 0,
@@ -50,7 +51,6 @@ export declare class Service {
     protected permission: PermissionObject;
     protected object: TxbObject;
     protected protocol: Protocol;
-    static token2coin: (token: string) => string;
     get_pay_type(): string;
     get_object(): TxbObject;
     private constructor();
@@ -63,6 +63,7 @@ export declare class Service {
     set_stock(item: string, stock: number, bNotFoundAssert?: boolean, passport?: PassportObject): void;
     add_stock(item: string, stock_add: number, bNotFoundAssert?: boolean, passport?: PassportObject): void;
     reduce_stock(item: string, stock_reduce: number, bNotFoundAssert?: boolean, passport?: PassportObject): void;
+    set_sale_endpoint(item: string, endpoint?: string, bNotFoundAssert?: boolean, passport?: PassportObject): void;
     set_payee(payee: string, passport?: PassportObject): void;
     repository_add(repository: RepositoryObject, passport?: PassportObject): void;
     repository_remove(repository_address?: string[], removeall?: boolean, passport?: PassportObject): void;
@@ -71,8 +72,8 @@ export declare class Service {
     add_refund_guards(guards: Service_Guard_Percent[], passport?: PassportObject): void;
     remove_refund_guards(guard_address?: string[], removeall?: boolean, passport?: PassportObject): void;
     is_valid_sale(sales: Service_Sale[]): boolean;
-    add_sale(sales: Service_Sale[], passport?: PassportObject): void;
-    remove_sales(sales?: string[], removeall?: boolean, passport?: PassportObject): void;
+    add_sale(sales: Service_Sale[], bExistAssert?: boolean, passport?: PassportObject): void;
+    remove_sales(sales?: string[], passport?: PassportObject): void;
     discount_transfer(discount_dispatch: DicountDispatch[], passport?: PassportObject): void;
     withdraw(order: OrderObject, passport?: PassportObject): void;
     set_buy_guard(guard?: GuardObject, passport?: PassportObject): void;
@@ -94,5 +95,10 @@ export declare class Service {
     static MAX_DISCOUNT_RECEIVER_COUNT: number;
     static MAX_GUARD_COUNT: number;
     static MAX_REPOSITORY_COUNT: number;
+    static parseTypeFromServiceType: (chain_type: string) => {
+        token_type: string;
+        token: string;
+    };
+    static endpoint: (service_endpoint: string, item_endpoint: string, item_name: string) => string | undefined;
 }
 //# sourceMappingURL=service.d.ts.map
