@@ -175,6 +175,9 @@ export class Protocol {
             Protocol._instance = new Protocol();
         }; return Protocol._instance
     }
+    static Client() : SuiClient {
+        return  new SuiClient({ url: Protocol.Instance().NetworkUrl() });  
+    }
 
     UseNetwork(network:ENTRYPOINT=ENTRYPOINT.testnet) {
         this.network = network;
@@ -184,9 +187,9 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0x5052bdc17ccc55d8a932bd3135a0359a84cbceabf4419eea0b29eff3f447fc45";
-                this.wowok_object = '0x9df9472d99d721bd3d9cc00cfd183ba7e892f2ec969e88cefab5cae57c599d3f';
-                this.entity_object= '0x981df44bc839de4c120bf018487b4ef65f3e2aaabef8790045816f2353a29ed5';
+                this.package = "0xf0c14f9638be8d158325d57ab121b6285ca19babc4f4274b440607c18b7c7dbe";
+                this.wowok_object = '0x696f33f676efab231ec0b234425a31437b8da7900a165bead13d8ac284ace5fe';
+                this.entity_object= '0x15f87b07852961542c4dc5c3308902cd9bef5aa30fbe72941b1f7fd0f83e9445';
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
             case ENTRYPOINT.mainnet:
@@ -267,6 +270,8 @@ export class Protocol {
         this.txb = undefined; // reset the txb to undefine
         return response;
     }
+
+    
 
     // used in service, discount, order, because service has COIN wrapper for TOKEN
     static SUI_TOKEN_TYPE = '0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI'; // TOKEN_TYPE

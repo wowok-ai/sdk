@@ -275,10 +275,32 @@ export class  Permission {
         })     
     }
 
-    add_entity(entities:Permission_Entity[])  {
-        console.log(entities)
+    add_entity2(entities: string[], index?:PermissionIndexType) {
         if (!entities) {
-            ERROR(Errors.InvalidParam, 'entities');
+            ERROR(Errors.InvalidParam, 'add_entity2');
+        }
+        if (!IsValidArray(entities, IsValidAddress)) {
+            ERROR(Errors.IsValidArray, 'add_entity2');
+        }
+
+        let txb = this.protocol.CurrentSession();
+        if (index) {
+            txb.moveCall({
+                target:this.protocol.PermissionFn('add_with_index') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(index, BCS.U64),
+                    txb.pure(array_unique(entities), 'vector<address>')]
+            })       
+        } else {
+            txb.moveCall({
+                target:this.protocol.PermissionFn('add') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(entities), 'vector<address>')]
+            })                   
+        }
+    }
+
+    add_entity(entities:Permission_Entity[])  {
+        if (!entities) {
+            ERROR(Errors.InvalidParam, 'add_entity');
         }
 
         let bValid = true;
@@ -447,6 +469,7 @@ export class  Permission {
     static MAX_ADMIN_COUNT = 64;
     static MAX_ENTITY_COUNT = 2000;
     static MAX_PERMISSION_INDEX_COUNT = 200;
+    static MAX_PERSONAL_PERMISSION_COUNT = 200; 
     static IsValidUserDefinedIndex = (index:number)  => { 
         return index >= PermissionIndex.user_defined_start && IsValidUint(index)
     }
