@@ -28,7 +28,7 @@ export class Vote {
         v.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object)
         return v
     }
-    static New(protocol:Protocol, permission:PermissionObject, description:string, minutes_duration:number, 
+    static New(protocol:Protocol, permission:PermissionObject, description:string, minutes_duration:boolean,  time:number,
         max_choice_count?:number, reference_address?:string, passport?:PassportObject) : Vote {
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects,  'permission')
@@ -36,8 +36,8 @@ export class Vote {
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription)
         }
-        if (!IsValidUint(minutes_duration)) {
-            ERROR(Errors.IsValidUint, 'minutes_duration')
+        if (!IsValidUint(time)) {
+            ERROR(Errors.IsValidUint, 'time')
         }
         if (max_choice_count && !IsValidUint(max_choice_count)) {
             ERROR(Errors.IsValidUint, 'max_choice_count')
@@ -57,14 +57,14 @@ export class Vote {
         if (passport) {
             v.object = txb.moveCall({
                 target:protocol.VoteFn('new_with_passport') as FnCallType,
-                arguments:[passport, txb.pure(description), reference, txb.pure(Protocol.CLOCK_OBJECT), 
-                    txb.pure(minutes_duration, BCS.U64), txb.pure(choice_count, BCS.U8), Protocol.TXB_OBJECT(txb, permission)]
+                arguments:[passport, txb.pure(description), reference, txb.pure(Protocol.CLOCK_OBJECT), txb.pure(minutes_duration, BCS.BOOL),
+                    txb.pure(time, BCS.U64), txb.pure(choice_count, BCS.U8), Protocol.TXB_OBJECT(txb, permission)]
             })
         } else {
             v.object = txb.moveCall({
                 target:protocol.VoteFn('new') as FnCallType,
-                arguments:[txb.pure(description), reference, txb.pure(Protocol.CLOCK_OBJECT), 
-                    txb.pure(minutes_duration, BCS.U64), txb.pure(choice_count, BCS.U8), Protocol.TXB_OBJECT(txb, permission)]
+                arguments:[txb.pure(description), reference, txb.pure(Protocol.CLOCK_OBJECT), txb.pure(minutes_duration, BCS.BOOL),
+                    txb.pure(time, BCS.U64), txb.pure(choice_count, BCS.U8), Protocol.TXB_OBJECT(txb, permission)]
             })
         }
         return v
@@ -314,23 +314,23 @@ export class Vote {
         }
     }
 
-    expand_deadline(minutes_expand:number, passport?:PassportObject)  {
-        if (!IsValidUint(minutes_expand)) {
-            ERROR(Errors.IsValidUint, 'minutes_expand')
+    expand_deadline(ms_expand:boolean, time:number, passport?:PassportObject)  {
+        if (!IsValidUint(time)) {
+            ERROR(Errors.IsValidUint, 'time')
         }
 
         let txb = this.protocol.CurrentSession();
         if (passport) {
             txb.moveCall({
                 target:this.protocol.VoteFn('deadline_expand_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), 
-                    txb.pure(minutes_expand, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)]
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(ms_expand, BCS.BOOL),
+                    txb.pure(time, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)]
             })  
         } else {
             txb.moveCall({
                 target:this.protocol.VoteFn('deadline_expand') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), 
-                    txb.pure(minutes_expand, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)]
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(ms_expand, BCS.BOOL),
+                    txb.pure(time, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)]
             })  
         } 
         

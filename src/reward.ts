@@ -31,7 +31,7 @@ export class Reward {
         return  r
     }
     static New(protocol:Protocol, earnest_type:string, permission:PermissionObject, description:string, 
-        minutes_duration:number, passport?:PassportObject) : Reward {
+        ms_expand:boolean, time:number, passport?:PassportObject) : Reward {
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects, 'permission')
         }
@@ -41,8 +41,8 @@ export class Reward {
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription)
         }
-        if (!IsValidUint(minutes_duration)) {
-            ERROR(Errors.IsValidUint, 'minutes_duration')
+        if (!IsValidUint(time)) {
+            ERROR(Errors.IsValidUint, 'time')
         }
 
         let r = new Reward(protocol, earnest_type,  permission);
@@ -51,14 +51,14 @@ export class Reward {
         if (passport) {
             r.object = txb.moveCall({
                 target:protocol.RewardFn('new_with_passport') as FnCallType,
-                arguments:[passport, txb.pure(description), txb.pure(minutes_duration, BCS.U64), 
-                    txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, permission)], 
+                arguments:[passport, txb.pure(description), txb.pure(ms_expand, BCS.BOOL), txb.pure(time, BCS.U64), 
+                    txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments:[earnest_type]
             })
         } else {
             r.object = txb.moveCall({
                 target:protocol.RewardFn('new') as FnCallType,
-                arguments:[txb.pure(description), txb.pure(minutes_duration, BCS.U64), 
+                arguments:[txb.pure(description), txb.pure(ms_expand, BCS.BOOL), txb.pure(time, BCS.U64), 
                     txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, permission)], 
                 typeArguments:[earnest_type]
             })
@@ -100,8 +100,8 @@ export class Reward {
         }
     }
 
-    expand_time(minutes_expand:number, passport?:PassportObject)  {
-        if (!IsValidUint(minutes_expand)) {
+    expand_time(ms_expand:boolean, time:number, passport?:PassportObject)  {
+        if (!IsValidUint(time)) {
             ERROR(Errors.IsValidUint, 'minutes_expand')
         }
 
@@ -109,13 +109,15 @@ export class Reward {
         if (passport) {
             txb.moveCall({
                 target:this.protocol.RewardFn('time_expand_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(minutes_expand, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)], 
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(ms_expand, BCS.BOOL),
+                    txb.pure(time, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)], 
                 typeArguments:[this.earnest_type]
             })
         } else {
             txb.moveCall({
                 target:this.protocol.RewardFn('time_expand') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(minutes_expand, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)], 
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(ms_expand, BCS.BOOL),
+                    txb.pure(time, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)], 
                 typeArguments:[this.earnest_type]
             })
         }

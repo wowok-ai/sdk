@@ -363,9 +363,9 @@ export type ArgType = {
 }
 export const ParseType = (type:string) : ArgType => {
     if (type) {
-        const COIN = '0x0000000000000000000000000000000000000000000000000000000000000002::coin::Coin<';
+        const COIN = '0x2::coin::Coin<';
         let i = type.indexOf(COIN);
-        if (i > 0) {
+        if (i >= 0) {
             let coin = type.slice(i+COIN.length, type.length-1);
             if (coin.indexOf('<') === -1) {
                 while (coin[coin.length-1] == '>') {

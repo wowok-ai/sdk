@@ -155,6 +155,23 @@ export enum ENTRYPOINT {
     localnet = 'localnet'
 }
 
+const TESTNET = {
+    package: "0xd8fe70dde4283c04a0dfe985afa6f1c7ec8c7a950c395c14a2b2cc22dfd78f19",
+    wowok_object: '0xab78a086c1f824402bd55435ad549e82dd0adb2dc0e77893e655e8fcf844dafb',
+    entity_object: '0x8d1f57dc4a6ebfc8f6a454e91c2cde5d80441623929d0ccc437e0ac900ac986e',
+}
+
+const MAINNET = {
+    package: "",
+    wowok_object: '',
+    entity_object: '',
+}
+
+export interface CoinTypeInfo {
+    name: string;
+    type: string;
+    decimals: number;
+}
 export class Protocol {
     protected network = '';
     protected package = '';
@@ -187,12 +204,16 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0xf0c14f9638be8d158325d57ab121b6285ca19babc4f4274b440607c18b7c7dbe";
-                this.wowok_object = '0x696f33f676efab231ec0b234425a31437b8da7900a165bead13d8ac284ace5fe';
-                this.entity_object= '0x15f87b07852961542c4dc5c3308902cd9bef5aa30fbe72941b1f7fd0f83e9445';
+                this.package = TESTNET.package;
+                this.wowok_object = TESTNET.wowok_object;
+                this.entity_object= TESTNET.entity_object;
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
             case ENTRYPOINT.mainnet:
+                this.package = MAINNET.package;
+                this.wowok_object = MAINNET.wowok_object;
+                this.entity_object= MAINNET.entity_object;
+                this.graphql = 'https://sui-mainnet.mystenlabs.com/graphql';
                 break;
         };
     }
@@ -271,8 +292,6 @@ export class Protocol {
         return response;
     }
 
-    
-
     // used in service, discount, order, because service has COIN wrapper for TOKEN
     static SUI_TOKEN_TYPE = '0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI'; // TOKEN_TYPE
     // used in demand, reward, ...
@@ -282,20 +301,61 @@ export class Protocol {
     COINS_TYPE = () => { 
         switch(this.network) {
             case ENTRYPOINT.testnet:
-                /*return [
-                    {name:'SUI', type:'0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI', decimals:9},
-                    {name:'WOW', type:this.WOWOK_TOKEN_TYPE(), decimals:9},
-                ];*/
+                return this.CoinTypes_Testnet;
             case ENTRYPOINT.mainnet:
-                return [
-                    {name:'SUI', type:'0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI', decimals:9},
-                    {name:'WOW', type:this.WOWOK_TOKEN_TYPE(), decimals:9},
-                    {name:'USDT', type:'0xc060006111016b8a020ad5b33834984a437aaa7d3c74c18e09a95d48aceab08c::coin::COIN', decimals:6},
-                    {name:'USDC', type:'0x5d4b302506645c37ff133b98c4b50a5ae14841659738d6d733d59d0d217a93bf::coin::COIN', decimals:6},              
-                    {name:'WETH', type:'0xaf8cd5edc19c4512f4259f0bee101a40d41ebed738ade5874359610ef8eeced5::coin::COIN', decimals:8},
-                    {name:'WBNB', type:'0xb848cce11ef3a8f62eccea6eb5b35a12c4c2b1ee1af7755d02d7bd6218e8226f::coin::COIN', decimals:8},
-                ];
+                return this.CoinTypes_Mainnet;
         }; return [];
+    }
+    Update_CoinType = (token_type: string, decimals:number, symbol: string) => {
+        if (!symbol || !token_type) return ;
+        switch(this.network) {
+            case ENTRYPOINT.testnet:
+                var r = this.CoinTypes_Testnet.filter((v) => v?.type !== token_type);
+                r.push({name:symbol, type:token_type, decimals:decimals}); 
+                this.CoinTypes_Testnet = r;
+                break;
+            case ENTRYPOINT.mainnet:
+                var r = this.CoinTypes_Mainnet.filter((v) => v?.type !== token_type);
+                r.push({name:symbol, type:token_type, decimals:decimals}); 
+                this.CoinTypes_Mainnet = r;
+                break;
+        }; 
+    }
+    ExplorerUrl = (objectid: string, type:'object' | 'txblock' | 'account'='object') => {
+        if (this.network === ENTRYPOINT.testnet) {
+            return 'https://testnet.suivision.xyz/' + type + '/' + objectid;
+        } else if (this.network === ENTRYPOINT.mainnet) {
+            return 'https://suivision.xyz/' + type + '/' + objectid;
+        }; return ''
+    }
+
+    CoinTypes_Testnet:CoinTypeInfo[] = [
+        {name:'SUI', type:'0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI', decimals:9},
+        {name:'SUI', type:'0x2::sui::SUI', decimals:9},
+        {name:'WOW', type:TESTNET.package + '::wowok::WOWOK', decimals:9},
+        {name:'USDT', type:'0xc060006111016b8a020ad5b33834984a437aaa7d3c74c18e09a95d48aceab08c::coin::COIN', decimals:6},
+        {name:'USDC', type:'0x5d4b302506645c37ff133b98c4b50a5ae14841659738d6d733d59d0d217a93bf::coin::COIN', decimals:6},              
+        {name:'WETH', type:'0xaf8cd5edc19c4512f4259f0bee101a40d41ebed738ade5874359610ef8eeced5::coin::COIN', decimals:8},
+        {name:'WBNB', type:'0xb848cce11ef3a8f62eccea6eb5b35a12c4c2b1ee1af7755d02d7bd6218e8226f::coin::COIN', decimals:8},
+    ];
+
+    CoinTypes_Mainnet:CoinTypeInfo[] = [
+    ];
+
+    GetDecimals = (token_type: string, handler:(token_type:string, decimals:number, symbol:string)=>void) : number => {
+        let r = this.COINS_TYPE().find((v) => v?.type === token_type);
+        if (!r) {
+            Protocol.Client().getCoinMetadata({coinType:token_type}).then((res) => {
+                if (res?.decimals && res?.symbol) {
+                    this.Update_CoinType(token_type, res?.decimals, res?.symbol); 
+                    handler(token_type, res.decimals, res.symbol);
+                }
+            }).catch((e) => {
+                console.log(e);
+            })
+        } else {
+            return r.decimals;
+        }; return -1;
     }
 
     static CLOCK_OBJECT = Inputs.SharedObjectRef({
@@ -321,6 +381,7 @@ export class Protocol {
     WOWOK_OBJECTS_PREFIX_TYPE = () => (Object.keys(MODULES) as Array<keyof typeof MODULES>).map((key) => 
         { return this.package + '::' + key + '::'; })
     object_name_from_type_repr = (type_repr:string) : string => {
+        if (!type_repr) return ''
         let i = type_repr.indexOf('::');
         if (i > 0 && type_repr.slice(0, i) === this.package) {
             i = type_repr.indexOf('<');

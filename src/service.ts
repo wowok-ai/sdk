@@ -320,7 +320,7 @@ export class Service {
                 target:this.protocol.ServiceFn('repository_add') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, repository), Protocol.TXB_OBJECT(txb, this.permission)],
                 typeArguments:[this.pay_token_type]
-            })
+            })  
         }
     }
     repository_remove(repository_address?:string[], removeall?:boolean, passport?:PassportObject) {
@@ -1033,7 +1033,7 @@ export class Service {
     static MAX_GUARD_COUNT = 16;
     static MAX_REPOSITORY_COUNT = 16;
     
-    static parseTypeFromServiceType = (chain_type:string) : {token_type:string, token:string} =>  {
+    static parseObjectType = (chain_type:string | undefined | null) : {token_type:string, token:string} =>  {
         if (chain_type) {
             const s = 'service::Service<'
             const i = chain_type.indexOf(s);
@@ -1052,4 +1052,5 @@ export class Service {
             return service_endpoint + '/sales/' + encodeURI(item_name);
         }
     }
+
 }

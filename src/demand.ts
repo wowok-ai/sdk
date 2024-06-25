@@ -28,7 +28,7 @@ export class Demand {
         this.object = '';
     }
     static New(protocol:Protocol, bounty_type:string, permission:PermissionObject, description:string, 
-        bounty:TransactionResult, passport?:PassportObject) : Demand {
+        bounty:TransactionResult | string, passport?:PassportObject) : Demand {
         if (!Protocol.IsValidObjects([permission, bounty])) {
             ERROR(Errors.IsValidObjects, 'permission, bounty');
         }
@@ -44,13 +44,13 @@ export class Demand {
         if (passport) {
             d.object = txb.moveCall({
                 target:protocol.DemandFn('new_with_passport') as FnCallType,
-                arguments:[passport, txb.pure(description), bounty, Protocol.TXB_OBJECT(txb, permission)],
+                arguments:[passport, txb.pure(description), txb.object(bounty), Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments:[bounty_type],
             })        
         } else {
             d.object = txb.moveCall({
                 target:protocol.DemandFn('new') as FnCallType,
-                arguments:[txb.pure(description), bounty, Protocol.TXB_OBJECT(txb, permission)],
+                arguments:[txb.pure(description), txb.object(bounty), Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments:[bounty_type],
             })        
         }
@@ -92,23 +92,26 @@ export class Demand {
         }
     }
     
-    expand_time(minutes_duration:number, passport?:PassportObject) {
-        if (!IsValidUint(minutes_duration)) {
-            ERROR(Errors.IsValidUint, 'minutes_duration');
+    // minutes_duration TRUE , time is minutes count; otherwise, the deadline time
+    expand_time(minutes_duration:boolean, time: number, passport?:PassportObject) {
+        if (!IsValidUint(time)) {
+            ERROR(Errors.IsValidUint, 'time');
         }
 
         let txb = this.protocol.CurrentSession();
         if (passport) {
             txb.moveCall({
                 target:this.protocol.DemandFn('time_expand_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(minutes_duration, BCS.U64), 
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(minutes_duration, BCS.BOOL),
+                    txb.pure(time, BCS.U64), 
                     txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, this.permission)],
                 typeArguments:[this.bounty_type],
             })  
         } else {
             txb.moveCall({
                 target:this.protocol.DemandFn('time_expand') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(minutes_duration, BCS.U64), 
+                arguments:[Protocol.TXB_OBJECT(txb, this.object),  txb.pure(minutes_duration, BCS.BOOL),
+                    txb.pure(time, BCS.U64), 
                     txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, this.permission)],
                 typeArguments:[this.bounty_type],
             })          
@@ -254,6 +257,17 @@ export class Demand {
             typeArguments:[this.bounty_type]            
         })    
         this.permission = new_permission
+    }
+    static parseObjectType = (chain_type:string) : string =>  {
+        if (chain_type) {
+            const s = 'demand::Demand<'
+            const i = chain_type.indexOf(s);
+            if (i > 0) {
+                let r = chain_type.slice(i + s.length, chain_type.length-1);
+                return r
+            }
+        }
+        return '';
     }
 
     static MAX_BOUNTY_COUNT = 200;
