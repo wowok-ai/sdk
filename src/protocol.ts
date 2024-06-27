@@ -156,9 +156,9 @@ export enum ENTRYPOINT {
 }
 
 const TESTNET = {
-    package: "0xd8fe70dde4283c04a0dfe985afa6f1c7ec8c7a950c395c14a2b2cc22dfd78f19",
-    wowok_object: '0xab78a086c1f824402bd55435ad549e82dd0adb2dc0e77893e655e8fcf844dafb',
-    entity_object: '0x8d1f57dc4a6ebfc8f6a454e91c2cde5d80441623929d0ccc437e0ac900ac986e',
+    package: "0x4695df6bbc45341440a7d62d34c07ab737ddc31e71b87f9c693943768f03ceed",
+    wowok_object: '0x1e1c31feb9689206cf0f6e7372545c4c85b3be5724a6c14afc517a77f4453fe6',
+    entity_object: '0xb4c0fe4ecd325d009ac6db1cd1580e5353a768ee7242805ea0f969b8d025bb23',
 }
 
 const MAINNET = {
@@ -168,7 +168,7 @@ const MAINNET = {
 }
 
 export interface CoinTypeInfo {
-    name: string;
+    symbol: string;
     type: string;
     decimals: number;
 }
@@ -311,12 +311,12 @@ export class Protocol {
         switch(this.network) {
             case ENTRYPOINT.testnet:
                 var r = this.CoinTypes_Testnet.filter((v) => v?.type !== token_type);
-                r.push({name:symbol, type:token_type, decimals:decimals}); 
+                r.push({symbol:symbol, type:token_type, decimals:decimals}); 
                 this.CoinTypes_Testnet = r;
                 break;
             case ENTRYPOINT.mainnet:
                 var r = this.CoinTypes_Mainnet.filter((v) => v?.type !== token_type);
-                r.push({name:symbol, type:token_type, decimals:decimals}); 
+                r.push({symbol:symbol, type:token_type, decimals:decimals}); 
                 this.CoinTypes_Mainnet = r;
                 break;
         }; 
@@ -330,32 +330,32 @@ export class Protocol {
     }
 
     CoinTypes_Testnet:CoinTypeInfo[] = [
-        {name:'SUI', type:'0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI', decimals:9},
-        {name:'SUI', type:'0x2::sui::SUI', decimals:9},
-        {name:'WOW', type:TESTNET.package + '::wowok::WOWOK', decimals:9},
-        {name:'USDT', type:'0xc060006111016b8a020ad5b33834984a437aaa7d3c74c18e09a95d48aceab08c::coin::COIN', decimals:6},
-        {name:'USDC', type:'0x5d4b302506645c37ff133b98c4b50a5ae14841659738d6d733d59d0d217a93bf::coin::COIN', decimals:6},              
-        {name:'WETH', type:'0xaf8cd5edc19c4512f4259f0bee101a40d41ebed738ade5874359610ef8eeced5::coin::COIN', decimals:8},
-        {name:'WBNB', type:'0xb848cce11ef3a8f62eccea6eb5b35a12c4c2b1ee1af7755d02d7bd6218e8226f::coin::COIN', decimals:8},
+        {symbol:'SUI', type:'0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI', decimals:9},
+        {symbol:'SUI', type:'0x2::sui::SUI', decimals:9},
+        {symbol:'WOW', type:TESTNET.package + '::wowok::WOWOK', decimals:9},
+        {symbol:'USDT', type:'0xc060006111016b8a020ad5b33834984a437aaa7d3c74c18e09a95d48aceab08c::coin::COIN', decimals:6},
+        {symbol:'USDC', type:'0x5d4b302506645c37ff133b98c4b50a5ae14841659738d6d733d59d0d217a93bf::coin::COIN', decimals:6},              
+        {symbol:'WETH', type:'0xaf8cd5edc19c4512f4259f0bee101a40d41ebed738ade5874359610ef8eeced5::coin::COIN', decimals:8},
+        {symbol:'WBNB', type:'0xb848cce11ef3a8f62eccea6eb5b35a12c4c2b1ee1af7755d02d7bd6218e8226f::coin::COIN', decimals:8},
     ];
 
     CoinTypes_Mainnet:CoinTypeInfo[] = [
     ];
 
-    GetDecimals = (token_type: string, handler:(token_type:string, decimals:number, symbol:string)=>void) : number => {
+    GetCoinTypeInfo = (token_type: string, handler:(info:CoinTypeInfo)=>void) : CoinTypeInfo | 'loading' => {
         let r = this.COINS_TYPE().find((v) => v?.type === token_type);
         if (!r) {
             Protocol.Client().getCoinMetadata({coinType:token_type}).then((res) => {
                 if (res?.decimals && res?.symbol) {
                     this.Update_CoinType(token_type, res?.decimals, res?.symbol); 
-                    handler(token_type, res.decimals, res.symbol);
+                    handler({symbol:res.symbol, decimals:res.decimals, type:token_type});
                 }
             }).catch((e) => {
                 console.log(e);
             })
         } else {
-            return r.decimals;
-        }; return -1;
+            return r;
+        }; return 'loading';
     }
 
     static CLOCK_OBJECT = Inputs.SharedObjectRef({

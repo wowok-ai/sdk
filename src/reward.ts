@@ -278,7 +278,8 @@ export class Reward {
         }
         ;
     }
-    deposit(rewards:CoinReward[])  {
+    deposit(rewards:TransactionResult[])  {
+        console.log(rewards)
         if (!rewards || !Protocol.IsValidObjects(rewards)) {
             ERROR(Errors.IsValidArray)
         }
@@ -289,6 +290,22 @@ export class Reward {
             arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.makeMoveVec({objects:array_unique(rewards)})], //@
             typeArguments:[this.earnest_type]
         })
+    }
+    pause(bPause: boolean, passport?:PassportObject) {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.RewardFn('pause_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(bPause, BCS.BOOL)], //@
+                typeArguments:[this.earnest_type]
+            })      
+        } else {
+            txb.moveCall({
+                target:this.protocol.RewardFn('pause') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(bPause, BCS.BOOL)], //@
+                typeArguments:[this.earnest_type]
+            })            
+        }
     }
 
     change_permission(new_permission:PermissionObject) {
@@ -304,6 +321,16 @@ export class Reward {
         })    
         this.permission = new_permission
     }
-
+    static parseObjectType = (chain_type:string) : string =>  {
+        if (chain_type) {
+            const s = 'reward::Reward<'
+            const i = chain_type.indexOf(s);
+            if (i > 0) {
+                let r = chain_type.slice(i + s.length, chain_type.length-1);
+                return r
+            }
+        }
+        return '';
+    }
     static MAX_PORTIONS_COUNT = 255;
 }

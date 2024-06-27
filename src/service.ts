@@ -1033,17 +1033,15 @@ export class Service {
     static MAX_GUARD_COUNT = 16;
     static MAX_REPOSITORY_COUNT = 16;
     
-    static parseObjectType = (chain_type:string | undefined | null) : {token_type:string, token:string} =>  {
+    static parseObjectType = (chain_type:string | undefined | null) : string =>  {
         if (chain_type) {
             const s = 'service::Service<'
             const i = chain_type.indexOf(s);
             if (i > 0) {
-                let r = chain_type.slice(i + s.length, chain_type.length-1);
-                let arr = r.split('::');
-                return {token_type:r, token:arr[2]}
+                return chain_type.slice(i + s.length, chain_type.length-1);
             }
         }
-        return {token_type:'', token:''};
+        return '';
     }
     static endpoint = (service_endpoint:string, item_endpoint:string, item_name:string) => {
         if (item_endpoint) {

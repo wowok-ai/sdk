@@ -354,6 +354,31 @@ export const IsValidArray = (arr: any[], validFunc:any) : boolean => {
     return bValid;
 }
 
+export const ResolveU64 = (value:bigint) : bigint => {
+    const max = BigInt(18446744073709551615);
+    if (value > max) {
+        return max;
+    } else {
+        return value
+    }
+}
+
+export const ResolveBalance = (balance:string, decimals:number) : string => {
+    if (!balance) return ''
+    if (balance === '0') return '0'
+    if (decimals <= 0) return balance;
+    var pos = decimals - balance.length;
+    if (pos === 0) {
+       return '.' + balance;
+    } else if (pos < 0) {
+        let start = balance.slice(0, Math.abs(pos));
+        let end = balance.slice(Math.abs(pos));
+        return start + '.' + end;
+    } else {
+        return '.' + balance.padStart(pos, '0');
+    }
+}
+
 export const OptionNone = (txb:TransactionBlock) : TransactionArgument => { return txb.pure([], BCS.U8) };
 
 export type ArgType = {
