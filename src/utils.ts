@@ -1,10 +1,64 @@
-import { bcs, BCS, toHEX, fromHEX, getSuiMoveConfig, TypeName, StructTypeDefinition } from '@mysten/bcs';
+import { bcs, BCS, toHEX, fromHEX, getSuiMoveConfig, TypeName, BcsReader } from '@mysten/bcs';
 import { TransactionBlock, Inputs, TransactionResult, TransactionArgument } from '@mysten/sui.js/transactions';
 import { ERROR, Errors } from './exception';
 import { isValidSuiAddress, isValidSuiObjectId } from '@mysten/sui.js/utils'
-import { ValueType } from './protocol'
+import { RepositoryValueType, ValueType } from './protocol'
+
+export const MAX_U8 = BigInt('256');
+export const MAX_U64 = BigInt('18446744073709551615');
+export const MAX_U128 = BigInt('340282366920938463463374607431768211455');
+export const MAX_U256 = BigInt('115792089237316195423570985008687907853269984665640564039457584007913129639935');
 
 export const OPTION_NONE = 0;
+
+export const ValueTypeConvert = (type:ValueType | null | undefined) : RepositoryValueType | number => {
+    if (type === ValueType.TYPE_U8 || type === ValueType.TYPE_U64 || type === ValueType.TYPE_U128 || 
+        type === ValueType.TYPE_U256 || type === ValueType.TYPE_BOOL) {
+            return RepositoryValueType.PositiveNumber
+    } else if (type === ValueType.TYPE_VEC_U8 || type === ValueType.TYPE_VEC_U64 || type === ValueType.TYPE_VEC_U128 || 
+        type === ValueType.TYPE_VEC_U256|| type === ValueType.TYPE_VEC_BOOL) {
+            return RepositoryValueType.PositiveNumber_Vec
+    } else if (type === ValueType.TYPE_ADDRESS) {
+        return RepositoryValueType.Address
+    } else if (type === ValueType.TYPE_VEC_ADDRESS) {
+        return RepositoryValueType.Address_Vec
+    } else if (type === ValueType.TYPE_STRING) {
+        return RepositoryValueType.String
+    } else if (type === ValueType.TYPE_VEC_STRING) {
+        return RepositoryValueType.String_Vec
+    } 
+    return -1;
+}
+
+export const ResolveRepositoryData = (dataType:RepositoryValueType, data:Uint8Array) : {type:ValueType, data: Uint8Array} | undefined =>  {
+    if (dataType === RepositoryValueType.String) { 
+        return {type: ValueType.TYPE_STRING, data: Bcs.getInstance().ser(ValueType.TYPE_VEC_U8, new TextEncoder().encode(data.toString()))}
+   } else if (dataType === RepositoryValueType.PositiveNumber) {
+        try {
+            const value = BigInt(data.toString());
+            var t = ValueType.TYPE_U8;
+            if (value <= MAX_U8) {
+            } else if (value <= MAX_U64) {
+                t = ValueType.TYPE_U64;
+            } else if (value <= MAX_U128) {
+                t = ValueType.TYPE_U128;
+            } else if (value <= MAX_U256) {
+                t = ValueType.TYPE_U256;
+            } else {
+                return undefined
+            }
+        } catch (e) {
+            console.log(e)
+            return undefined
+        }
+        return {type:t, data:Bcs.getInstance().ser(t, data)}
+   } else if (dataType === RepositoryValueType.Address) {
+        return {type:ValueType.TYPE_ADDRESS, data:Bcs.getInstance().ser(ValueType.TYPE_ADDRESS, data)}
+   } 
+   //@ todo vector....
+   return undefined
+}
+
 export const readOption = (arr: number[], de:ValueType) : {bNone:boolean, value:any}=> {
     let o = arr.splice(0, 1);
     if (o[0] == 1) { // true
@@ -133,6 +187,20 @@ export class Bcs {
             'none': null,
             'some': 'T',
         });
+        this.bcs.registerStructType('EntStruct', {
+            'avatar': 'vector<u8>',
+            'resource': "Option<address>",
+            'like': BCS.U32,
+            'dislike': BCS.U32,
+        })
+        this.bcs.registerStructType('PersonalInfo', {
+            'name': 'vector<u8>',
+            'description': 'vector<u8>',
+            'avatar': BCS.STRING,
+            'twitter': BCS.STRING,
+            'discord': BCS.STRING,
+            'homepage': BCS.STRING,
+        })
     }
     static getInstance() : Bcs { 
         if (!Bcs._instance) {
@@ -140,6 +208,7 @@ export class Bcs {
         };
         return Bcs._instance;
      }
+
     ser(type:ValueType, data:Uint8Array | any) : Uint8Array {
         switch(type) {
             case ValueType.TYPE_BOOL:
@@ -201,6 +270,7 @@ export class Bcs {
             case ValueType.TYPE_U64:
                 return this.bcs.de(BCS.U64, data);
             case ValueType.TYPE_U8:
+                console.log(data)
                 return this.bcs.de(BCS.U8, data);
             case ValueType.TYPE_VEC_U8:
                 return this.bcs.de('vector<u8>', data);
@@ -242,6 +312,30 @@ export class Bcs {
                 ERROR(Errors.bcsTypeInvalid, 'de');
         }
     }
+
+    de_ent(data:Uint8Array) : any {
+        const struct_vec = this.bcs.de('vector<u8>', data);
+        return this.bcs.de('EntStruct', Uint8Array.from(struct_vec));
+/*        const reader = new BcsReader(data);
+        const total_len = reader.readULEB();
+        console.log(avatar_len)
+        const avatar = reader.readBytes(avatar_len);
+        console.log(avatar)
+        const option_resource = reader.read8();
+        var resource = '';
+        if (option_resource != 0) {
+            resource = reader.read256();
+        }
+        const like = reader.read32();
+        const dislike = reader.read32();
+        return {avatar:avatar, resource:resource, like:like, dislike:dislike}*/
+    }    
+    de_entInfo(data:Uint8Array) : any {
+        let r = this.bcs.de('PersonalInfo', data);
+        r.name = new TextDecoder().decode(Uint8Array.from(r.name));
+        r.description = new TextDecoder().decode(Uint8Array.from(r.description));
+        return r
+    }        
 }
 
 export function stringToUint8Array(str:string) : Uint8Array {
@@ -345,17 +439,16 @@ export const IsValidPercent = (value: number | string) : boolean => {
     return Number.isSafeInteger(value) && value > 0 && value <= 100 
 }
 export const IsValidArray = (arr: any[], validFunc:any) : boolean => {
-    let bValid = true;
-    arr.forEach((v) => {
-        if (!validFunc(v)) {
-            bValid = false; 
+    for (let i = 0; i < arr.length; ++i) {
+        if (!validFunc(arr[i])) {
+            return false
         }
-    })
-    return bValid;
+    }
+    return true
 }
 
 export const ResolveU64 = (value:bigint) : bigint => {
-    const max = BigInt(18446744073709551615);
+    const max = MAX_U64;
     if (value > max) {
         return max;
     } else {

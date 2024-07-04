@@ -4,12 +4,12 @@ export declare enum PermissionIndex {
     repository_set_description_set = 101,
     repository_set_policy_mode = 102,
     repository_add_policies = 103,
-    repository_remove_policies = 104,
+    repository_remove_policies = 103,
     repository_set_policy_description = 105,
     repository_set_policy_permission = 106,
     repository_reference_add = 107,
-    repository_reference_remove = 108,
-    repository_reference_removeall = 108,
+    repository_reference_remove = 107,
+    repository_reference_removeall = 107,
     vote = 150,
     vote_set_description = 151,
     vote_set_reference = 152,
@@ -33,11 +33,11 @@ export declare enum PermissionIndex {
     service_repository_add = 206,
     service_repository_remove = 207,
     service_add_withdraw_guards = 208,
-    service_remove_withdraw_guards = 209,
-    service_removeall_withdraw_guards = 209,
+    service_remove_withdraw_guards = 208,
+    service_removeall_withdraw_guards = 208,
     service_add_refund_guards = 210,
-    service_remove_refund_guards = 211,
-    service_removeall_refund_guards = 211,
+    service_remove_refund_guards = 210,
+    service_removeall_refund_guards = 210,
     service_add_sales = 212,
     service_remove_sales = 213,
     service_discount_transfer = 214,
@@ -56,7 +56,7 @@ export declare enum PermissionIndex {
     reward_refund = 241,
     reward_expand_time = 242,
     reward_add_guard = 243,
-    reward_remove_guard = 244,
+    reward_remove_guard = 243,
     reward_set_description = 245,
     reward_lock_guards = 246,
     demand = 260,
@@ -112,6 +112,7 @@ export declare class Permission {
     add_userdefine(index: number, name: string): void;
     remove_userdefine(index: number): void;
     change_entity(old_entity: string, new_entity: string): void;
+    add_entity2(entities: string[], index?: PermissionIndexType): void;
     add_entity(entities: Permission_Entity[]): void;
     set_guard(entity_address: string, index: PermissionIndexType, guard?: GuardObject): void;
     remove_index(entity_address: string, index: PermissionIndexType[]): void;
@@ -123,6 +124,7 @@ export declare class Permission {
     static MAX_ADMIN_COUNT: number;
     static MAX_ENTITY_COUNT: number;
     static MAX_PERMISSION_INDEX_COUNT: number;
+    static MAX_PERSONAL_PERMISSION_COUNT: number;
     static IsValidUserDefinedIndex: (index: number) => boolean;
     static IsValidPermissionIndex: (index: PermissionIndexType) => boolean;
 }

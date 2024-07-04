@@ -247,7 +247,7 @@ export class Machine {
             } else {
                 txb.moveCall({
                     target:this.protocol.MachineFn('repository_remove_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb,  this.object), txb.pure(repositories, 'vector<address>'),
+                    arguments:[passport, Protocol.TXB_OBJECT(txb,  this.object), txb.pure(array_unique(repositories), 'vector<address>'),
                         Protocol.TXB_OBJECT(txb, this.permission)],
                 })
             }   
@@ -260,7 +260,7 @@ export class Machine {
             } else {
                 txb.moveCall({
                     target:this.protocol.MachineFn('repository_remove') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb,  this.object), txb.pure(repositories, 'vector<address>'), 
+                    arguments:[Protocol.TXB_OBJECT(txb,  this.object), txb.pure(array_unique(repositories), 'vector<address>'), 
                         Protocol.TXB_OBJECT(txb, this.permission)],
                 })
             }   

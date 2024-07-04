@@ -64,6 +64,48 @@ export var ValueType;
     ValueType[ValueType["TYPE_VEC_STRING"] = 121] = "TYPE_VEC_STRING";
     ValueType[ValueType["TYPE_U256"] = 122] = "TYPE_U256";
 })(ValueType || (ValueType = {}));
+export var RepositoryValueType;
+(function (RepositoryValueType) {
+    RepositoryValueType[RepositoryValueType["Address"] = 200] = "Address";
+    RepositoryValueType[RepositoryValueType["Address_Vec"] = 201] = "Address_Vec";
+    RepositoryValueType[RepositoryValueType["PositiveNumber"] = 202] = "PositiveNumber";
+    RepositoryValueType[RepositoryValueType["PositiveNumber_Vec"] = 203] = "PositiveNumber_Vec";
+    RepositoryValueType[RepositoryValueType["String"] = 204] = "String";
+    RepositoryValueType[RepositoryValueType["String_Vec"] = 205] = "String_Vec";
+})(RepositoryValueType || (RepositoryValueType = {}));
+export const RepositoryValueTypeInfo = [
+    { type: RepositoryValueType.Address, name: 'Address', description: 'Object id or Personal address.' },
+    { type: RepositoryValueType.Address_Vec, name: 'Address vector', description: 'Vector of address.' },
+    { type: RepositoryValueType.String, name: 'String', description: 'String.' },
+    { type: RepositoryValueType.String_Vec, name: 'String vector', description: 'Vector of string.' },
+    { type: RepositoryValueType.PositiveNumber, name: 'Positive number', description: 'Positive number. including u8, u16 ,..., u256' },
+    { type: RepositoryValueType.PositiveNumber_Vec, name: 'Positive number vector', description: 'Vector of positive number' },
+];
+export const ValueTypeInfo = [
+    { type: ValueType.TYPE_BOOL, name: 'bool' },
+    { type: ValueType.TYPE_ADDRESS, name: 'address' },
+    { type: ValueType.TYPE_U64, name: 'u64' },
+    { type: ValueType.TYPE_U8, name: 'u8' },
+    { type: ValueType.TYPE_VEC_U8, name: 'vec-u8' },
+    { type: ValueType.TYPE_U128, name: 'u128' },
+    { type: ValueType.TYPE_VEC_ADDRESS, name: 'vec-address' },
+    { type: ValueType.TYPE_VEC_BOOL, name: 'vec-bool' },
+    { type: ValueType.TYPE_VEC_VEC_U8, name: 'vec-vec-u8' },
+    { type: ValueType.TYPE_VEC_U64, name: 'vec-u64' },
+    { type: ValueType.TYPE_VEC_U128, name: 'vec-u128' },
+    { type: ValueType.TYPE_OPTION_ADDRESS, name: 'opt-address' },
+    { type: ValueType.TYPE_OPTION_BOOL, name: 'opt-bool' },
+    { type: ValueType.TYPE_OPTION_U8, name: 'opt-u8' },
+    { type: ValueType.TYPE_OPTION_U64, name: 'opt-u64' },
+    { type: ValueType.TYPE_OPTION_U128, name: 'opt-u128' },
+    { type: ValueType.TYPE_OPTION_U256, name: 'opt-u256' },
+    { type: ValueType.TYPE_OPTION_STRING, name: 'opt-string' },
+    { type: ValueType.TYPE_OPTION_VEC_U8, name: 'opt-vec-u8' },
+    { type: ValueType.TYPE_VEC_U256, name: 'vec-u256' },
+    { type: ValueType.TYPE_STRING, name: 'string' },
+    { type: ValueType.TYPE_VEC_STRING, name: 'vec-string' },
+    { type: ValueType.TYPE_U256, name: 'u256' },
+];
 export const OperatorTypeArray = Object.values(OperatorType).filter((v) => typeof (v) === 'number');
 export const ValueTypeArray = Object.values(ValueType).filter((v) => typeof (v) === 'number');
 export const IsValidOperatorType = (type) => { return OperatorTypeArray.includes(type); };
@@ -106,6 +148,16 @@ export var ENTRYPOINT;
     ENTRYPOINT["devnet"] = "devnet";
     ENTRYPOINT["localnet"] = "localnet";
 })(ENTRYPOINT || (ENTRYPOINT = {}));
+const TESTNET = {
+    package: "0x852fa17575b1ae11932b475110bf46981458fdb67a2f07b922022e1516560fad",
+    wowok_object: '0xf98cc6d8bd9feadc5dce7365270b4ffb32f69a5320ab739193d301103e686e8c',
+    entity_object: '0xe0469c187499273ec39a575cc28d4d93f0a66b11e1b92028c61bc69bfc1167c6',
+};
+const MAINNET = {
+    package: "",
+    wowok_object: '',
+    entity_object: '',
+};
 export class Protocol {
     network = '';
     package = '';
@@ -126,6 +178,9 @@ export class Protocol {
         ;
         return Protocol._instance;
     }
+    static Client() {
+        return new SuiClient({ url: Protocol.Instance().NetworkUrl() });
+    }
     UseNetwork(network = ENTRYPOINT.testnet) {
         this.network = network;
         switch (network) {
@@ -134,12 +189,16 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = "0x5052bdc17ccc55d8a932bd3135a0359a84cbceabf4419eea0b29eff3f447fc45";
-                this.wowok_object = '0x9df9472d99d721bd3d9cc00cfd183ba7e892f2ec969e88cefab5cae57c599d3f';
-                this.entity_object = '0x981df44bc839de4c120bf018487b4ef65f3e2aaabef8790045816f2353a29ed5';
+                this.package = TESTNET.package;
+                this.wowok_object = TESTNET.wowok_object;
+                this.entity_object = TESTNET.entity_object;
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
             case ENTRYPOINT.mainnet:
+                this.package = MAINNET.package;
+                this.wowok_object = MAINNET.wowok_object;
+                this.entity_object = MAINNET.entity_object;
+                this.graphql = 'https://sui-mainnet.mystenlabs.com/graphql';
                 break;
         }
         ;
@@ -222,22 +281,67 @@ export class Protocol {
     COINS_TYPE = () => {
         switch (this.network) {
             case ENTRYPOINT.testnet:
-            /*return [
-                {name:'SUI', type:'0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI', decimals:9},
-                {name:'WOW', type:this.WOWOK_TOKEN_TYPE(), decimals:9},
-            ];*/
+                return this.CoinTypes_Testnet;
             case ENTRYPOINT.mainnet:
-                return [
-                    { name: 'SUI', type: '0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI', decimals: 9 },
-                    { name: 'WOW', type: this.WOWOK_TOKEN_TYPE(), decimals: 9 },
-                    { name: 'USDT', type: '0xc060006111016b8a020ad5b33834984a437aaa7d3c74c18e09a95d48aceab08c::coin::COIN', decimals: 6 },
-                    { name: 'USDC', type: '0x5d4b302506645c37ff133b98c4b50a5ae14841659738d6d733d59d0d217a93bf::coin::COIN', decimals: 6 },
-                    { name: 'WETH', type: '0xaf8cd5edc19c4512f4259f0bee101a40d41ebed738ade5874359610ef8eeced5::coin::COIN', decimals: 8 },
-                    { name: 'WBNB', type: '0xb848cce11ef3a8f62eccea6eb5b35a12c4c2b1ee1af7755d02d7bd6218e8226f::coin::COIN', decimals: 8 },
-                ];
+                return this.CoinTypes_Mainnet;
         }
         ;
         return [];
+    };
+    Update_CoinType = (token_type, decimals, symbol) => {
+        if (!symbol || !token_type)
+            return;
+        switch (this.network) {
+            case ENTRYPOINT.testnet:
+                var r = this.CoinTypes_Testnet.filter((v) => v?.type !== token_type);
+                r.push({ symbol: symbol, type: token_type, decimals: decimals });
+                this.CoinTypes_Testnet = r;
+                break;
+            case ENTRYPOINT.mainnet:
+                var r = this.CoinTypes_Mainnet.filter((v) => v?.type !== token_type);
+                r.push({ symbol: symbol, type: token_type, decimals: decimals });
+                this.CoinTypes_Mainnet = r;
+                break;
+        }
+        ;
+    };
+    ExplorerUrl = (objectid, type = 'object') => {
+        if (this.network === ENTRYPOINT.testnet) {
+            return 'https://testnet.suivision.xyz/' + type + '/' + objectid;
+        }
+        else if (this.network === ENTRYPOINT.mainnet) {
+            return 'https://suivision.xyz/' + type + '/' + objectid;
+        }
+        ;
+        return '';
+    };
+    CoinTypes_Testnet = [
+        { symbol: 'SUI', type: '0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI', decimals: 9 },
+        { symbol: 'SUI', type: '0x2::sui::SUI', decimals: 9 },
+        { symbol: 'WOW', type: TESTNET.package + '::wowok::WOWOK', decimals: 9 },
+        { symbol: 'USDT', type: '0xc060006111016b8a020ad5b33834984a437aaa7d3c74c18e09a95d48aceab08c::coin::COIN', decimals: 6 },
+        { symbol: 'USDC', type: '0x5d4b302506645c37ff133b98c4b50a5ae14841659738d6d733d59d0d217a93bf::coin::COIN', decimals: 6 },
+        { symbol: 'WETH', type: '0xaf8cd5edc19c4512f4259f0bee101a40d41ebed738ade5874359610ef8eeced5::coin::COIN', decimals: 8 },
+        { symbol: 'WBNB', type: '0xb848cce11ef3a8f62eccea6eb5b35a12c4c2b1ee1af7755d02d7bd6218e8226f::coin::COIN', decimals: 8 },
+    ];
+    CoinTypes_Mainnet = [];
+    GetCoinTypeInfo = (token_type, handler) => {
+        let r = this.COINS_TYPE().find((v) => v?.type === token_type);
+        if (!r) {
+            Protocol.Client().getCoinMetadata({ coinType: token_type }).then((res) => {
+                if (res?.decimals && res?.symbol) {
+                    this.Update_CoinType(token_type, res?.decimals, res?.symbol);
+                    handler({ symbol: res.symbol, decimals: res.decimals, type: token_type });
+                }
+            }).catch((e) => {
+                console.log(e);
+            });
+        }
+        else {
+            return r;
+        }
+        ;
+        return 'loading';
     };
     static CLOCK_OBJECT = Inputs.SharedObjectRef({
         objectId: "0x6",
@@ -262,6 +366,8 @@ export class Protocol {
     WOWOK_OBJECTS_TYPE = () => Object.keys(MODULES).map((key) => { let i = this.package + '::' + key + '::'; return i + capitalize(key); });
     WOWOK_OBJECTS_PREFIX_TYPE = () => Object.keys(MODULES).map((key) => { return this.package + '::' + key + '::'; });
     object_name_from_type_repr = (type_repr) => {
+        if (!type_repr)
+            return '';
         let i = type_repr.indexOf('::');
         if (i > 0 && type_repr.slice(0, i) === this.package) {
             i = type_repr.indexOf('<');
@@ -283,6 +389,7 @@ export class RpcResultParser {
         return names;
     };
     static objectids_from_response = (protocol, response, concat_result) => {
+        // console.log(response)
         let ret = new Map();
         if (response?.objectChanges) {
             response.objectChanges.forEach((change) => {

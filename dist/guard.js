@@ -169,7 +169,7 @@ export class Guard {
         [MODULES.reward, 'sponsor', 162, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
         [MODULES.reward, 'sponsor_count', 163, [], ValueType.TYPE_U64],
         [MODULES.reward, 'bAllowRepeatClaim', 164, [], ValueType.TYPE_BOOL],
-        [MODULES.reward, 'claimed_potions_count', 165, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
+        [MODULES.reward, 'claimed_portions_count', 165, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
         [MODULES.vote, 'permission', 171, [], ValueType.TYPE_ADDRESS],
         [MODULES.vote, 'bOptions_locked_for_voting', 172, [], ValueType.TYPE_BOOL],
         [MODULES.vote, 'bdeadline_locked', 173, [], ValueType.TYPE_BOOL],

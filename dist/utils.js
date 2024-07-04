@@ -1,8 +1,70 @@
 import { BCS, getSuiMoveConfig } from '@mysten/bcs';
 import { ERROR, Errors } from './exception';
 import { isValidSuiAddress } from '@mysten/sui.js/utils';
-import { ValueType } from './protocol';
+import { RepositoryValueType, ValueType } from './protocol';
+export const MAX_U8 = BigInt('256');
+export const MAX_U64 = BigInt('18446744073709551615');
+export const MAX_U128 = BigInt('340282366920938463463374607431768211455');
+export const MAX_U256 = BigInt('115792089237316195423570985008687907853269984665640564039457584007913129639935');
 export const OPTION_NONE = 0;
+export const ValueTypeConvert = (type) => {
+    if (type === ValueType.TYPE_U8 || type === ValueType.TYPE_U64 || type === ValueType.TYPE_U128 ||
+        type === ValueType.TYPE_U256 || type === ValueType.TYPE_BOOL) {
+        return RepositoryValueType.PositiveNumber;
+    }
+    else if (type === ValueType.TYPE_VEC_U8 || type === ValueType.TYPE_VEC_U64 || type === ValueType.TYPE_VEC_U128 ||
+        type === ValueType.TYPE_VEC_U256 || type === ValueType.TYPE_VEC_BOOL) {
+        return RepositoryValueType.PositiveNumber_Vec;
+    }
+    else if (type === ValueType.TYPE_ADDRESS) {
+        return RepositoryValueType.Address;
+    }
+    else if (type === ValueType.TYPE_VEC_ADDRESS) {
+        return RepositoryValueType.Address_Vec;
+    }
+    else if (type === ValueType.TYPE_STRING) {
+        return RepositoryValueType.String;
+    }
+    else if (type === ValueType.TYPE_VEC_STRING) {
+        return RepositoryValueType.String_Vec;
+    }
+    return -1;
+};
+export const ResolveRepositoryData = (dataType, data) => {
+    if (dataType === RepositoryValueType.String) {
+        return { type: ValueType.TYPE_STRING, data: Bcs.getInstance().ser(ValueType.TYPE_VEC_U8, new TextEncoder().encode(data.toString())) };
+    }
+    else if (dataType === RepositoryValueType.PositiveNumber) {
+        try {
+            const value = BigInt(data.toString());
+            var t = ValueType.TYPE_U8;
+            if (value <= MAX_U8) {
+            }
+            else if (value <= MAX_U64) {
+                t = ValueType.TYPE_U64;
+            }
+            else if (value <= MAX_U128) {
+                t = ValueType.TYPE_U128;
+            }
+            else if (value <= MAX_U256) {
+                t = ValueType.TYPE_U256;
+            }
+            else {
+                return undefined;
+            }
+        }
+        catch (e) {
+            console.log(e);
+            return undefined;
+        }
+        return { type: t, data: Bcs.getInstance().ser(t, data) };
+    }
+    else if (dataType === RepositoryValueType.Address) {
+        return { type: ValueType.TYPE_ADDRESS, data: Bcs.getInstance().ser(ValueType.TYPE_ADDRESS, data) };
+    }
+    //@ todo vector....
+    return undefined;
+};
 export const readOption = (arr, de) => {
     let o = arr.splice(0, 1);
     if (o[0] == 1) { // true
@@ -122,6 +184,20 @@ export class Bcs {
             'none': null,
             'some': 'T',
         });
+        this.bcs.registerStructType('EntStruct', {
+            'avatar': 'vector<u8>',
+            'resource': "Option<address>",
+            'like': BCS.U32,
+            'dislike': BCS.U32,
+        });
+        this.bcs.registerStructType('PersonalInfo', {
+            'name': 'vector<u8>',
+            'description': 'vector<u8>',
+            'avatar': BCS.STRING,
+            'twitter': BCS.STRING,
+            'discord': BCS.STRING,
+            'homepage': BCS.STRING,
+        });
     }
     static getInstance() {
         if (!Bcs._instance) {
@@ -190,6 +266,7 @@ export class Bcs {
             case ValueType.TYPE_U64:
                 return this.bcs.de(BCS.U64, data);
             case ValueType.TYPE_U8:
+                console.log(data);
                 return this.bcs.de(BCS.U8, data);
             case ValueType.TYPE_VEC_U8:
                 return this.bcs.de('vector<u8>', data);
@@ -230,6 +307,29 @@ export class Bcs {
             default:
                 ERROR(Errors.bcsTypeInvalid, 'de');
         }
+    }
+    de_ent(data) {
+        const struct_vec = this.bcs.de('vector<u8>', data);
+        return this.bcs.de('EntStruct', Uint8Array.from(struct_vec));
+        /*        const reader = new BcsReader(data);
+                const total_len = reader.readULEB();
+                console.log(avatar_len)
+                const avatar = reader.readBytes(avatar_len);
+                console.log(avatar)
+                const option_resource = reader.read8();
+                var resource = '';
+                if (option_resource != 0) {
+                    resource = reader.read256();
+                }
+                const like = reader.read32();
+                const dislike = reader.read32();
+                return {avatar:avatar, resource:resource, like:like, dislike:dislike}*/
+    }
+    de_entInfo(data) {
+        let r = this.bcs.de('PersonalInfo', data);
+        r.name = new TextDecoder().decode(Uint8Array.from(r.name));
+        r.description = new TextDecoder().decode(Uint8Array.from(r.description));
+        return r;
     }
 }
 export function stringToUint8Array(str) {
@@ -328,20 +428,48 @@ export const IsValidPercent = (value) => {
     return Number.isSafeInteger(value) && value > 0 && value <= 100;
 };
 export const IsValidArray = (arr, validFunc) => {
-    let bValid = true;
-    arr.forEach((v) => {
-        if (!validFunc(v)) {
-            bValid = false;
+    for (let i = 0; i < arr.length; ++i) {
+        if (!validFunc(arr[i])) {
+            return false;
         }
-    });
-    return bValid;
+    }
+    return true;
+};
+export const ResolveU64 = (value) => {
+    const max = MAX_U64;
+    if (value > max) {
+        return max;
+    }
+    else {
+        return value;
+    }
+};
+export const ResolveBalance = (balance, decimals) => {
+    if (!balance)
+        return '';
+    if (balance === '0')
+        return '0';
+    if (decimals <= 0)
+        return balance;
+    var pos = decimals - balance.length;
+    if (pos === 0) {
+        return '.' + balance;
+    }
+    else if (pos < 0) {
+        let start = balance.slice(0, Math.abs(pos));
+        let end = balance.slice(Math.abs(pos));
+        return start + '.' + end;
+    }
+    else {
+        return '.' + balance.padStart(pos, '0');
+    }
 };
 export const OptionNone = (txb) => { return txb.pure([], BCS.U8); };
 export const ParseType = (type) => {
     if (type) {
-        const COIN = '0x0000000000000000000000000000000000000000000000000000000000000002::coin::Coin<';
+        const COIN = '0x2::coin::Coin<';
         let i = type.indexOf(COIN);
-        if (i > 0) {
+        if (i >= 0) {
             let coin = type.slice(i + COIN.length, type.length - 1);
             if (coin.indexOf('<') === -1) {
                 while (coin[coin.length - 1] == '>') {

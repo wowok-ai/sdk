@@ -95,10 +95,7 @@ export declare class Service {
     static MAX_DISCOUNT_RECEIVER_COUNT: number;
     static MAX_GUARD_COUNT: number;
     static MAX_REPOSITORY_COUNT: number;
-    static parseTypeFromServiceType: (chain_type: string) => {
-        token_type: string;
-        token: string;
-    };
+    static parseObjectType: (chain_type: string | undefined | null) => string;
     static endpoint: (service_endpoint: string, item_endpoint: string, item_name: string) => string | undefined;
 }
 //# sourceMappingURL=service.d.ts.map

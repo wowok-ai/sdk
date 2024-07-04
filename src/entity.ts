@@ -1,4 +1,4 @@
-import { BCS } from '@mysten/bcs';
+import { BCS, encodeStr, getSuiMoveConfig } from '@mysten/bcs';
 import { Protocol, FnCallType, TxbObject, ResourceAddress, PermissionObject, ResourceObject} from './protocol';
 import { IsValidDesription, IsValidAddress, IsValidName, isValidHttpUrl, Bcs,  } from './utils';
 import { ERROR, Errors } from './exception';
@@ -48,19 +48,26 @@ export class Entity {
         if (info?.homepage && !isValidHttpUrl(info.homepage)) ERROR(Errors.isValidHttpUrl, 'update:homepage');
         if (info?.discord && !IsValidName(info.discord)) ERROR(Errors.IsValidName, 'update:discord');
         
-        let txb = this.protocol.CurrentSession();
+        const txb = this.protocol.CurrentSession();
+        const bytes = Bcs.getInstance().bcs.ser('PersonalInfo', {
+            name:info.name ? new TextEncoder().encode(info.name) :'',
+            description : info?.description ? new TextEncoder().encode(info.description) :  '',
+            avatar : info?.avatar ?? '',
+            twitter : info?.twitter ?? '',
+            discord : info?.discord ?? '',
+            homepage : info?.homepage ?? '',
+        }).toBytes();    
         txb.moveCall({
             target:this.protocol.EntityFn('avatar_update') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(JSON.stringify(info), BCS.STRING)]
+            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure([].slice.call(bytes), 'vector<u8>')]
         })
     }
 
-    create_resource(description:string) : ResourceAddress {
-        if (!IsValidDesription(description)) ERROR(Errors.IsValidDesription, 'create_resource');
+    create_resource() : ResourceAddress {
         let txb = this.protocol.CurrentSession();
         return txb.moveCall({
             target:this.protocol.EntityFn('resource_create') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(description, BCS.STRING)]
+            arguments:[Protocol.TXB_OBJECT(txb, this.object)]
         })
     }
 
@@ -78,6 +85,18 @@ export class Entity {
         return txb.moveCall({
             target:this.protocol.EntityFn('resource_transfer') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, resource.get_object()), txb.pure(new_address, BCS.ADDRESS)]
+        })   
+    }
+
+    query_ent(address_queried:string) {
+        if (!address_queried) {
+            ERROR(Errors.InvalidParam, 'query_ent');
+        }
+
+        const txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target:this.protocol.EntityFn('QueryEnt') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(address_queried, BCS.ADDRESS)]
         })   
     }
 }

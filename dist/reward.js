@@ -20,7 +20,7 @@ export class Reward {
         r.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object);
         return r;
     }
-    static New(protocol, earnest_type, permission, description, minutes_duration, passport) {
+    static New(protocol, earnest_type, permission, description, ms_expand, time, passport) {
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects, 'permission');
         }
@@ -30,15 +30,15 @@ export class Reward {
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription);
         }
-        if (!IsValidUint(minutes_duration)) {
-            ERROR(Errors.IsValidUint, 'minutes_duration');
+        if (!IsValidUint(time)) {
+            ERROR(Errors.IsValidUint, 'time');
         }
         let r = new Reward(protocol, earnest_type, permission);
         let txb = protocol.CurrentSession();
         if (passport) {
             r.object = txb.moveCall({
                 target: protocol.RewardFn('new_with_passport'),
-                arguments: [passport, txb.pure(description), txb.pure(minutes_duration, BCS.U64),
+                arguments: [passport, txb.pure(description), txb.pure(ms_expand, BCS.BOOL), txb.pure(time, BCS.U64),
                     txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments: [earnest_type]
             });
@@ -46,7 +46,7 @@ export class Reward {
         else {
             r.object = txb.moveCall({
                 target: protocol.RewardFn('new'),
-                arguments: [txb.pure(description), txb.pure(minutes_duration, BCS.U64),
+                arguments: [txb.pure(description), txb.pure(ms_expand, BCS.BOOL), txb.pure(time, BCS.U64),
                     txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments: [earnest_type]
             });
@@ -85,22 +85,24 @@ export class Reward {
             });
         }
     }
-    expand_time(minutes_expand, passport) {
-        if (!IsValidUint(minutes_expand)) {
+    expand_time(ms_expand, time, passport) {
+        if (!IsValidUint(time)) {
             ERROR(Errors.IsValidUint, 'minutes_expand');
         }
         let txb = this.protocol.CurrentSession();
         if (passport) {
             txb.moveCall({
                 target: this.protocol.RewardFn('time_expand_with_passport'),
-                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(minutes_expand, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)],
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(ms_expand, BCS.BOOL),
+                    txb.pure(time, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)],
                 typeArguments: [this.earnest_type]
             });
         }
         else {
             txb.moveCall({
                 target: this.protocol.RewardFn('time_expand'),
-                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(minutes_expand, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)],
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(ms_expand, BCS.BOOL),
+                    txb.pure(time, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)],
                 typeArguments: [this.earnest_type]
             });
         }
@@ -256,6 +258,7 @@ export class Reward {
         ;
     }
     deposit(rewards) {
+        console.log(rewards);
         if (!rewards || !Protocol.IsValidObjects(rewards)) {
             ERROR(Errors.IsValidArray);
         }
@@ -266,17 +269,47 @@ export class Reward {
             typeArguments: [this.earnest_type]
         });
     }
+    allow_claim(bAllowClaim, passport) {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target: this.protocol.RewardFn('allow_claim_with_passport'),
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission),
+                    txb.pure(bAllowClaim, BCS.BOOL)],
+                typeArguments: [this.earnest_type]
+            });
+        }
+        else {
+            txb.moveCall({
+                target: this.protocol.RewardFn('allow_claim'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), txb.pure(bAllowClaim, BCS.BOOL)],
+                typeArguments: [this.earnest_type]
+            });
+        }
+    }
     change_permission(new_permission) {
         if (!Protocol.IsValidObjects([new_permission])) {
             ERROR(Errors.IsValidObjects);
         }
         let txb = this.protocol.CurrentSession();
         txb.moveCall({
-            target: this.protocol.RewardFn('this.permission_set'),
+            target: this.protocol.RewardFn('permission_set'),
             arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), Protocol.TXB_OBJECT(txb, new_permission)],
             typeArguments: [this.earnest_type]
         });
         this.permission = new_permission;
     }
+    static parseObjectType = (chain_type) => {
+        if (chain_type) {
+            const s = 'reward::Reward<';
+            const i = chain_type.indexOf(s);
+            if (i > 0) {
+                let r = chain_type.slice(i + s.length, chain_type.length - 1);
+                return r;
+            }
+        }
+        return '';
+    };
     static MAX_PORTIONS_COUNT = 255;
+    static MAX_GUARD_COUNT = 16;
 }

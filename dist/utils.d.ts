@@ -1,7 +1,16 @@
 import { BCS } from '@mysten/bcs';
 import { TransactionBlock, TransactionArgument } from '@mysten/sui.js/transactions';
-import { ValueType } from './protocol';
+import { RepositoryValueType, ValueType } from './protocol';
+export declare const MAX_U8: bigint;
+export declare const MAX_U64: bigint;
+export declare const MAX_U128: bigint;
+export declare const MAX_U256: bigint;
 export declare const OPTION_NONE = 0;
+export declare const ValueTypeConvert: (type: ValueType | null | undefined) => RepositoryValueType | number;
+export declare const ResolveRepositoryData: (dataType: RepositoryValueType, data: Uint8Array) => {
+    type: ValueType;
+    data: Uint8Array;
+} | undefined;
 export declare const readOption: (arr: number[], de: ValueType) => {
     bNone: boolean;
     value: any;
@@ -31,6 +40,8 @@ export declare class Bcs {
     static getInstance(): Bcs;
     ser(type: ValueType, data: Uint8Array | any): Uint8Array;
     de(type: ValueType, data: Uint8Array | any): any;
+    de_ent(data: Uint8Array): any;
+    de_entInfo(data: Uint8Array): any;
 }
 export declare function stringToUint8Array(str: string): Uint8Array;
 export declare function numToUint8Array(num: number): Uint8Array;
@@ -50,6 +61,8 @@ export declare const IsValidUint: (value: number | string) => boolean;
 export declare const IsValidInt: (value: number | string) => boolean;
 export declare const IsValidPercent: (value: number | string) => boolean;
 export declare const IsValidArray: (arr: any[], validFunc: any) => boolean;
+export declare const ResolveU64: (value: bigint) => bigint;
+export declare const ResolveBalance: (balance: string, decimals: number) => string;
 export declare const OptionNone: (txb: TransactionBlock) => TransactionArgument;
 export type ArgType = {
     isCoin: boolean;

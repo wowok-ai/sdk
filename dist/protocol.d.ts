@@ -1,4 +1,4 @@
-import { SuiObjectResponse, SuiObjectDataOptions, SuiTransactionBlockResponseOptions, SuiTransactionBlockResponse } from '@mysten/sui.js/client';
+import { SuiClient, SuiObjectResponse, SuiObjectDataOptions, SuiTransactionBlockResponseOptions, SuiTransactionBlockResponse } from '@mysten/sui.js/client';
 import { TransactionBlock, TransactionResult } from '@mysten/sui.js/transactions';
 import { GuardConstant } from './guard';
 export declare enum MODULES {
@@ -88,6 +88,23 @@ export declare enum ValueType {
     TYPE_VEC_STRING = 121,
     TYPE_U256 = 122
 }
+export declare enum RepositoryValueType {
+    Address = 200,
+    Address_Vec = 201,
+    PositiveNumber = 202,
+    PositiveNumber_Vec = 203,
+    String = 204,
+    String_Vec = 205
+}
+export declare const RepositoryValueTypeInfo: {
+    type: RepositoryValueType;
+    name: string;
+    description: string;
+}[];
+export declare const ValueTypeInfo: {
+    type: ValueType;
+    name: string;
+}[];
 export declare const OperatorTypeArray: number[];
 export declare const ValueTypeArray: number[];
 export declare const IsValidOperatorType: (type: number) => boolean;
@@ -112,6 +129,11 @@ export declare enum ENTRYPOINT {
     devnet = "devnet",
     localnet = "localnet"
 }
+export interface CoinTypeInfo {
+    symbol: string;
+    type: string;
+    decimals: number;
+}
 export declare class Protocol {
     protected network: string;
     protected package: string;
@@ -123,6 +145,7 @@ export declare class Protocol {
     static _instance: any;
     constructor(network?: ENTRYPOINT);
     static Instance(): Protocol;
+    static Client(): SuiClient;
     UseNetwork(network?: ENTRYPOINT): void;
     Package(): string;
     WowokObject(): string;
@@ -154,11 +177,12 @@ export declare class Protocol {
     static SUI_COIN_TYPE: string;
     WOWOK_TOKEN_TYPE: () => string;
     WOWOK_COIN_TYPE: () => string;
-    COINS_TYPE: () => {
-        name: string;
-        type: string;
-        decimals: number;
-    }[];
+    COINS_TYPE: () => CoinTypeInfo[];
+    Update_CoinType: (token_type: string, decimals: number, symbol: string) => void;
+    ExplorerUrl: (objectid: string, type?: 'object' | 'txblock' | 'account') => string;
+    CoinTypes_Testnet: CoinTypeInfo[];
+    CoinTypes_Mainnet: CoinTypeInfo[];
+    GetCoinTypeInfo: (token_type: string, handler: (info: CoinTypeInfo) => void) => CoinTypeInfo | 'loading';
     static CLOCK_OBJECT: {
         Object: {
             ImmOrOwned: {

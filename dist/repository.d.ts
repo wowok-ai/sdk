@@ -1,4 +1,4 @@
-import { Protocol, ValueType, RepositoryAddress, PermissionObject, PassportObject, TxbObject } from './protocol';
+import { Protocol, ValueType, RepositoryValueType, RepositoryAddress, PermissionObject, PassportObject, TxbObject } from './protocol';
 import { PermissionIndexType } from './permission';
 export declare enum Repository_Policy_Mode {
     POLICY_MODE_FREE = 0,
@@ -7,7 +7,7 @@ export declare enum Repository_Policy_Mode {
 export type Repository_Policy = {
     key: string;
     description: string;
-    value_type: ValueType;
+    data_type: RepositoryValueType;
     permission?: PermissionIndexType;
 };
 export type Repository_Policy_Data = {
@@ -34,7 +34,8 @@ export declare class Repository {
     add_reference(references: string[], passport?: PassportObject): void;
     remove_reference(references: string[], removeall?: boolean, passport?: PassportObject): void;
     add_policies(policies: Repository_Policy[], passport?: PassportObject): void;
-    remove_policies(policy_keys: string[], removeall?: boolean, passport?: PassportObject): void;
+    remove_policies(policy_keys: string[], passport?: PassportObject): void;
+    rename_policy(policy_key: string, new_policy_key: string, passport?: PassportObject): void;
     set_description(description: string, passport?: PassportObject): void;
     set_policy_mode(policy_mode: Repository_Policy_Mode, passport?: PassportObject): void;
     set_policy_description(policy: string, description: string, passport?: PassportObject): void;
@@ -43,7 +44,9 @@ export declare class Repository {
     static MAX_POLICY_COUNT: number;
     static MAX_KEY_LENGTH: number;
     static MAX_VALUE_LENGTH: number;
+    static MAX_REFERENCE_COUNT: number;
     static IsValidName: (key: string) => boolean;
     static IsValidValue: (value: Uint8Array) => boolean;
+    static parseObjectType: (chain_type: string) => string;
 }
 //# sourceMappingURL=repository.d.ts.map

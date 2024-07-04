@@ -1,4 +1,4 @@
-import { TransactionBlock, type TransactionResult } from '@mysten/sui.js/transactions';
+import { TransactionArgument, TransactionBlock, type TransactionResult } from '@mysten/sui.js/transactions';
 import { BCS} from '@mysten/bcs';
 import { FnCallType, GuardObject, PassportObject, PermissionObject, RewardAddress, Protocol, TxbObject, } from './protocol';
 import { array_unique, IsValidAddress, IsValidArgType, IsValidArray, IsValidDesription,  IsValidUint, } from './utils';
@@ -291,18 +291,19 @@ export class Reward {
             typeArguments:[this.earnest_type]
         })
     }
-    pause(bPause: boolean, passport?:PassportObject) {
+    allow_claim(bAllowClaim: boolean, passport?:PassportObject) {
         let txb = this.protocol.CurrentSession();
         if (passport) {
             txb.moveCall({
-                target:this.protocol.RewardFn('pause_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(bPause, BCS.BOOL)], //@
+                target:this.protocol.RewardFn('allow_claim_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission),
+                    txb.pure(bAllowClaim, BCS.BOOL)], 
                 typeArguments:[this.earnest_type]
             })      
         } else {
             txb.moveCall({
-                target:this.protocol.RewardFn('pause') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(bPause, BCS.BOOL)], //@
+                target:this.protocol.RewardFn('allow_claim') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), txb.pure(bAllowClaim, BCS.BOOL)], 
                 typeArguments:[this.earnest_type]
             })            
         }
@@ -315,7 +316,7 @@ export class Reward {
 
         let txb = this.protocol.CurrentSession();
         txb.moveCall({
-            target:this.protocol.RewardFn('this.permission_set') as FnCallType,
+            target:this.protocol.RewardFn('permission_set') as FnCallType,
             arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), Protocol.TXB_OBJECT(txb, new_permission)],
             typeArguments:[this.earnest_type]            
         })    
@@ -333,4 +334,5 @@ export class Reward {
         return '';
     }
     static MAX_PORTIONS_COUNT = 255;
+    static MAX_GUARD_COUNT = 16;
 }

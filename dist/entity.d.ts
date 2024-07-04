@@ -16,8 +16,9 @@ export declare class Entity {
     static From(protocol: Protocol): Entity;
     mark(resource: Resource, address: string, like: 'like' | 'dislike'): void;
     update(info: Entity_Info): void;
-    create_resource(description: string): ResourceAddress;
+    create_resource(): ResourceAddress;
     destroy_resource(resource: Resource): import("@mysten/sui.js/transactions").TransactionResult;
     transfer_resource(resource: Resource, new_address: string): import("@mysten/sui.js/transactions").TransactionResult;
+    query_ent(address_queried: string): void;
 }
 //# sourceMappingURL=entity.d.ts.map

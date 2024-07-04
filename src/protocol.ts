@@ -101,6 +101,49 @@ export enum ValueType {
     TYPE_VEC_STRING = 121,
     TYPE_U256 = 122,
 }
+export enum RepositoryValueType {
+    Address = 200,
+    Address_Vec = 201,
+    PositiveNumber = 202,
+    PositiveNumber_Vec = 203,
+    String = 204,
+    String_Vec = 205,
+}
+
+export const RepositoryValueTypeInfo = [
+    {type: RepositoryValueType.Address, name:'Address', description:'Object id or Personal address.'},
+    {type: RepositoryValueType.Address_Vec, name:'Address vector', description:'Vector of address.'},
+    {type: RepositoryValueType.String, name:'String', description:'String.'},
+    {type: RepositoryValueType.String_Vec, name:'String vector',  description:'Vector of string.'},
+    {type: RepositoryValueType.PositiveNumber, name:'Positive number', description:'Positive number. including u8, u16 ,..., u256'},
+    {type: RepositoryValueType.PositiveNumber_Vec, name:'Positive number vector', description:'Vector of positive number'},
+]
+
+export const ValueTypeInfo = [
+    {type:ValueType.TYPE_BOOL, name:'bool'},
+    {type:ValueType.TYPE_ADDRESS, name:'address'},
+    {type:ValueType.TYPE_U64, name:'u64'},
+    {type:ValueType.TYPE_U8, name:'u8'},
+    {type:ValueType.TYPE_VEC_U8, name:'vec-u8'},
+    {type:ValueType.TYPE_U128, name:'u128'},
+    {type:ValueType.TYPE_VEC_ADDRESS, name:'vec-address'},
+    {type:ValueType.TYPE_VEC_BOOL, name:'vec-bool'},
+    {type:ValueType.TYPE_VEC_VEC_U8, name:'vec-vec-u8'},
+    {type:ValueType.TYPE_VEC_U64, name:'vec-u64'},
+    {type:ValueType.TYPE_VEC_U128, name:'vec-u128'},
+    {type:ValueType.TYPE_OPTION_ADDRESS, name:'opt-address'},
+    {type:ValueType.TYPE_OPTION_BOOL, name:'opt-bool'},
+    {type:ValueType.TYPE_OPTION_U8, name:'opt-u8'},
+    {type:ValueType.TYPE_OPTION_U64, name:'opt-u64'},
+    {type:ValueType.TYPE_OPTION_U128, name:'opt-u128'},
+    {type:ValueType.TYPE_OPTION_U256, name:'opt-u256'},
+    {type:ValueType.TYPE_OPTION_STRING, name:'opt-string'},
+    {type:ValueType.TYPE_OPTION_VEC_U8, name:'opt-vec-u8'},
+    {type:ValueType.TYPE_VEC_U256, name:'vec-u256'},
+    {type:ValueType.TYPE_STRING, name:'string'},
+    {type:ValueType.TYPE_VEC_STRING, name:'vec-string'},
+    {type:ValueType.TYPE_U256, name:'u256'},
+]
 
 export const OperatorTypeArray = (Object.values(OperatorType) as []).filter((v)=>typeof(v) === 'number') as number[];
 export const ValueTypeArray = (Object.values(ValueType) as []).filter((v)=>typeof(v) === 'number') as number[];
@@ -156,9 +199,9 @@ export enum ENTRYPOINT {
 }
 
 const TESTNET = {
-    package: "0x4695df6bbc45341440a7d62d34c07ab737ddc31e71b87f9c693943768f03ceed",
-    wowok_object: '0x1e1c31feb9689206cf0f6e7372545c4c85b3be5724a6c14afc517a77f4453fe6',
-    entity_object: '0xb4c0fe4ecd325d009ac6db1cd1580e5353a768ee7242805ea0f969b8d025bb23',
+    package: "0x852fa17575b1ae11932b475110bf46981458fdb67a2f07b922022e1516560fad",
+    wowok_object: '0xf98cc6d8bd9feadc5dce7365270b4ffb32f69a5320ab739193d301103e686e8c',
+    entity_object: '0xe0469c187499273ec39a575cc28d4d93f0a66b11e1b92028c61bc69bfc1167c6',
 }
 
 const MAINNET = {
@@ -405,6 +448,7 @@ export class RpcResultParser {
         return names;
     }
     static objectids_from_response = (protocol:Protocol, response:SuiTransactionBlockResponse, concat_result?:Map<string, TxbObject[]>): Map<string, TxbObject[]> => {
+        // console.log(response)
         let ret = new Map<string, string[]>();
         if (response?.objectChanges) {
             response.objectChanges.forEach((change) => {

@@ -9,12 +9,12 @@ export var PermissionIndex;
     PermissionIndex[PermissionIndex["repository_set_description_set"] = 101] = "repository_set_description_set";
     PermissionIndex[PermissionIndex["repository_set_policy_mode"] = 102] = "repository_set_policy_mode";
     PermissionIndex[PermissionIndex["repository_add_policies"] = 103] = "repository_add_policies";
-    PermissionIndex[PermissionIndex["repository_remove_policies"] = 104] = "repository_remove_policies";
+    PermissionIndex[PermissionIndex["repository_remove_policies"] = 103] = "repository_remove_policies";
     PermissionIndex[PermissionIndex["repository_set_policy_description"] = 105] = "repository_set_policy_description";
     PermissionIndex[PermissionIndex["repository_set_policy_permission"] = 106] = "repository_set_policy_permission";
     PermissionIndex[PermissionIndex["repository_reference_add"] = 107] = "repository_reference_add";
-    PermissionIndex[PermissionIndex["repository_reference_remove"] = 108] = "repository_reference_remove";
-    PermissionIndex[PermissionIndex["repository_reference_removeall"] = 108] = "repository_reference_removeall";
+    PermissionIndex[PermissionIndex["repository_reference_remove"] = 107] = "repository_reference_remove";
+    PermissionIndex[PermissionIndex["repository_reference_removeall"] = 107] = "repository_reference_removeall";
     PermissionIndex[PermissionIndex["vote"] = 150] = "vote";
     PermissionIndex[PermissionIndex["vote_set_description"] = 151] = "vote_set_description";
     PermissionIndex[PermissionIndex["vote_set_reference"] = 152] = "vote_set_reference";
@@ -38,11 +38,11 @@ export var PermissionIndex;
     PermissionIndex[PermissionIndex["service_repository_add"] = 206] = "service_repository_add";
     PermissionIndex[PermissionIndex["service_repository_remove"] = 207] = "service_repository_remove";
     PermissionIndex[PermissionIndex["service_add_withdraw_guards"] = 208] = "service_add_withdraw_guards";
-    PermissionIndex[PermissionIndex["service_remove_withdraw_guards"] = 209] = "service_remove_withdraw_guards";
-    PermissionIndex[PermissionIndex["service_removeall_withdraw_guards"] = 209] = "service_removeall_withdraw_guards";
+    PermissionIndex[PermissionIndex["service_remove_withdraw_guards"] = 208] = "service_remove_withdraw_guards";
+    PermissionIndex[PermissionIndex["service_removeall_withdraw_guards"] = 208] = "service_removeall_withdraw_guards";
     PermissionIndex[PermissionIndex["service_add_refund_guards"] = 210] = "service_add_refund_guards";
-    PermissionIndex[PermissionIndex["service_remove_refund_guards"] = 211] = "service_remove_refund_guards";
-    PermissionIndex[PermissionIndex["service_removeall_refund_guards"] = 211] = "service_removeall_refund_guards";
+    PermissionIndex[PermissionIndex["service_remove_refund_guards"] = 210] = "service_remove_refund_guards";
+    PermissionIndex[PermissionIndex["service_removeall_refund_guards"] = 210] = "service_removeall_refund_guards";
     PermissionIndex[PermissionIndex["service_add_sales"] = 212] = "service_add_sales";
     PermissionIndex[PermissionIndex["service_remove_sales"] = 213] = "service_remove_sales";
     PermissionIndex[PermissionIndex["service_discount_transfer"] = 214] = "service_discount_transfer";
@@ -61,7 +61,7 @@ export var PermissionIndex;
     PermissionIndex[PermissionIndex["reward_refund"] = 241] = "reward_refund";
     PermissionIndex[PermissionIndex["reward_expand_time"] = 242] = "reward_expand_time";
     PermissionIndex[PermissionIndex["reward_add_guard"] = 243] = "reward_add_guard";
-    PermissionIndex[PermissionIndex["reward_remove_guard"] = 244] = "reward_remove_guard";
+    PermissionIndex[PermissionIndex["reward_remove_guard"] = 243] = "reward_remove_guard";
     PermissionIndex[PermissionIndex["reward_set_description"] = 245] = "reward_set_description";
     PermissionIndex[PermissionIndex["reward_lock_guards"] = 246] = "reward_lock_guards";
     PermissionIndex[PermissionIndex["demand"] = 260] = "demand";
@@ -117,9 +117,8 @@ export const PermissionInfo = [
     { index: PermissionIndex.service_set_payee, name: 'Payee', description: 'build machine', module: 'service' },
     { index: PermissionIndex.service_repository_add, name: 'Add Repository', description: 'build machine', module: 'service' },
     { index: PermissionIndex.service_repository_remove, name: 'Remove Repository', description: 'build machine', module: 'service' },
-    { index: PermissionIndex.service_add_withdraw_guards, name: 'Add Withdraw Guard', description: 'build machine', module: 'service' },
-    { index: PermissionIndex.service_remove_withdraw_guards, name: 'Remove Withdraw Guard', description: 'build machine', module: 'service' },
-    { index: PermissionIndex.service_add_refund_guards, name: 'Add Refund Guard', description: 'build machine', module: 'service' },
+    { index: PermissionIndex.service_add_withdraw_guards, name: 'Withdraw Guard', description: 'Add, remove withdraw guards', module: 'service' },
+    { index: PermissionIndex.service_add_refund_guards, name: 'Refund Guard', description: 'Add, remove refund guards', module: 'service' },
     { index: PermissionIndex.service_remove_refund_guards, name: 'Remove Refund Guard', description: 'build machine', module: 'service' },
     { index: PermissionIndex.service_add_sales, name: 'Add sales', description: 'build machine', module: 'service' },
     { index: PermissionIndex.service_remove_sales, name: 'Remove sales', description: 'build machine', module: 'service' },
@@ -235,10 +234,31 @@ export class Permission {
                 txb.pure(new_entity, BCS.ADDRESS)]
         });
     }
-    add_entity(entities) {
-        console.log(entities);
+    add_entity2(entities, index) {
         if (!entities) {
-            ERROR(Errors.InvalidParam, 'entities');
+            ERROR(Errors.InvalidParam, 'add_entity2');
+        }
+        if (!IsValidArray(entities, IsValidAddress)) {
+            ERROR(Errors.IsValidArray, 'add_entity2');
+        }
+        let txb = this.protocol.CurrentSession();
+        if (index) {
+            txb.moveCall({
+                target: this.protocol.PermissionFn('add_with_index'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(index, BCS.U64),
+                    txb.pure(array_unique(entities), 'vector<address>')]
+            });
+        }
+        else {
+            txb.moveCall({
+                target: this.protocol.PermissionFn('add'),
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(entities), 'vector<address>')]
+            });
+        }
+    }
+    add_entity(entities) {
+        if (!entities) {
+            ERROR(Errors.InvalidParam, 'add_entity');
         }
         let bValid = true;
         let e = entities.forEach((v) => {
@@ -392,6 +412,7 @@ export class Permission {
     static MAX_ADMIN_COUNT = 64;
     static MAX_ENTITY_COUNT = 2000;
     static MAX_PERMISSION_INDEX_COUNT = 200;
+    static MAX_PERSONAL_PERMISSION_COUNT = 200;
     static IsValidUserDefinedIndex = (index) => {
         return index >= PermissionIndex.user_defined_start && IsValidUint(index);
     };
