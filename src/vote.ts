@@ -151,8 +151,8 @@ export class Vote {
     }
 
     remove_guard(guard_address:string[], removeall?:boolean, passport?:PassportObject)  {
-        if (!removeall && !guard_address) {
-            ERROR(Errors.AllInvalid, 'guard_address & removeall')
+        if (!removeall && guard_address.length===0) {
+            return
         }
 
         if (guard_address && !IsValidArray(guard_address, IsValidAddress)) {
@@ -226,8 +226,8 @@ export class Vote {
         })
     }
     remove_option(options:string[], removeall?:boolean, passport?:PassportObject)  {
-        if (!removeall && !options) {
-            ERROR(Errors.AllInvalid, 'options & removeall')
+        if (!removeall && options.length===0) {
+            return
         }
         if (options && !IsValidArray(options, IsValidAddress)) {
             ERROR(Errors.IsValidArray, 'options')

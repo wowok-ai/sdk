@@ -162,8 +162,8 @@ export class Reward {
     }
 
     remove_guard(guards:string[], removeall?:boolean, passport?:PassportObject)  {
-        if (!removeall && !guards) {
-            ERROR(Errors.AllInvalid,  'guards & removeall')
+        if (!removeall && guards.length===0) {
+            return
         }
 
         if (guards && !IsValidArray(guards, IsValidAddress)) {

@@ -46,7 +46,7 @@ export class Machine {
         this.permission = permission;
         this.object =  '';
     }
-    static New(protocol:Protocol, permission:PermissionObject, description:string, endpoint?:string, passport?:PassportObject) : Machine {
+    static New(protocol:Protocol, permission:PermissionObject, description:string, endpoint?:string|null, passport?:PassportObject) : Machine {
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects, 'permission')
         }
@@ -74,7 +74,7 @@ export class Machine {
         }
         return m
     }
-   
+
     // create new nodes for machine
     add_node(nodes:Machine_Node[], passport?:PassportObject) {
         let bValid = true;
@@ -84,16 +84,12 @@ export class Machine {
                 if (!IsValidName_AllowEmpty(p.prior_node)) { bValid = false; }
                 if (p?.threshold && !IsValidInt(p.threshold)) { bValid = false; }
                 p.forwards.forEach((f) => {
-                    if (!IsValidName(f.name)) { bValid = false }
-                    if (f?.namedOperator && !IsValidName_AllowEmpty(f?.namedOperator)) { bValid = false }
-                    if (f?.permission && !Permission.IsValidPermissionIndex(f?.permission)) { bValid = false }
-                    if (!f?.permission && !f?.namedOperator) { bValid = false; }
-                    if (f?.weight && !IsValidUint(f.weight)) { bValid = false; }
+                    if (!Machine.isValidForward(f)) bValid = false;
                 })
             })
         })
         if (!bValid) {
-            ERROR(Errors.InvalidParam, 'nodes')
+            ERROR(Errors.InvalidParam, 'add_node')
         }
 
         let new_nodes: MachineNodeObject[] = [];
@@ -107,31 +103,43 @@ export class Machine {
                 let threshold = pair?.threshold ? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_U64, pair.threshold)) : OptionNone(txb);
 
                 pair.forwards.forEach((forward) => {
-                    let weight = forward?.weight ? forward.weight : 1;
-                    let perm = forward?.permission ? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_U64, forward.permission)) : OptionNone(txb); 
-                    let namedOperator = forward?.namedOperator ?  txb.pure(forward.namedOperator) : txb.pure('');
-                    let f;
-
-                    if (forward?.guard) {
-                        f = txb.moveCall({ 
-                            target:this.protocol.NodeFn('forward') as FnCallType,
-                                arguments:[namedOperator, txb.pure(weight), txb.object(Protocol.TXB_OBJECT(txb, forward.guard)), perm]
-                        });                        
-                    } else {
-                        f = txb.moveCall({ 
-                            target:this.protocol.NodeFn('forward2') as FnCallType,
-                                arguments:[namedOperator, txb.pure(weight), perm]
-                        });                
-                    }
                     txb.moveCall({ // add forward
                         target:this.protocol.NodeFn('forward_add') as FnCallType,
-                            arguments:[n, txb.pure(pair.prior_node), txb.pure(forward.name),  threshold, f]
+                            arguments:[n, txb.pure(pair.prior_node), txb.pure(forward.name),  threshold, this.forward(forward)]
                     });                
                 }); 
+                if (pair.forwards.length === 0) {
+                    txb.moveCall({ // add forward
+                        target:this.protocol.NodeFn('forward_add_none') as FnCallType,
+                            arguments:[n, txb.pure(pair.prior_node), threshold]
+                    });         
+                }
             }); 
             new_nodes.push(n); 
         }); 
         this.add_node2(new_nodes, passport)
+    }
+
+    forward(forward:Machine_Forward) : TransactionResult {
+        const txb = this.protocol.CurrentSession();
+
+        let weight = forward?.weight ? forward.weight : 1;
+        let perm = forward?.permission ? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_U64, forward.permission)) : OptionNone(txb); 
+        let namedOperator = forward?.namedOperator ?  txb.pure(forward.namedOperator) : txb.pure('');
+        let f:any;
+
+        if (forward?.guard) {
+            f = txb.moveCall({ 
+                target:this.protocol.NodeFn('forward') as FnCallType,
+                    arguments:[namedOperator, txb.pure(weight), txb.object(Protocol.TXB_OBJECT(txb, forward.guard)), perm]
+            });                        
+        } else {
+            f = txb.moveCall({ 
+                target:this.protocol.NodeFn('forward2') as FnCallType,
+                    arguments:[namedOperator, txb.pure(weight), perm]
+            });                
+        }
+        return f
     }
 
     // move MachineNodeObject to the machine from signer-owned MachineNode object 
@@ -158,6 +166,51 @@ export class Machine {
             });     
         }    
     }
+    
+    fetch_node(node_name:string, passport?:PassportObject) : MachineNodeObject {
+        if (!IsValidName(node_name)) {
+            ERROR(Errors.IsValidName, 'fetch_node');
+        }
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            return txb.moveCall({
+                target:this.protocol.MachineFn('node_fetch_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb,  this.object), txb.pure(node_name, BCS.STRING), 
+                    Protocol.TXB_OBJECT(txb, this.permission)],
+            });  
+        } else {
+            return txb.moveCall({
+                target:this.protocol.MachineFn('node_fetch') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb,  this.object), txb.pure(node_name, BCS.STRING), Protocol.TXB_OBJECT(txb, this.permission)],
+            });
+        } 
+    }
+    rename_node(node_name:string, new_name?:string, new_description?:string, passport?:PassportObject) {
+        if (!IsValidName(node_name)) ERROR(Errors.IsValidName, 'rename_node');
+        if (new_name !== undefined && !IsValidName(new_name)) ERROR(Errors.IsValidName, 'rename_node');
+        if (new_description !== undefined && !IsValidDesription(new_description)) ERROR(Errors.IsValidDesription, 'rename_node');
+        if (new_name === undefined && new_description === undefined) { return }
+
+        let txb = this.protocol.CurrentSession();
+        let n = new_name !== undefined ? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_STRING, new_name)) : OptionNone(txb); 
+        let d = new_description !== undefined ? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_STRING, new_description)) : OptionNone(txb); 
+
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.MachineFn('node_rename_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb,  this.object), 
+                    txb.pure(node_name, BCS.STRING), n, d,
+                    Protocol.TXB_OBJECT(txb, this.permission)],
+            });  
+        } else {
+            txb.moveCall({
+                target:this.protocol.MachineFn('node_rename') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb,  this.object), 
+                    txb.pure(node_name, BCS.STRING), n, d,
+                    Protocol.TXB_OBJECT(txb, this.permission)],
+            });
+        } 
+    }
 
     // move MachineNodeObject from  this.object to signer-owned MachineNode object 
     remove_node(nodes_name:string[], bTransferMyself:boolean = false, passport?:PassportObject) {
@@ -179,7 +232,7 @@ export class Machine {
             });
         } 
     }
-
+    
     destroy() {
         let txb = this.protocol.CurrentSession();
         txb.moveCall({
@@ -230,11 +283,11 @@ export class Machine {
     }
 
     remove_repository(repositories:string[], removeall?:boolean, passport?:PassportObject) {
-        if (!removeall && !repositories) {
-            ERROR(Errors.AllInvalid, 'repositories & removeall')
-        }
         if (repositories && !IsValidArray(repositories, IsValidAddress)){
             ERROR(Errors.IsValidArray, 'repositories')
+        }
+        if (!removeall && repositories.length===0) {
+            return;
         }
 
         let txb = this.protocol.CurrentSession();
@@ -282,7 +335,7 @@ export class Machine {
         }
     }
 
-    set_endpoint(endpoint?:string, passport?:PassportObject) {
+    set_endpoint(endpoint?:string|null, passport?:PassportObject) {
         if (endpoint && !IsValidEndpoint(endpoint)) {
             ERROR(Errors.IsValidEndpoint)
         }
@@ -329,7 +382,6 @@ export class Machine {
                 arguments:[Protocol.TXB_OBJECT(txb,  this.object), Protocol.TXB_OBJECT(txb, this.permission)],
             })
         }
-        
     }
 
     change_permission(new_permission:PermissionObject) {
@@ -344,6 +396,68 @@ export class Machine {
             typeArguments:[]            
         })   
         this.permission = new_permission;   
+    }
+
+    add_forward(node_prior:string, node_name:string, foward: Machine_Forward, threshold?:number, passport?:PassportObject) {
+        if (!IsValidName_AllowEmpty(node_prior)) ERROR(Errors.IsValidName_AllowEmpty, 'add_forward');
+        if (!IsValidName(node_name)) ERROR(Errors.IsValidName, 'add_forward');
+        if (!Machine.isValidForward(foward)) ERROR(Errors.InvalidParam, 'add_forward');
+
+        let txb = this.protocol.CurrentSession();
+        let n : any;
+        if (passport) {
+            n = txb.moveCall({
+                target:this.protocol.MachineFn('node_fetch_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb,  this.object), txb.pure(node_name, BCS.STRING), Protocol.TXB_OBJECT(txb, this.permission)],
+            })
+
+        } else {
+            n = txb.moveCall({
+                target:this.protocol.MachineFn('node_fetch') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb,  this.object), txb.pure(node_name, BCS.STRING), Protocol.TXB_OBJECT(txb, this.permission)],
+            })
+        }
+        const f = this.forward(foward);
+        const t = threshold ? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_U64, threshold)) : OptionNone(txb);
+        console.log('...........')
+        console.log(node_prior); console.log(foward.name); console.log(t), console.log(f)
+        txb.moveCall({
+            target:this.protocol.NodeFn('forward_add') as FnCallType,
+            arguments:[n, txb.pure(node_prior, BCS.STRING), txb.pure(foward.name, BCS.STRING), t, f],
+        })
+    }
+
+    remove_forward(node_prior:string, node_name:string, foward_name: string, passport?:PassportObject) {
+        if (!IsValidName_AllowEmpty(node_prior)) ERROR(Errors.IsValidName_AllowEmpty, 'add_forward');
+        if (!IsValidName(node_name)) ERROR(Errors.IsValidName, 'add_forward');
+
+        let txb = this.protocol.CurrentSession();
+        let n : any;
+        if (passport) {
+            n = txb.moveCall({
+                target:this.protocol.MachineFn('node_fetch_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(node_name, BCS.STRING), Protocol.TXB_OBJECT(txb, this.permission)],
+            })
+
+        } else {
+            n = txb.moveCall({
+                target:this.protocol.MachineFn('node_fetch') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(txb,  this.object), txb.pure(node_name, BCS.STRING), Protocol.TXB_OBJECT(txb, this.permission)],
+            })
+        }
+        txb.moveCall({
+            target:this.protocol.NodeFn('forward_remove') as FnCallType,
+            arguments:[n, txb.pure(node_prior, BCS.STRING), txb.pure(foward_name, BCS.STRING)],
+        })
+    }
+
+    static isValidForward(forward:Machine_Forward) {
+        if (!IsValidName(forward.name)) return false
+        if (forward?.namedOperator && !IsValidName_AllowEmpty(forward?.namedOperator)) return false;
+        if (forward?.permission && !Permission.IsValidPermissionIndex(forward?.permission)) return false;
+        if (!forward?.permission && !forward?.namedOperator) return false;
+        if (forward?.weight && !IsValidUint(forward.weight)) return false;
+        return true
     }
 
     static INITIAL_NODE_NAME = '';

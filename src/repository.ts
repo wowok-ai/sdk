@@ -169,8 +169,8 @@ export class Repository {
         }
     }
     remove_reference(references:string[], removeall?:boolean, passport?:PassportObject) {
-        if (!references && !removeall) {
-            ERROR(Errors.InvalidParam, 'remove_reference')
+        if (references.length === 0 && !removeall) {
+            return
         }
 
         if (references && !IsValidArray(references, IsValidAddress)) {

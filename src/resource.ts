@@ -60,9 +60,9 @@ export class Resource {
         });
     }
 
-    remove(name:string, object?:string[], removeall?:boolean)  {
+    remove(name:string, object:string[], removeall?:boolean)  {
         if (!IsValidName(name)) ERROR(Errors.IsValidName, 'Resource: remove');
-        if (!object && !removeall) ERROR(Errors.InvalidParam, 'Resource: remove, BOTH param undefined');
+        if (object.length===0 && !removeall) return;
         
         let txb = this.protocol.CurrentSession();
         if (removeall) {
@@ -109,10 +109,13 @@ export class Resource {
         if (!IsValidArray(tags, IsValidName)) ERROR(Errors.IsValidArray, 'add_tags');
         if (tags.length > Resource.MAX_TAGS) ERROR(Errors.InvalidParam, 'add_tags');
 
-        let txb = this.protocol.CurrentSession();
+        const txb = this.protocol.CurrentSession();
+        const encode = new TextEncoder();
+
         txb.moveCall({
             target:this.protocol.ResourceFn('tags_add')  as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(object, BCS.ADDRESS), txb.pure(nick, BCS.STRING),
+            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(object, BCS.ADDRESS), 
+                txb.pure(nick, BCS.STRING),
                 txb.pure(tags, 'vector<string>')
             ]
         });

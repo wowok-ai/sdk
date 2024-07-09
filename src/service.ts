@@ -323,9 +323,9 @@ export class Service {
             })  
         }
     }
-    repository_remove(repository_address?:string[], removeall?:boolean, passport?:PassportObject) {
-        if (!removeall && !repository_address) {
-            ERROR(Errors.AllInvalid,  'removeall & repository_address');
+    repository_remove(repository_address:string[], removeall?:boolean, passport?:PassportObject) {
+        if (!removeall && repository_address.length===0) {
+            return
         }
         if (repository_address && !IsValidArray(repository_address, IsValidAddress)) {
             ERROR(Errors.IsValidArray,  'repository_address');
@@ -394,9 +394,9 @@ export class Service {
             }
         })
     }
-    remove_withdraw_guards(guard_address?:string[], removeall?:boolean, passport?:PassportObject) {
-        if (!removeall && !guard_address) {
-            ERROR(Errors.AllInvalid, 'guard_address & removeall')
+    remove_withdraw_guards(guard_address:string[], removeall?:boolean, passport?:PassportObject) {
+        if (!removeall && guard_address.length===0) {
+            return
         }
 
         if (guard_address && !IsValidArray(guard_address, IsValidAddress)) {
@@ -465,9 +465,9 @@ export class Service {
             }
         })
     }
-    remove_refund_guards(guard_address?:string[], removeall?:boolean, passport?:PassportObject) {
-        if (!guard_address && !removeall) {
-            ERROR(Errors.AllInvalid, 'guard_address & removeall');
+    remove_refund_guards(guard_address:string[], removeall?:boolean, passport?:PassportObject) {
+        if (guard_address.length===0 && !removeall) {
+            return
         }
         if (guard_address && !IsValidArray(guard_address, IsValidAddress)) {
             ERROR(Errors.InvalidParam, 'guard_address')
