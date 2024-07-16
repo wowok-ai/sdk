@@ -71,6 +71,14 @@ export class Entity {
         })
     }
 
+    create_resource2(): ResourceObject {
+        let txb = this.protocol.CurrentSession();
+        return txb.moveCall({
+            target:this.protocol.EntityFn('resource_create2') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(txb, this.object)]
+        }) 
+    }
+    
     destroy_resource(resource:Resource) {
         let txb = this.protocol.CurrentSession();
         return txb.moveCall({

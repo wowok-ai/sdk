@@ -1,6 +1,6 @@
 import { BCS } from '@mysten/bcs';
 import { FnCallType, PassportObject, PermissionObject, GuardObject, VoteAddress, Protocol, TxbObject} from './protocol';
-import { IsValidDesription, IsValidUint, IsValidAddress, OptionNone, Bcs, array_unique, IsValidArray, IsValidName } from './utils';
+import { IsValidDesription, IsValidUintLarge, IsValidAddress, OptionNone, Bcs, array_unique, IsValidArray, IsValidName } from './utils';
 import { ERROR, Errors } from './exception';
 import { ValueType } from './protocol';
 
@@ -36,10 +36,10 @@ export class Vote {
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription)
         }
-        if (!IsValidUint(time)) {
+        if (!IsValidUintLarge(time)) {
             ERROR(Errors.IsValidUint, 'time')
         }
-        if (max_choice_count && !IsValidUint(max_choice_count)) {
+        if (max_choice_count && !IsValidUintLarge(max_choice_count)) {
             ERROR(Errors.IsValidUint, 'max_choice_count')
         }
         if (max_choice_count && max_choice_count > MAX_CHOICE_COUNT) {
@@ -128,10 +128,10 @@ export class Vote {
     }
     add_guard(guard:GuardObject, weight:number, passport?:PassportObject)   {
         if (!Protocol.IsValidObjects([guard])) {
-            ERROR(Errors.IsValidObjects, 'guard')
+            ERROR(Errors.IsValidObjects, 'add_guard')
         }
-        if (!IsValidUint(weight)) {
-            ERROR(Errors.IsValidUint, 'weight')
+        if (!IsValidUintLarge(weight)) {
+            ERROR(Errors.IsValidUint, 'add_guard')
         }
 
         let txb = this.protocol.CurrentSession();
@@ -151,12 +151,10 @@ export class Vote {
     }
 
     remove_guard(guard_address:string[], removeall?:boolean, passport?:PassportObject)  {
-        if (!removeall && guard_address.length===0) {
-            return
-        }
+        if (!removeall && guard_address.length===0)   return;
 
-        if (guard_address && !IsValidArray(guard_address, IsValidAddress)) {
-            ERROR(Errors.IsValidArray, 'guard_address')
+        if (!IsValidArray(guard_address, IsValidAddress)) {
+            ERROR(Errors.IsValidArray, 'remove_guard')
         }
 
         let txb = this.protocol.CurrentSession();
@@ -191,9 +189,7 @@ export class Vote {
     }
 
     add_option(options:VoteOption[], passport?:PassportObject)   {
-        if (!options) {
-            ERROR(Errors.InvalidParam, 'options')
-        }
+        if (options.length === 0) return ;
 
         let bValid = true;
         options.forEach((v) => {
@@ -230,7 +226,7 @@ export class Vote {
             return
         }
         if (options && !IsValidArray(options, IsValidAddress)) {
-            ERROR(Errors.IsValidArray, 'options')
+            ERROR(Errors.IsValidArray, 'remove_option')
         }
 
         let txb = this.protocol.CurrentSession();
@@ -265,7 +261,7 @@ export class Vote {
         }
     }
     set_max_choice_count(max_choice_count:number, passport?:PassportObject)  {
-        if (!IsValidUint(max_choice_count) || max_choice_count > MAX_CHOICE_COUNT) {
+        if (!IsValidUintLarge(max_choice_count) || max_choice_count > MAX_CHOICE_COUNT) {
             ERROR(Errors.InvalidParam, 'max_choice_count')
         }
 
@@ -315,7 +311,7 @@ export class Vote {
     }
 
     expand_deadline(ms_expand:boolean, time:number, passport?:PassportObject)  {
-        if (!IsValidUint(time)) {
+        if (!IsValidUintLarge(time)) {
             ERROR(Errors.IsValidUint, 'time')
         }
 
@@ -351,8 +347,9 @@ export class Vote {
     }
 
     agree(options:string[], passport?:PassportObject)  {
-        if (!options || options.length > MAX_CHOICE_COUNT) {
-            ERROR(Errors.InvalidParam, 'options')
+        if (options.length === 0) return;
+        if (options.length > MAX_CHOICE_COUNT) {
+            ERROR(Errors.InvalidParam, 'agree')
         }
 
         let txb = this.protocol.CurrentSession();

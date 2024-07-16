@@ -1,7 +1,7 @@
 import { TransactionArgument, TransactionBlock, type TransactionResult } from '@mysten/sui.js/transactions';
 import { BCS} from '@mysten/bcs';
 import { FnCallType, GuardObject, PassportObject, PermissionObject, RewardAddress, Protocol, TxbObject, } from './protocol';
-import { array_unique, IsValidAddress, IsValidArgType, IsValidArray, IsValidDesription,  IsValidUint, } from './utils';
+import { array_unique, IsValidAddress, IsValidArgType, IsValidArray, IsValidDesription,  IsValidUintLarge, } from './utils';
 import { ERROR, Errors } from './exception';
 import { Resource } from './resource';
 
@@ -41,7 +41,7 @@ export class Reward {
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription)
         }
-        if (!IsValidUint(time)) {
+        if (!IsValidUintLarge(time)) {
             ERROR(Errors.IsValidUint, 'time')
         }
 
@@ -101,7 +101,7 @@ export class Reward {
     }
 
     expand_time(ms_expand:boolean, time:number, passport?:PassportObject)  {
-        if (!IsValidUint(time)) {
+        if (!IsValidUintLarge(time)) {
             ERROR(Errors.IsValidUint, 'minutes_expand')
         }
 
@@ -125,13 +125,11 @@ export class Reward {
     }
 
     add_guard(gurads:RewardGuardPortions[], passport?:PassportObject)  {
-        if (!gurads) {
-            ERROR(Errors.InvalidParam, 'gurads')
-        }
+        if (gurads.length === 0) return;
 
         let bValid = true;
         gurads.forEach((v) => {
-            if (!IsValidUint(v.portions) || v.portions > Reward.MAX_PORTIONS_COUNT) bValid = false;
+            if (!IsValidUintLarge(v.portions) || v.portions > Reward.MAX_PORTIONS_COUNT) bValid = false;
             if (!Protocol.IsValidObjects([v.guard])) bValid = false;
         })
         if (!bValid) {
@@ -166,7 +164,7 @@ export class Reward {
             return
         }
 
-        if (guards && !IsValidArray(guards, IsValidAddress)) {
+        if (!IsValidArray(guards, IsValidAddress)) {
             ERROR(Errors.IsValidArray, 'guards')
         }
 

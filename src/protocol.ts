@@ -115,8 +115,8 @@ export const RepositoryValueTypeInfo = [
     {type: RepositoryValueType.Address_Vec, name:'Address vector', description:'Vector of address.'},
     {type: RepositoryValueType.String, name:'String', description:'String.'},
     {type: RepositoryValueType.String_Vec, name:'String vector',  description:'Vector of string.'},
-    {type: RepositoryValueType.PositiveNumber, name:'Positive number', description:'Positive number. including u8, u16 ,..., u256'},
-    {type: RepositoryValueType.PositiveNumber_Vec, name:'Positive number vector', description:'Vector of positive number'},
+    {type: RepositoryValueType.PositiveNumber, name:'Positive number or Zero', description:'Positive number or 0. including u8, u16 ,..., u256'},
+    {type: RepositoryValueType.PositiveNumber_Vec, name:'Positive number or Zero vector', description:'Vector of positive number or 0'},
 ]
 
 export const ValueTypeInfo = [
@@ -199,9 +199,9 @@ export enum ENTRYPOINT {
 }
 
 const TESTNET = {
-    package: "0xeede30112af87c547b78e4c2d037586a2c9fc4be40454b225acb96dddad7198f",
-    wowok_object: '0x299c06c8727a55aafad390e82b6112ae86c4852da1ebd6999a9570714c458aeb',
-    entity_object: '0x1944ec1838808dd94caca1f733c8974df19710d5b027fcc3e094361f825c0dc9',
+    package: "0x4fdff5521be6f444c3ba6eeef0d1bdb23b0f6f90f1a41e7f1f3e62d773fb63df",
+    wowok_object: '0x7c7c33c4b721201589b4b189818169cd41370202af92e7dba665d403d3c1f208',
+    entity_object: '0x188e0659fa1eb98fd6101e26d0ece38cb4cc48bb65250d0001abd9f01233e2cf',
 }
 
 const MAINNET = {
@@ -279,7 +279,6 @@ export class Protocol {
     };
     
     MachineFn = (fn:any) => { return `${this.package}::${MODULES.machine}::${fn}`};
-    NodeFn = (fn: any) => { return `${this.package}::${MODULES.node}::${fn}`};
     ProgressFn = (fn:any) => { return `${this.package}::${MODULES.progress}::${fn}`};
     CommunityFn = (fn: any) => { return `${this.package}::${MODULES.community}::${fn}`};
     RepositoryFn = (fn:any) => { return `${this.package}::${MODULES.repository}::${fn}`};

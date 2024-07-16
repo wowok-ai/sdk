@@ -1,10 +1,11 @@
 import { bcs, BCS, toHEX, fromHEX, getSuiMoveConfig, TypeName, BcsReader } from '@mysten/bcs';
 import { TransactionBlock, Inputs, TransactionResult, TransactionArgument } from '@mysten/sui.js/transactions';
+import { SuiObjectResponse, DynamicFieldPage } from '@mysten/sui.js/client';
 import { ERROR, Errors } from './exception';
 import { isValidSuiAddress, isValidSuiObjectId } from '@mysten/sui.js/utils'
-import { RepositoryValueType, ValueType } from './protocol'
+import { RepositoryValueType, ValueType, Protocol } from './protocol'
 
-export const MAX_U8 = BigInt('256');
+export const MAX_U8 = BigInt('255');
 export const MAX_U64 = BigInt('18446744073709551615');
 export const MAX_U128 = BigInt('340282366920938463463374607431768211455');
 export const MAX_U256 = BigInt('115792089237316195423570985008687907853269984665640564039457584007913129639935');
@@ -59,7 +60,7 @@ export const ResolveRepositoryData = (dataType:RepositoryValueType, data:Uint8Ar
    return undefined
 }
 
-export const readOption = (arr: number[], de:ValueType) : {bNone:boolean, value:any}=> {
+export const readOption = (arr: number[], de:ValueType) : {bNone:boolean, value:any} => {
     let o = arr.splice(0, 1);
     if (o[0] == 1) { // true
         return {bNone:false,  value:Bcs.getInstance().de(de, Uint8Array.from(arr))};
@@ -209,7 +210,15 @@ export class Bcs {
         return Bcs._instance;
      }
 
-    ser(type:ValueType, data:Uint8Array | any) : Uint8Array {
+    ser_option_u32(data:Uint8Array | any) : Uint8Array {
+        return this.bcs.ser('Option<u32>', {'some': data}).toBytes();
+    }
+
+    ser(type:ValueType | string, data:Uint8Array | any) : Uint8Array {
+        if (typeof(type) === 'string') {
+            return this.bcs.ser(type, data).toBytes();
+        }
+
         switch(type) {
             case ValueType.TYPE_BOOL:
                 return this.bcs.ser(BCS.BOOL, data).toBytes();
@@ -397,6 +406,15 @@ export const IsValidAddress = (addr:string) : boolean => {
     }
     return true
 }
+export const IsValidUintLarge = (value:string | number) : boolean => {
+    try {
+        const v = BigInt(value);
+        if (v <= MAX_U256) {
+            return true   
+        }
+    } catch (e) {
+    }; return false
+}
 export const IsValidTokenType = (argType: string) : boolean => { 
     if (!argType || argType.length === 0) {
         return false; 
@@ -419,12 +437,6 @@ export const IsValidArgType = (argType: string) : boolean => {
         return false;
     } 
     return true;
-}
-export const IsValidUint = (value: number | string) : boolean => { 
-    if (typeof(value) === 'string') {
-        value = parseInt(value as string);
-    }
-    return Number.isSafeInteger(value) && value > 0 
 }
 export const IsValidInt = (value: number | string) : boolean => { 
     if (typeof(value) === 'string') {
@@ -526,3 +538,46 @@ export function isValidHttpUrl(url:string) : boolean {
   
     return r.protocol === "http:" || r.protocol === "https:" || r.protocol === 'ipfs:';
 }
+
+export interface query_object_param {
+    id:string;
+    onBegin?:(id:string)=>void;
+    onObjectRes?:(id:string, res:SuiObjectResponse)=>void;
+    onDynamicRes?:(id:string, res:DynamicFieldPage)=>void;
+    onFieldsRes?:(id:string, fields_res:SuiObjectResponse[])=>void;
+    onObjectErr?:(id:string, err:any)=>void;
+    onDynamicErr?:(id:string, err:any)=>void;
+    onFieldsErr?:(id:string, err:any)=>void;
+}
+
+export const query_object = (param:query_object_param) => {
+    if (param.id) {
+      if(param?.onBegin) param.onBegin(param.id);
+      Protocol.Client().getObject({id:param.id, options:{showContent:true, showType:true}}).then((res) => {
+        if (res.error) {
+            if(param?.onObjectErr) param.onObjectErr(param.id, res.error);
+        } else {
+            if(param?.onObjectRes) param.onObjectRes(param.id, res);
+        }
+      }).catch((err) => {
+        console.log(err)
+        if (param?.onObjectErr) param.onObjectErr(param.id, err);
+      });
+
+      Protocol.Client().getDynamicFields({parentId:param.id}).then((res) => {
+        if (param?.onDynamicRes) param.onDynamicRes(param.id, res);
+        
+        if (res.data.length > 0) {
+          Protocol.Client().multiGetObjects({ids:res.data.map(v => v.objectId), options:{showContent:true}}).then((fields) => {
+            if (param?.onFieldsRes) param.onFieldsRes(param.id, fields);
+          }).catch((err) => {
+            console.log(err)
+            if (param?.onFieldsErr) param.onFieldsErr(param.id, err);
+          })          
+        } 
+      }).catch((err) => {
+        console.log(err)
+        if (param?.onDynamicErr) param.onDynamicErr(param.id, err);
+      })
+    }
+  }

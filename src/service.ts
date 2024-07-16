@@ -1,6 +1,6 @@
 import { bcs, BCS, toHEX, fromHEX, getSuiMoveConfig } from '@mysten/bcs';
 import { IsValidArray, IsValidPercent, IsValidName_AllowEmpty, Bcs, array_unique, IsValidTokenType, IsValidDesription, 
-    IsValidAddress, IsValidEndpoint, OptionNone, IsValidUint, IsValidInt, IsValidName, } from './utils'
+    IsValidAddress, IsValidEndpoint, OptionNone, IsValidUintLarge, IsValidInt, IsValidName, } from './utils'
 import { FnCallType, GuardObject, PassportObject, PermissionObject, RepositoryObject, MachineObject, ServiceAddress, 
     ServiceObject, DiscountObject, OrderObject, OrderAddress, CoinObject, Protocol, ValueType,
     TxbObject} from './protocol';
@@ -211,7 +211,7 @@ export class Service {
         if (!IsValidName(item)) {
             ERROR(Errors.IsValidName, 'item')
         }
-        if (!IsValidUint(stock_add)) {
+        if (!IsValidUintLarge(stock_add)) {
             ERROR(Errors.IsValidUint, 'stock_add')
         }
 
@@ -236,7 +236,7 @@ export class Service {
         if (!IsValidName(item)) {
             ERROR(Errors.IsValidName, 'item')
         }
-        if (!IsValidUint(stock_reduce)) {
+        if (!IsValidUintLarge(stock_reduce)) {
             ERROR(Errors.IsValidUint, 'stock_reduce')
         }
 
@@ -324,10 +324,9 @@ export class Service {
         }
     }
     repository_remove(repository_address:string[], removeall?:boolean, passport?:PassportObject) {
-        if (!removeall && repository_address.length===0) {
-            return
-        }
-        if (repository_address && !IsValidArray(repository_address, IsValidAddress)) {
+        if (!removeall && repository_address.length===0)  return;
+        
+        if (!IsValidArray(repository_address, IsValidAddress)) {
             ERROR(Errors.IsValidArray,  'repository_address');
         }
 
@@ -366,6 +365,8 @@ export class Service {
     }
 
     add_withdraw_guards(guards:Service_Guard_Percent[], passport?:PassportObject) {
+        if (guards.length === 0) return;
+
         let bValid = true;
         guards.forEach((v) => {
             if (!Protocol.IsValidObjects([v.guard])) bValid  = false;
@@ -399,7 +400,7 @@ export class Service {
             return
         }
 
-        if (guard_address && !IsValidArray(guard_address, IsValidAddress)) {
+        if (!IsValidArray(guard_address, IsValidAddress)) {
             ERROR(Errors.IsValidArray, 'guard_address')
         }
 
@@ -437,6 +438,8 @@ export class Service {
         }
     }
     add_refund_guards(guards:Service_Guard_Percent[], passport?:PassportObject) {
+        if (guards.length === 0) return;
+
         let bValid = true;
         guards.forEach((v) => {
             if (!Protocol.IsValidObjects([v.guard])) bValid = false;
@@ -466,10 +469,8 @@ export class Service {
         })
     }
     remove_refund_guards(guard_address:string[], removeall?:boolean, passport?:PassportObject) {
-        if (guard_address.length===0 && !removeall) {
-            return
-        }
-        if (guard_address && !IsValidArray(guard_address, IsValidAddress)) {
+        if (guard_address.length===0 && !removeall) return ;
+        if (!IsValidArray(guard_address, IsValidAddress)) {
             ERROR(Errors.InvalidParam, 'guard_address')
         }
 
@@ -512,22 +513,24 @@ export class Service {
         sales.forEach((v) => {
             if (!IsValidName(v.item)) bValid = false;
             if (!IsValidInt(v.price)) bValid = false;
-            if (!IsValidUint(v.stock)) bValid = false;
+            if (!IsValidUintLarge(v.stock)) bValid = false;
             if (names.includes(v.item)) bValid = false;
             names.push(v.item)
         })
         return bValid
     }
 
-    add_sale(sales:Service_Sale[], bExistAssert:boolean=false, passport?:PassportObject) {
-        if (!sales || !this.is_valid_sale(sales)) {
-            ERROR(Errors.InvalidParam, 'add_sale')
+    add_sales(sales:Service_Sale[], bExistAssert:boolean=false, passport?:PassportObject) {
+        if (sales.length === 0) return;
+
+        if (!this.is_valid_sale(sales)) {
+            ERROR(Errors.InvalidParam, 'add_sales')
         }
         
         let names: string[]  = []; let price: number[] = []; let stock: number[] = []; let endpoint: string[] = [];
         sales.forEach((s) => {
             if (s.endpoint && !IsValidEndpoint(s.endpoint)) {
-                ERROR(Errors.IsValidEndpoint, 'add_sale')
+                ERROR(Errors.IsValidEndpoint, 'add_sales')
             }
             names.push(s.item); price.push(s.price); stock.push(s.stock); endpoint.push(s.endpoint ?? '')
         })
@@ -554,12 +557,11 @@ export class Service {
             })
         }
     }
-    remove_sales(sales?:string[], passport?:PassportObject) {
-        if (!sales) {
-            ERROR(Errors.AllInvalid, 'sales & removeall')
-        }
-        if (sales && !IsValidArray(sales, IsValidName)) {
-            ERROR(Errors.IsValidArray, 'sales')
+    remove_sales(sales:string[], passport?:PassportObject) {
+        if (sales.length === 0) return;
+
+        if (!IsValidArray(sales, IsValidName)) {
+            ERROR(Errors.IsValidArray, 'remove_sales')
         }
 
         let txb = this.protocol.CurrentSession();
@@ -588,11 +590,11 @@ export class Service {
         let bValid = true;
         discount_dispatch.forEach((v) => {
             if (!IsValidAddress(v.receiver)) bValid = false;
-            if (!IsValidUint(v.count) || v.count > Service.MAX_DISCOUNT_COUNT_ONCE) bValid = false;
+            if (!IsValidUintLarge(v.count) || v.count > Service.MAX_DISCOUNT_COUNT_ONCE) bValid = false;
             if (!IsValidName_AllowEmpty(v.discount.name)) bValid = false;
             if (v.discount.type == Service_Discount_Type.ratio && !IsValidPercent(v.discount.off)) bValid = false;
-            if (!IsValidUint(v.discount.duration_minutes)) bValid = false;
-            if (v.discount?.time_start && !IsValidUint(v.discount.time_start)) bValid = false;
+            if (!IsValidUintLarge(v.discount.duration_minutes)) bValid = false;
+            if (v.discount?.time_start && !IsValidUintLarge(v.discount.time_start)) bValid = false;
             if (v.discount?.price_greater && !IsValidInt(v.discount.price_greater))  bValid = false;
         })
         if (!bValid) {
@@ -932,7 +934,7 @@ export class Service {
         buy_items.forEach((v) => {
             if (!IsValidName(v.item)) bValid = false;
             if (!IsValidInt(v.max_price)) bValid = false;
-            if (!IsValidUint(v.count)) bValid = false;
+            if (!IsValidUintLarge(v.count)) bValid = false;
             if (names.includes(v.item)) bValid = false;
             names.push(v.item)
         })

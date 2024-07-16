@@ -1,7 +1,7 @@
 import { type TransactionResult } from '@mysten/sui.js/transactions';
 import { BCS } from '@mysten/bcs';
 import { FnCallType, Protocol, PassportObject, PermissionObject, GuardObject, DemandAddress, TxbObject, ResourceObject} from './protocol';
-import { IsValidDesription, IsValidUint, IsValidAddress, IsValidArgType, } from './utils'
+import { IsValidDesription, IsValidUintLarge, IsValidAddress, IsValidArgType, } from './utils'
 import { Errors, ERROR}  from './exception'
 import { Resource } from './resource'
 
@@ -94,7 +94,7 @@ export class Demand {
     
     // minutes_duration TRUE , time is minutes count; otherwise, the deadline time
     expand_time(minutes_duration:boolean, time: number, passport?:PassportObject) {
-        if (!IsValidUint(time)) {
+        if (!IsValidUintLarge(time)) {
             ERROR(Errors.IsValidUint, 'time');
         }
 

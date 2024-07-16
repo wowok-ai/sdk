@@ -36,6 +36,14 @@ export class Resource {
         return r
     }
 
+    launch() {
+        if (!this.object) ERROR(Errors.Fail, 'launch object Invalid');
+        let txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target:this.protocol.ResourceFn('create')  as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(txb, this.object)]
+        });
+    }
     add(name:string, object:string[])  {
         if (!IsValidName(name)) ERROR(Errors.IsValidName, 'add');
         if (!object) ERROR(Errors.InvalidParam, 'add')

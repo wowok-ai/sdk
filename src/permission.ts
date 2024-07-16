@@ -1,6 +1,6 @@
 import { BCS } from '@mysten/bcs';
 import { FnCallType, TxbObject, PermissionObject, PermissionAddress, GuardObject, Protocol} from './protocol';
-import { array_unique, IsValidAddress, IsValidArray,  IsValidDesription, IsValidUint, Bcs, IsValidName} from './utils';
+import { array_unique, IsValidAddress, IsValidArray,  IsValidDesription, IsValidUintLarge, Bcs, IsValidName} from './utils';
 import { ERROR, Errors } from './exception';
 import { ValueType } from './protocol';
 
@@ -255,9 +255,8 @@ export class  Permission {
     }
 
     add_entity2(entities: string[], index?:PermissionIndexType) {
-        if (!entities) {
-            ERROR(Errors.InvalidParam, 'add_entity2');
-        }
+        if (entities.length === 0) return;
+
         if (!IsValidArray(entities, IsValidAddress)) {
             ERROR(Errors.IsValidArray, 'add_entity2');
         }
@@ -410,11 +409,8 @@ export class  Permission {
     }
 
     remove_admin(admin:string[], removeall?:boolean)  {
-        if (!removeall &&  admin.length === 0) {
-            return
-        }
-
-        if (admin && !IsValidArray(admin, IsValidAddress)) {
+        if (!removeall &&  admin.length === 0)  return
+        if (!IsValidArray(admin, IsValidAddress)) {
             ERROR(Errors.IsValidArray, 'admin')
         }
 
@@ -450,7 +446,7 @@ export class  Permission {
     static MAX_PERMISSION_INDEX_COUNT = 200;
     static MAX_PERSONAL_PERMISSION_COUNT = 200; 
     static IsValidUserDefinedIndex = (index:number)  => { 
-        return index >= PermissionIndex.user_defined_start && IsValidUint(index)
+        return index >= PermissionIndex.user_defined_start && IsValidUintLarge(index)
     }
     
     static IsValidPermissionIndex = (index:PermissionIndexType) : boolean  => {

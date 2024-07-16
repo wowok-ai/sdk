@@ -14,6 +14,25 @@ export type ProgressNext = {
 export type ParentProgress = {
     parent_id: string;
     parent_session_id: number;
+    next_node: string;
+    forward: string;
+}
+
+export interface Holder {
+    forward: string;
+    who?:string;
+    sub_progress?:string;
+    deliverables?:string;
+    accomplished:boolean;
+}
+export interface Session {
+    id?:number; // for parent progress's history
+    next_node: string;
+    holders: Holder[];
+    weights: number;
+    threshold: number;
+    node?:string;
+    bComplete?: boolean;
 }
 
 export class Progress {
@@ -91,7 +110,7 @@ export class Progress {
         if (!IsValidName(name)) {
             ERROR(Errors.IsValidName, 'name')
         }
-        if (!addresses || addresses.length > Progress.MAX_NAMED_OPERATOR_COUNT || !IsValidArray(addresses, IsValidAddress)) {
+        if (addresses.length > Progress.MAX_NAMED_OPERATOR_COUNT || !IsValidArray(addresses, IsValidAddress)) {
             ERROR(Errors.InvalidParam, 'addresses')
         }
 
@@ -190,45 +209,52 @@ export class Progress {
             })           
         }
     }
+    parent_none(passport?:PassportObject) {
+        let txb = this.protocol.CurrentSession();
+        if (passport) {
+            txb.moveCall({
+                target:this.protocol.ProgressFn('parent_none_with_passport') as FnCallType,
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), 
+                    Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
+            }) 
+        } else {
+            txb.moveCall({
+                target:this.protocol.ProgressFn('parent_none') as FnCallType,
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine), 
+                    Protocol.TXB_OBJECT(txb, this.permission)],
+            }) 
+        }
+    }
 
     parent(parent:ParentProgress, passport?:PassportObject)  {
         if (!IsValidAddress(parent.parent_id) || !IsValidInt(parent.parent_session_id)) {
             ERROR(Errors.InvalidParam, 'parent')
         }
+        if (!parent.next_node || !parent.forward) {
+            ERROR(Errors.InvalidParam, 'parent')
+        }
 
         let txb = this.protocol.CurrentSession();
         if (passport) {
-            if (parent.parent_id) {
-                txb.moveCall({
-                    target:this.protocol.ProgressFn('parent_set_with_passport') as FnCallType,
-                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine), 
-                        txb.pure(parent.parent_id, BCS.ADDRESS), 
-                        txb.pure(parent.parent_session_id, BCS.U64), 
-                        Protocol.TXB_OBJECT(txb, this.permission)],
-                })  
-            } else {
-                txb.moveCall({
-                    target:this.protocol.ProgressFn('parent_none_with_passport') as FnCallType,
-                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), 
-                        Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
-                }) 
-            }
+            txb.moveCall({
+                target:this.protocol.ProgressFn('parent_set_with_passport') as FnCallType,
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine), 
+                    txb.pure(parent.parent_id, BCS.ADDRESS), 
+                    txb.pure(parent.parent_session_id, BCS.U64), 
+                    txb.pure(parent.next_node, BCS.STRING),
+                    txb.pure(parent.forward, BCS.STRING),
+                    Protocol.TXB_OBJECT(txb, this.permission)],
+            })  
         } else {
-            if (parent.parent_id) {
-                txb.moveCall({
-                    target:this.protocol.ProgressFn('parent_set') as FnCallType,
-                    arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine), 
-                        txb.pure(parent.parent_id, BCS.ADDRESS), 
-                        txb.pure(parent.parent_session_id, BCS.U64), 
-                        Protocol.TXB_OBJECT(txb, this.permission)],
-                })  
-            } else {
-                txb.moveCall({
-                    target:this.protocol.ProgressFn('parent_none') as FnCallType,
-                    arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine), 
-                        Protocol.TXB_OBJECT(txb, this.permission)],
-                }) 
-            } 
+            txb.moveCall({
+                target:this.protocol.ProgressFn('parent_set') as FnCallType,
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine), 
+                    txb.pure(parent.parent_id, BCS.ADDRESS), 
+                    txb.pure(parent.parent_session_id, BCS.U64), 
+                    txb.pure(parent.next_node, BCS.STRING),
+                    txb.pure(parent.forward, BCS.STRING),
+                    Protocol.TXB_OBJECT(txb, this.permission)],
+            })  
         }
     }
 
@@ -276,9 +302,41 @@ export class Progress {
                 txb.pure(next.forward), txb.pure(hold, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
         })  
     }
-    static MAX_NAMED_OPERATOR_COUNT = 100;
+    static rpc_de_sessions = (session: any) : Session[] => {
+        let sessions : Session[] = [];
+        session?.fields?.contents?.forEach((v:any) => {
+            var s:Session = {next_node: v.fields.key, holders:[], weights:v.fields.value.fields.weights, threshold:v.fields.value.fields.threshold};
+            v.fields.value.fields.forwards.fields.contents.forEach((i:any) => {
+              s.holders.push({forward:i.fields.key, accomplished:i.fields.value.fields.accomplished, 
+                who:i.fields.value.fields.who, deliverables:i.fields.value.fields.deliverables ?? undefined,
+                sub_progress: i.fields.value.fields.sub_progress ?? undefined
+              })
+            })
+            sessions.push(s);
+        })
+        return sessions;
+    }
+
+    static rpc_de_history = (fields: any) : Session[] => {
+        let sessions : Session[] = [];
+        fields?.forEach((v:any) => {
+          const next_node = v.data.content.fields.value.fields.next_node;
+          v.data.content.fields.value.fields.session.fields.contents.forEach((i:any) => {
+            var s:Session = {id:v.data.content.fields.name,
+                node:v.data.content.fields.value.fields.node, next_node: i.fields.key, holders:[], 
+              weights:i.fields.value.fields.weights, threshold:i.fields.value.fields.threshold, bComplete:i.fields.key === next_node};
+              i.fields.value.fields.forwards.fields.contents.forEach((k:any) => {
+              s.holders.push({forward:k.fields.key, who:k.fields.value.fields.who, accomplished:k.fields.value.fields.accomplished,
+                sub_progress:k.fields.value.fields.sub_progress ?? undefined, deliverables:k.fields.value.fields.deliverables ?? undefined});
+            })
+            sessions.push(s);
+          })
+        })
+        return sessions;
+    }
+
+    static MAX_NAMED_OPERATOR_COUNT = 20;
     static IsValidProgressNext = (next:ProgressNext) => {
         return IsValidName(next.forward)  && IsValidName(next.next_node_name);
     }
-    
 }

@@ -1,7 +1,7 @@
 import { BCS } from '@mysten/bcs';
 import { Protocol, FnCallType, ValueType, RepositoryValueType, RepositoryAddress, PermissionObject, PassportObject, TxbObject} from './protocol';
 import { PermissionIndexType, Permission } from './permission'
-import { Bcs, array_unique, IsValidDesription, IsValidAddress, IsValidArray, OptionNone, IsValidName,  } from './utils';
+import { Bcs, array_unique, IsValidDesription, IsValidAddress, IsValidArray, OptionNone, IsValidName,  ValueTypeConvert} from './utils';
 import { ERROR, Errors } from './exception';
 import { Resource } from './resource';
 
@@ -10,6 +10,13 @@ export enum Repository_Policy_Mode {
     POLICY_MODE_STRICT = 1,
 }
 
+export interface RepData {
+    id: string;
+    name: string;
+    dataType?: RepositoryValueType;
+    data?: Uint8Array;
+    object: string;
+}
 
 export type Repository_Policy = {
     key:string;
@@ -143,14 +150,11 @@ export class Repository {
         })  
     }
     add_reference(references:string[], passport?:PassportObject) {
-        if (!references) {
-            ERROR(Errors.InvalidParam, 'add_reference')
-        }
-
+        if (references.length === 0)  return;
         if (!IsValidArray(references, IsValidAddress)) {
             ERROR(Errors.IsValidArray, 'add_reference')
         }
-        console.log(array_unique(references))
+
         let txb = this.protocol.CurrentSession();
         if (passport) {
             txb.moveCall({
@@ -169,11 +173,9 @@ export class Repository {
         }
     }
     remove_reference(references:string[], removeall?:boolean, passport?:PassportObject) {
-        if (references.length === 0 && !removeall) {
-            return
-        }
+        if (references.length === 0 && !removeall)  return
 
-        if (references && !IsValidArray(references, IsValidAddress)) {
+        if (!IsValidArray(references, IsValidAddress)) {
             ERROR(Errors.IsValidArray, 'remove_reference')
         }
 
@@ -212,9 +214,7 @@ export class Repository {
     }
     // add or modify the old 
     add_policies(policies:Repository_Policy[], passport?:PassportObject)  {
-        if (!policies) {
-            ERROR(Errors.InvalidParam, 'policies')
-        }
+        if (policies.length === 0) return;
 
         let bValid = true;
         policies.forEach((p) => {
@@ -252,10 +252,8 @@ export class Repository {
     }
 
     remove_policies(policy_keys:string[], passport?:PassportObject)  {
-        if (!policy_keys) {
-            ERROR(Errors.AllInvalid, 'policy_keys & removeall')
-        }
-        if (policy_keys && !IsValidArray(policy_keys, Repository.IsValidName)){
+        if (policy_keys.length === 0) return ;
+        if (!IsValidArray(policy_keys, Repository.IsValidName)){
             ERROR(Errors.InvalidParam, 'policy_keys')
         }
 
@@ -420,6 +418,35 @@ export class Repository {
             }
         }
         return '';
+    }
+
+    static rpc_de_data(fields:any) : RepData [] {
+        const rep: RepData[] = fields?.map((v:any) => {
+            const value = new Uint8Array((v?.data?.content?.fields as any)?.value);
+            const type = value?.length > 0 ? value[0] as ValueType : null;
+            var d : any = value.length > 0 ? value.slice(1) : Uint8Array.from([]);
+            if (type === ValueType.TYPE_STRING) {
+                d = Bcs.getInstance().de(ValueType.TYPE_VEC_U8, d);
+                d = new TextDecoder().decode(Uint8Array.from(d));
+            } else if (type === ValueType.TYPE_VEC_STRING) {
+                d = Bcs.getInstance().de(ValueType.TYPE_VEC_VEC_U8, d) as [];
+                d = d.map((i:any) => {
+                    return new TextDecoder().decode(Uint8Array.from(i));
+                })
+            } else {
+                d = Bcs.getInstance().de(value[0], d);
+                if (type === ValueType.TYPE_ADDRESS) {
+                    d = '0x' + d;
+                } else if (type === ValueType.TYPE_VEC_ADDRESS) {
+                    d = d.map((v:string) => { return ('0x' + v) } );
+                }
+            };
+            return {object:v?.data?.content?.fields?.id?.id, id:(v?.data?.content?.fields as any)?.name?.fields?.id, 
+                name:(v?.data?.content?.fields as any)?.name?.fields?.key, 
+                data:d, dataType: ValueTypeConvert(type)
+            }
+        });
+        return rep;
     }
 }
 
