@@ -233,14 +233,14 @@ export class Demand {
             txb.moveCall({
                 target:this.protocol.DemandFn('present_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, service_address), 
-                    txb.pure(tips, BCS.STRING)],
+                    txb.pure(tips)],
                 typeArguments:[this.bounty_type, service_pay_type],
             })   
         } else {
             txb.moveCall({
                 target:this.protocol.DemandFn('present') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, service_address), 
-                    txb.pure(tips, BCS.STRING)],
+                    txb.pure(tips)],
                 typeArguments:[this.bounty_type, service_pay_type],
             })   
         } 

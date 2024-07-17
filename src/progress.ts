@@ -118,14 +118,14 @@ export class Progress {
         if (passport) {
             txb.moveCall({
                 target:this.protocol.ProgressFn('namedOperator_set_with_passport') as FnCallType,
-                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(name, BCS.STRING), 
+                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(name), 
                     txb.pure(array_unique(addresses), 'vector<address>'), 
                 Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
             })  
         } else {
             txb.moveCall({
                 target:this.protocol.ProgressFn('namedOperator_set') as FnCallType,
-                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(name, BCS.STRING), 
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(name), 
                     txb.pure(array_unique(addresses), 'vector<address>'), 
                 Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
             })  
@@ -151,7 +151,6 @@ export class Progress {
                     Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
             })   
         } 
-        
     }
     set_context_repository(repository?:RepositoryObject, passport?:PassportObject)  {
         if (repository && !Protocol.IsValidObjects([repository])) {
@@ -241,8 +240,8 @@ export class Progress {
                 arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine), 
                     txb.pure(parent.parent_id, BCS.ADDRESS), 
                     txb.pure(parent.parent_session_id, BCS.U64), 
-                    txb.pure(parent.next_node, BCS.STRING),
-                    txb.pure(parent.forward, BCS.STRING),
+                    txb.pure(parent.next_node),
+                    txb.pure(parent.forward),
                     Protocol.TXB_OBJECT(txb, this.permission)],
             })  
         } else {
@@ -251,8 +250,8 @@ export class Progress {
                 arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine), 
                     txb.pure(parent.parent_id, BCS.ADDRESS), 
                     txb.pure(parent.parent_session_id, BCS.U64), 
-                    txb.pure(parent.next_node, BCS.STRING),
-                    txb.pure(parent.forward, BCS.STRING),
+                    txb.pure(parent.next_node),
+                    txb.pure(parent.forward),
                     Protocol.TXB_OBJECT(txb, this.permission)],
             })  
         }
@@ -277,15 +276,15 @@ export class Progress {
             txb.moveCall({
                 target:this.protocol.ProgressFn('next_with_passport') as FnCallType,
                 arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine), 
-                    txb.pure(next.next_node_name, BCS.STRING), 
-                    txb.pure(next.forward, BCS.STRING), diliverable, sub, 
+                    txb.pure(next.next_node_name), 
+                    txb.pure(next.forward), diliverable, sub, 
                     Protocol.TXB_OBJECT(txb, this.permission)],
             })    
         } else {
             txb.moveCall({
                 target:this.protocol.ProgressFn('next') as FnCallType,
-                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine), txb.pure(next.next_node_name, BCS.STRING), 
-                    txb.pure(next.forward, BCS.STRING), diliverable, sub, Protocol.TXB_OBJECT(txb, this.permission)],
+                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine), txb.pure(next.next_node_name), 
+                    txb.pure(next.forward), diliverable, sub, Protocol.TXB_OBJECT(txb, this.permission)],
             })               
         }
     }

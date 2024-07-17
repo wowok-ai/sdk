@@ -3,7 +3,7 @@ import { Protocol, FnCallType, ValueType, RepositoryValueType, RepositoryAddress
 import { PermissionIndexType, Permission } from './permission'
 import { Bcs, array_unique, IsValidDesription, IsValidAddress, IsValidArray, OptionNone, IsValidName,  ValueTypeConvert} from './utils';
 import { ERROR, Errors } from './exception';
-import { Resource } from './resource';
+import { MAX_U8, MAX_U128, MAX_U256, MAX_U64 } from './utils';
 
 export enum Repository_Policy_Mode {
     POLICY_MODE_FREE = 0,
@@ -13,8 +13,8 @@ export enum Repository_Policy_Mode {
 export interface RepData {
     id: string;
     name: string;
-    dataType?: RepositoryValueType;
-    data?: Uint8Array;
+    dataType: RepositoryValueType;
+    data: string | string[];
     object: string;
 }
 
@@ -284,14 +284,14 @@ export class Repository {
             txb.moveCall({
                 target:this.protocol.RepositoryFn('policy_rename_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), 
-                    txb.pure(policy_key, BCS.STRING), txb.pure(new_policy_key, BCS.STRING), 
+                    txb.pure(policy_key), txb.pure(new_policy_key), 
                     Protocol.TXB_OBJECT(txb, this.permission)]
             })     
         } else {
             txb.moveCall({
                 target:this.protocol.RepositoryFn('policy_rename') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb, this.object), 
-                    txb.pure(policy_key, BCS.STRING), txb.pure(new_policy_key, BCS.STRING), 
+                    txb.pure(policy_key), txb.pure(new_policy_key), 
                     Protocol.TXB_OBJECT(txb, this.permission)]
             })       
         }
@@ -447,6 +447,66 @@ export class Repository {
             }
         });
         return rep;
+    }
+
+    static DataType2ValueType(data:string) : ValueType | undefined{
+        try {
+            const value = BigInt(data);
+            var t = ValueType.TYPE_U8;
+            if (value <= MAX_U8) {
+            } else if (value <= MAX_U64) {
+                t = ValueType.TYPE_U64;
+            } else if (value <= MAX_U128) {
+                t = ValueType.TYPE_U128;
+            } else if (value <= MAX_U256) {
+                t = ValueType.TYPE_U256;
+            } else {
+                return undefined
+            }
+        } catch (e) {
+            console.log(e)
+        } return undefined
+    }
+
+    static ResolveRepositoryData = (dataType:RepositoryValueType, data:string | string[]) : {type:ValueType, data: Uint8Array} | undefined =>  {
+        if (dataType === RepositoryValueType.String) { 
+            return {type: ValueType.TYPE_STRING, data: Bcs.getInstance().ser(ValueType.TYPE_VEC_U8, new TextEncoder().encode(data.toString()))}
+       } else if (dataType === RepositoryValueType.PositiveNumber) {
+            const t = Repository.DataType2ValueType(data as string);
+            if (!t) return undefined;
+            return {type:t, data:Bcs.getInstance().ser(t, data)}
+       } else if (dataType === RepositoryValueType.Address) {
+            if (!IsValidAddress(data as string)) return undefined;
+            return {type:ValueType.TYPE_ADDRESS, data:Bcs.getInstance().ser(ValueType.TYPE_ADDRESS, data)}
+       } else if (dataType === RepositoryValueType.Address_Vec) {
+            for(let i = 0; i < (data as string[]).length; ++i) {
+                if (!IsValidAddress((data as string[])[i])) return undefined; 
+            }
+            return {type:ValueType.TYPE_VEC_ADDRESS, data:Bcs.getInstance().ser(ValueType.TYPE_VEC_ADDRESS, data)}
+       } else if (dataType === RepositoryValueType.PositiveNumber_Vec) {
+            let type = ValueType.TYPE_U8;
+            for(let i = 0; i < (data as string[]).length; ++i) {
+                const t = Repository.DataType2ValueType(data as string);
+                if (!t) return undefined;
+                if (t > type) type = t;
+            }
+            if (type === ValueType.TYPE_U8) { 
+                type  = ValueType.TYPE_VEC_U8;
+            } else if (type === ValueType.TYPE_U64) {
+                type = ValueType.TYPE_VEC_U64;
+            } else if (type === ValueType.TYPE_U128) {
+                type = ValueType.TYPE_VEC_U128;
+            } else {
+                type = ValueType.TYPE_VEC_U256;
+            }
+            return {type:type, data:Bcs.getInstance().ser(type, data)}
+       } else if (dataType === RepositoryValueType.String_Vec) {
+            const r = (data as string[]).map((v:string) => {
+                return new TextEncoder().encode(v);
+            })
+            return {type: ValueType.TYPE_VEC_STRING, data: Bcs.getInstance().ser(ValueType.TYPE_VEC_VEC_U8, r)}
+       }
+       return undefined
     }
 }
 

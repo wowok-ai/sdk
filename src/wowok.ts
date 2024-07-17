@@ -28,7 +28,7 @@ export class Wowok {
         let txb = this.protocol.CurrentSession();
         txb.moveCall({
             target:this.protocol.WowokFn('grantor_register') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(name, BCS.STRING), txb.object(Protocol.CLOCK_OBJECT), 
+            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(name), txb.object(Protocol.CLOCK_OBJECT), 
                 Protocol.TXB_OBJECT(txb, grantee_permission)]
         })
     }
@@ -49,7 +49,7 @@ export class Wowok {
         let txb = this.protocol.CurrentSession();
         txb.moveCall({
             target:this.protocol.WowokFn('grantor_time_expand_1year') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(new_name, BCS.STRING)]
+            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(new_name)]
         })
     }
 }

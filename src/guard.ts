@@ -44,7 +44,7 @@ export class Guard {
         // reserve the  bytes for guard
         let guard = txb.moveCall({
             target: protocol.GuardFn('new') as FnCallType,
-            arguments: [txb.pure(description , BCS.STRING), txb.pure([].slice.call(input.reverse()))],  
+            arguments: [txb.pure(description), txb.pure([].slice.call(input.reverse()))],  
         });
 
         constants?.forEach((v, k) => {

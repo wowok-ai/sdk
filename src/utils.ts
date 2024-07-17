@@ -31,35 +31,6 @@ export const ValueTypeConvert = (type:ValueType | null | undefined) : Repository
     return -1;
 }
 
-export const ResolveRepositoryData = (dataType:RepositoryValueType, data:Uint8Array) : {type:ValueType, data: Uint8Array} | undefined =>  {
-    if (dataType === RepositoryValueType.String) { 
-        return {type: ValueType.TYPE_STRING, data: Bcs.getInstance().ser(ValueType.TYPE_VEC_U8, new TextEncoder().encode(data.toString()))}
-   } else if (dataType === RepositoryValueType.PositiveNumber) {
-        try {
-            const value = BigInt(data.toString());
-            var t = ValueType.TYPE_U8;
-            if (value <= MAX_U8) {
-            } else if (value <= MAX_U64) {
-                t = ValueType.TYPE_U64;
-            } else if (value <= MAX_U128) {
-                t = ValueType.TYPE_U128;
-            } else if (value <= MAX_U256) {
-                t = ValueType.TYPE_U256;
-            } else {
-                return undefined
-            }
-        } catch (e) {
-            console.log(e)
-            return undefined
-        }
-        return {type:t, data:Bcs.getInstance().ser(t, data)}
-   } else if (dataType === RepositoryValueType.Address) {
-        return {type:ValueType.TYPE_ADDRESS, data:Bcs.getInstance().ser(ValueType.TYPE_ADDRESS, data)}
-   } 
-   //@ todo vector....
-   return undefined
-}
-
 export const readOption = (arr: number[], de:ValueType) : {bNone:boolean, value:any} => {
     let o = arr.splice(0, 1);
     if (o[0] == 1) { // true
@@ -480,7 +451,7 @@ export const ResolveBalance = (balance:string, decimals:number) : string => {
         let end = balance.slice(Math.abs(pos));
         return start + '.' + end;
     } else {
-        return '.' + balance.padStart(pos, '0');
+        return '.' + balance.padStart(decimals, '0');
     }
 }
 

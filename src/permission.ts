@@ -226,7 +226,7 @@ export class  Permission {
         let txb = this.protocol.CurrentSession();
         txb.moveCall({
             target:this.protocol.PermissionFn('user_define_add') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(index, BCS.U64), txb.pure(name, BCS.STRING)]
+            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(index, BCS.U64), txb.pure(name)]
         })   
     }
     

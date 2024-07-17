@@ -52,7 +52,7 @@ export class Resource {
         let txb = this.protocol.CurrentSession();
         txb.moveCall({
             target:this.protocol.ResourceFn('add')  as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(name, BCS.STRING), txb.pure(object, 'vector<address>')]
+            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(name), txb.pure(object, 'vector<address>')]
         });
     }
 
@@ -76,14 +76,14 @@ export class Resource {
         if (removeall) {
             txb.moveCall({
                 target:this.protocol.ResourceFn('remove_all')  as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(name, BCS.STRING)]
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(name)]
             });
         } else if(object) {
             if (!IsValidArray(object, IsValidAddress)) ERROR(Errors.IsValidArray, 'Resource: remove');
 
             txb.moveCall({
                 target:this.protocol.ResourceFn('remove')  as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(name, BCS.STRING), txb.pure(object, 'vector<address>')]
+                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(name), txb.pure(object, 'vector<address>')]
             });
         }
     }
@@ -106,7 +106,7 @@ export class Resource {
         let txb = this.protocol.CurrentSession();
         txb.moveCall({
             target:this.protocol.ResourceFn('rename')  as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(old_name, BCS.STRING), txb.pure(new_name, BCS.STRING)]
+            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(old_name), txb.pure(new_name)]
         }); 
     }
 
@@ -123,7 +123,7 @@ export class Resource {
         txb.moveCall({
             target:this.protocol.ResourceFn('tags_add')  as FnCallType,
             arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(object, BCS.ADDRESS), 
-                txb.pure(nick, BCS.STRING),
+                txb.pure(nick),
                 txb.pure(tags, 'vector<string>')
             ]
         });

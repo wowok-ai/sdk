@@ -97,7 +97,7 @@ export class Machine {
         nodes.forEach((node) => {
             let n = txb.moveCall({
                 target:this.protocol.MachineFn('node_new') as FnCallType,
-                arguments:[txb.pure(node.name, BCS.STRING)]
+                arguments:[txb.pure(node.name)]
             }); 
             node.pairs.forEach((pair) => {
                 let threshold = pair?.threshold ? txb.pure(Bcs.getInstance().ser_option_u32(pair.threshold)) : OptionNone(txb);
@@ -172,13 +172,13 @@ export class Machine {
         if (passport) {
             return txb.moveCall({
                 target:this.protocol.MachineFn('node_fetch_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb,  this.object), txb.pure(node_name, BCS.STRING), 
+                arguments:[passport, Protocol.TXB_OBJECT(txb,  this.object), txb.pure(node_name), 
                     Protocol.TXB_OBJECT(txb, this.permission)],
             });  
         } else {
             return txb.moveCall({
                 target:this.protocol.MachineFn('node_fetch') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb,  this.object), txb.pure(node_name, BCS.STRING), Protocol.TXB_OBJECT(txb, this.permission)],
+                arguments:[Protocol.TXB_OBJECT(txb,  this.object), txb.pure(node_name), Protocol.TXB_OBJECT(txb, this.permission)],
             });
         } 
     }
@@ -193,14 +193,14 @@ export class Machine {
             txb.moveCall({
                 target:this.protocol.MachineFn('node_rename_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(txb,  this.object), 
-                    txb.pure(node_name, BCS.STRING), txb.pure(new_name, BCS.STRING),
+                    txb.pure(node_name), txb.pure(new_name),
                     Protocol.TXB_OBJECT(txb, this.permission)],
             });  
         } else {
             txb.moveCall({
                 target:this.protocol.MachineFn('node_rename') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(txb,  this.object), 
-                    txb.pure(node_name, BCS.STRING), txb.pure(new_name, BCS.STRING),
+                    txb.pure(node_name), txb.pure(new_name),
                     Protocol.TXB_OBJECT(txb, this.permission)],
             });
         } 
@@ -405,20 +405,20 @@ export class Machine {
         if (passport) {
             n = txb.moveCall({
                 target:this.protocol.MachineFn('node_fetch_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb,  this.object), txb.pure(node_name, BCS.STRING), Protocol.TXB_OBJECT(txb, this.permission)],
+                arguments:[passport, Protocol.TXB_OBJECT(txb,  this.object), txb.pure(node_name), Protocol.TXB_OBJECT(txb, this.permission)],
             })
 
         } else {
             n = txb.moveCall({
                 target:this.protocol.MachineFn('node_fetch') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb,  this.object), txb.pure(node_name, BCS.STRING), Protocol.TXB_OBJECT(txb, this.permission)],
+                arguments:[Protocol.TXB_OBJECT(txb,  this.object), txb.pure(node_name), Protocol.TXB_OBJECT(txb, this.permission)],
             })
         }
         const f = this.forward(foward);
         const t = threshold ? txb.pure(Bcs.getInstance().ser_option_u32(threshold)) : OptionNone(txb);
         txb.moveCall({
             target:this.protocol.MachineFn('forward_add') as FnCallType,
-            arguments:[n, txb.pure(node_prior, BCS.STRING), txb.pure(foward.name, BCS.STRING), t, f],
+            arguments:[n, txb.pure(node_prior), txb.pure(foward.name), t, f],
         })
     }
 
@@ -431,18 +431,18 @@ export class Machine {
         if (passport) {
             n = txb.moveCall({
                 target:this.protocol.MachineFn('node_fetch_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(node_name, BCS.STRING), Protocol.TXB_OBJECT(txb, this.permission)],
+                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(node_name), Protocol.TXB_OBJECT(txb, this.permission)],
             })
 
         } else {
             n = txb.moveCall({
                 target:this.protocol.MachineFn('node_fetch') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb,  this.object), txb.pure(node_name, BCS.STRING), Protocol.TXB_OBJECT(txb, this.permission)],
+                arguments:[Protocol.TXB_OBJECT(txb,  this.object), txb.pure(node_name), Protocol.TXB_OBJECT(txb, this.permission)],
             })
         }
         txb.moveCall({
             target:this.protocol.MachineFn('forward_remove') as FnCallType,
-            arguments:[n, txb.pure(node_prior, BCS.STRING), txb.pure(foward_name, BCS.STRING)],
+            arguments:[n, txb.pure(node_prior), txb.pure(foward_name)],
         })
     }
 

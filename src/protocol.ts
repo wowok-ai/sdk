@@ -79,8 +79,8 @@ export enum OperatorType {
 export enum ValueType {
     TYPE_BOOL = 100,
     TYPE_ADDRESS = 101,
-    TYPE_U64 = 102,
-    TYPE_U8 = 103,
+    TYPE_U8 = 102,
+    TYPE_U64 = 103,
     TYPE_VEC_U8 = 104,
     TYPE_U128 = 105,
     TYPE_VEC_ADDRESS = 106,
@@ -111,11 +111,11 @@ export enum RepositoryValueType {
 }
 
 export const RepositoryValueTypeInfo = [
-    {type: RepositoryValueType.Address, name:'Address', description:'Object id or Personal address.'},
-    {type: RepositoryValueType.Address_Vec, name:'Address vector', description:'Vector of address.'},
     {type: RepositoryValueType.String, name:'String', description:'String.'},
-    {type: RepositoryValueType.String_Vec, name:'String vector',  description:'Vector of string.'},
+    {type: RepositoryValueType.Address, name:'Address', description:'Object id or Personal address.'},
     {type: RepositoryValueType.PositiveNumber, name:'Positive number or Zero', description:'Positive number or 0. including u8, u16 ,..., u256'},
+    {type: RepositoryValueType.String_Vec, name:'String vector',  description:'Vector of string.'},
+    {type: RepositoryValueType.Address_Vec, name:'Address vector', description:'Vector of address.'},
     {type: RepositoryValueType.PositiveNumber_Vec, name:'Positive number or Zero vector', description:'Vector of positive number or 0'},
 ]
 

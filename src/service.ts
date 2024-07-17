@@ -113,7 +113,7 @@ export class Service {
         } else {
             s.object = txb.moveCall({
                 target:protocol.ServiceFn('new') as FnCallType,
-                arguments:[txb.pure(description, BCS.STRING), txb.pure(payee_address, BCS.ADDRESS), ep, Protocol.TXB_OBJECT(txb, permission)],
+                arguments:[txb.pure(description), txb.pure(payee_address, BCS.ADDRESS), ep, Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments:[pay_token_type],
             })
         }
