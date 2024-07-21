@@ -270,7 +270,7 @@ export class Demand {
         return '';
     }
 
-    static MAX_BOUNTY_COUNT = 200;
+    static MAX_BOUNTY_COUNT = 300;
     static MAX_PRESENTERS_COUNT = 200;
 }
 

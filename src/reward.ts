@@ -331,6 +331,6 @@ export class Reward {
         }
         return '';
     }
-    static MAX_PORTIONS_COUNT = 255;
+    static MAX_PORTIONS_COUNT = 600;
     static MAX_GUARD_COUNT = 16;
 }

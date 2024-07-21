@@ -53,23 +53,24 @@ export class Progress {
         p.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object);
         return p
     }
-    static New(protocol:Protocol, machine:MachineObject, permission:PermissionObject, passport?:PassportObject) : Progress {
+    static New(protocol:Protocol, machine:MachineObject, permission:PermissionObject, task?:string, passport?:PassportObject) : Progress {
         if (!Protocol.IsValidObjects([machine, permission])) {
             ERROR(Errors.IsValidObjects, 'machine & permission')
         }
 
         let p = new Progress(protocol, machine, permission);
         let txb = protocol.CurrentSession();
+        let t = task? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_ADDRESS, task)) : OptionNone(txb);
 
         if (passport) {
             p.object = txb.moveCall({
                 target:protocol.ProgressFn('new_with_passport') as FnCallType,
-                arguments: [passport, Protocol.TXB_OBJECT(txb, machine), Protocol.TXB_OBJECT(txb, permission)],
+                arguments: [passport, t, Protocol.TXB_OBJECT(txb, machine), Protocol.TXB_OBJECT(txb, permission)],
             })    
         } else {
             p.object = txb.moveCall({
                 target:protocol.ProgressFn('new') as FnCallType,
-                arguments: [Protocol.TXB_OBJECT(txb, machine), Protocol.TXB_OBJECT(txb, permission)],
+                arguments: [t, Protocol.TXB_OBJECT(txb, machine), Protocol.TXB_OBJECT(txb, permission)],
             })    
         }
         return p
