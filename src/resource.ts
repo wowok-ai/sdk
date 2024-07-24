@@ -46,7 +46,6 @@ export class Resource {
     }
     add(name:string, object:string[])  {
         if (!IsValidName(name)) ERROR(Errors.IsValidName, 'add');
-        if (!object) ERROR(Errors.InvalidParam, 'add')
         if (!IsValidArray(object, IsValidAddress)) ERROR(Errors.IsValidArray, 'add');
 
         let txb = this.protocol.CurrentSession();
