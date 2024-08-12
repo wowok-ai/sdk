@@ -355,7 +355,6 @@ export const deepClone = <T>(origin: T, target?: Record<string, any> | T ): T =>
             } else {
                 tar[key] = origin[key]
             }
-
         }
     }
 
@@ -371,21 +370,36 @@ export const IsValidDesription = (description:string) : boolean => { return desc
 export const IsValidName = (name:string) : boolean => { if(!name) return false; return name.length <= MAX_NAME_LENGTH && name.length != 0 }
 export const IsValidName_AllowEmpty = (name:string) : boolean => { return name.length <= MAX_NAME_LENGTH }
 export const IsValidEndpoint = (endpoint:string) : boolean => { if (!endpoint) return false; return endpoint.length <= MAX_ENDPOINT_LENGTH }
-export const IsValidAddress = (addr:string) : boolean => { 
+export const IsValidAddress = (addr:string | undefined) : boolean => { 
     if (!addr || !isValidSuiAddress(addr)) {
         return false; 
     }
     return true
 }
-export const IsValidUintLarge = (value:string | number) : boolean => {
+export const IsValidBigint = (value:string | number | undefined, max:bigint=MAX_U256) : boolean => {
+    if (value === '' || value === undefined) return false;
     try {
         const v = BigInt(value);
-        if (v <= MAX_U256) {
+        if (v <= max) {
             return true   
         }
     } catch (e) {
     }; return false
 }
+
+export const IsValidUintLarge = (value:string | number | undefined) : boolean => {
+    return IsValidBigint(value)
+}
+export const IsValidU8 = (value:string | number | undefined) : boolean => {
+    return IsValidBigint(value, MAX_U8)
+}
+export const IsValidU64 = (value:string | number | undefined) : boolean => {
+    return IsValidBigint(value, MAX_U64)
+}
+export const IsValidU128 = (value:string | number | undefined) : boolean => {
+    return IsValidBigint(value, MAX_U128)
+}
+
 export const IsValidTokenType = (argType: string) : boolean => { 
     if (!argType || argType.length === 0) {
         return false; 
@@ -551,4 +565,9 @@ export const query_object = (param:query_object_param) => {
         if (param?.onDynamicErr) param.onDynamicErr(param.id, err);
       })
     }
+  }
+
+  export const FirstLetterUppercase = (str:string) => {
+    if (!str) return str;
+    return str.substring(0, 1).toUpperCase() + str.substring(1);
   }

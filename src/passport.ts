@@ -28,15 +28,15 @@ interface GuardInfo {
 }
 
 export interface DeGuardConstant {
-    type: number;
-    value: any;
-    identifier?: number;
+    type: number; // 
+    value: any; //
+    identifier?: number; // ID
 }
 export interface DeGuardData {
-    type: number;
-    value?: any;
-    identifier?: number;
-    cmd?: number;
+    type: number; // 
+    value?: any; //
+    identifier?: number; // ID
+    cmd?: number; // 
     child: DeGuardData[];
     ret_type?: number;
 }
@@ -94,7 +94,7 @@ export class GuardParser {
                 case ValueType.TYPE_VEC_U256:
                     let de  = SER_VALUE.find(s=>s.type==v.type);
                     if (!de) ERROR(Errors.Fail, 'GuardObject de error')
-                    value = Bcs.getInstance().de(de!.type, Uint8Array.from(v.value));
+                    value = Bcs.getInstance().de(de!.type as number, Uint8Array.from(v.value));
                     break;
 
                 default:

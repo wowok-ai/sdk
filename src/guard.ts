@@ -1,8 +1,8 @@
 
 import { BCS } from '@mysten/bcs';
-import { Protocol, GuardAddress, FnCallType, Data_Type, MODULES, ContextType, ValueType,  OperatorType, ConstantType, SER_VALUE} from './protocol';
+import { Protocol, LogicsInfo, GuardAddress, FnCallType, Data_Type, MODULES, ContextType, ValueType,  OperatorType, ConstantType, SER_VALUE} from './protocol';
 import { concatenate, array_equal } from './utils';
-import { IsValidDesription, Bcs, IsValidInt, IsValidAddress } from './utils';
+import { IsValidDesription, Bcs, IsValidInt, IsValidAddress, FirstLetterUppercase } from './utils';
 import { ERROR, Errors } from './exception';
 
 export type GuardConstant = Map<number, Guard_Vriable>;
@@ -11,6 +11,13 @@ export interface Guard_Vriable {
     type: ConstantType ,
     value?: Uint8Array,
     witness?: Uint8Array,
+}
+
+export  interface Guard_Options {
+    from: 'query' | 'type';
+    name: string;
+    value: number;  
+    group?: string;
 }
 
 export class Guard {
@@ -91,153 +98,217 @@ export class Guard {
 
     static QUERIES:any[] = [ 
         // module, 'name', 'id', [input], output
-        [MODULES.permission, 'builder', 1, [], ValueType.TYPE_ADDRESS],
-        [MODULES.permission, 'is_admin', 2, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
-        [MODULES.permission, 'has_rights', 3, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_BOOL],
-        [MODULES.permission, 'contains_address', 4, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
-        [MODULES.permission, 'contains_index', 5, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_BOOL],
-        [MODULES.permission, 'contains_guard', 6, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_BOOL],
-        [MODULES.permission, 'contains_guard', 7, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_ADDRESS],
-        [MODULES.permission, 'entity_count', 8, [], ValueType.TYPE_U64],
-        [MODULES.permission, 'admin_count', 9, [], ValueType.TYPE_U64],
+        [MODULES.permission, 'Builder', 1, [], ValueType.TYPE_ADDRESS],
+        [MODULES.permission, 'Has Admin', 2, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.permission, 'Has Rights', 3, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_BOOL],
+        [MODULES.permission, 'Contains Address', 4, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.permission, 'Contains Index of Address', 5, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_BOOL],
+        [MODULES.permission, 'Contains Guard of Address', 6, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_BOOL],
+        [MODULES.permission, 'Guard of Address', 7, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_ADDRESS],
+        [MODULES.permission, 'Entity Count', 8, [], ValueType.TYPE_U64],
+        [MODULES.permission, 'Admin Count', 9, [], ValueType.TYPE_U64],
     
-        [MODULES.repository, 'permission', 11, [], ValueType.TYPE_ADDRESS],
-        [MODULES.repository, 'policy_contains', 12, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
-        [MODULES.repository, 'policy_has_permission_index', 13, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
-        [MODULES.repository, 'policy_permission_index', 14, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64],
-        [MODULES.repository, 'policy_value_type',  15, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U8],
-        [MODULES.repository, 'contains_id', 16, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],   
-        [MODULES.repository, 'contains_value', 17, [ValueType.TYPE_ADDRESS, ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
-        [MODULES.repository, 'value_without_type', 18, [ValueType.TYPE_ADDRESS, ValueType.TYPE_VEC_U8], ValueType.TYPE_VEC_U8],       
-        [MODULES.repository, 'value', 19, [ValueType.TYPE_ADDRESS, ValueType.TYPE_VEC_U8], ValueType.TYPE_VEC_U8],
-        [MODULES.repository, 'type', 20, [], ValueType.TYPE_U8],   
-        [MODULES.repository, 'policy_mode', 21, [], ValueType.TYPE_U8],   
-        [MODULES.repository, 'reference_count', 22, [], ValueType.TYPE_U64],   
-        [MODULES.repository, 'has_reference', 23, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],   
+        [MODULES.repository, 'Permission', 11, [], ValueType.TYPE_ADDRESS],
+        [MODULES.repository, 'Contains Policy', 12, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
+        [MODULES.repository, 'Has Permission of Policy', 13, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
+        [MODULES.repository, 'Permission of Policy', 14, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64],
+        [MODULES.repository, 'Value Type of Policy',  15, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U8],
+        [MODULES.repository, 'Contains Id', 16, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],   
+        [MODULES.repository, 'Contains Value', 17, [ValueType.TYPE_ADDRESS, ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
+        [MODULES.repository, 'Value without Type', 18, [ValueType.TYPE_ADDRESS, ValueType.TYPE_VEC_U8], ValueType.TYPE_VEC_U8],       
+        [MODULES.repository, 'Value', 19, [ValueType.TYPE_ADDRESS, ValueType.TYPE_VEC_U8], ValueType.TYPE_VEC_U8],
+        [MODULES.repository, 'Type', 20, [], ValueType.TYPE_U8],   
+        [MODULES.repository, 'Policy Mode', 21, [], ValueType.TYPE_U8],   
+        [MODULES.repository, 'Reference Count', 22, [], ValueType.TYPE_U64],   
+        [MODULES.repository, 'Has Reference', 23, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],   
 
-        [MODULES.machine, 'permission', 31, [], ValueType.TYPE_ADDRESS],
-        [MODULES.machine, 'has_paused', 32, [], ValueType.TYPE_BOOL],
-        [MODULES.machine, 'has_published', 33, [], ValueType.TYPE_BOOL],
-        [MODULES.machine, 'consensus_repositories_contains', 34, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
-        [MODULES.machine, 'has_endpoint', 35, [], ValueType.TYPE_BOOL],   
-        [MODULES.machine, 'endpoint', 36, [], ValueType.TYPE_VEC_U8],
+        [MODULES.machine, 'Permission', 31, [], ValueType.TYPE_ADDRESS],
+        [MODULES.machine, 'Paused', 32, [], ValueType.TYPE_BOOL],
+        [MODULES.machine, 'Published', 33, [], ValueType.TYPE_BOOL],
+        [MODULES.machine, 'Is Consensus Repository', 34, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.machine, 'Has Endpoint', 35, [], ValueType.TYPE_BOOL],   
+        [MODULES.machine, 'Endpoint', 36, [], ValueType.TYPE_VEC_U8],
     
-        [MODULES.progress, 'machine', 51, [], ValueType.TYPE_ADDRESS],       
-        [MODULES.progress, 'current', 52, [], ValueType.TYPE_VEC_U8],
-        [MODULES.progress, 'has_parent', 53, [], ValueType.TYPE_BOOL],   
-        [MODULES.progress, 'parent', 54, [], ValueType.TYPE_ADDRESS],   
-        [MODULES.progress, 'has_task', 55, [], ValueType.TYPE_BOOL],       
-        [MODULES.progress, 'task', 56, [], ValueType.TYPE_ADDRESS],
-        [MODULES.progress, 'has_namedOperator', 57, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],   
-        [MODULES.progress, 'namedOperator_contains', 58, [ValueType.TYPE_VEC_U8, ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
-        [MODULES.progress, 'has_context_repository', 59, [], ValueType.TYPE_BOOL],
-        [MODULES.progress, 'context_repository', 60, [], ValueType.TYPE_ADDRESS],   
+        [MODULES.progress, 'Machine', 51, [], ValueType.TYPE_ADDRESS],       
+        [MODULES.progress, 'Current Node', 52, [], ValueType.TYPE_VEC_U8],
+        [MODULES.progress, 'Has Parent', 53, [], ValueType.TYPE_BOOL],   
+        [MODULES.progress, 'Parent', 54, [], ValueType.TYPE_ADDRESS],   
+        [MODULES.progress, 'Has Task', 55, [], ValueType.TYPE_BOOL],       
+        [MODULES.progress, 'Task', 56, [], ValueType.TYPE_ADDRESS],
+        [MODULES.progress, 'Has Operator', 57, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],   
+        [MODULES.progress, 'Is Operator for Address', 58, [ValueType.TYPE_VEC_U8, ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
+        [MODULES.progress, 'Has Context Repository', 59, [], ValueType.TYPE_BOOL],
+        [MODULES.progress, 'Context Repository', 60, [], ValueType.TYPE_ADDRESS],   
     
-        [MODULES.demand, 'permission', 71, [], ValueType.TYPE_ADDRESS],       
-        [MODULES.demand, 'has_time_expire', 72, [], ValueType.TYPE_BOOL],
-        [MODULES.demand, 'time_expire', 73, [], ValueType.TYPE_U64],   
-        [MODULES.demand, 'earnest_count', 74, [], ValueType.TYPE_U64],   
-        [MODULES.demand, 'has_guard', 75, [], ValueType.TYPE_BOOL],       
-        [MODULES.demand, 'guard', 76, [], ValueType.TYPE_ADDRESS],
-        [MODULES.demand, 'has_yes', 77, [], ValueType.TYPE_BOOL],   
-        [MODULES.demand, 'yes', 78, [], ValueType.TYPE_ADDRESS], 
-        [MODULES.demand, 'presenters_count', 79, [], ValueType.TYPE_U64],
-        [MODULES.demand, 'has_presenter', 80, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],   
-        [MODULES.demand, 'persenter', 81, [ValueType.TYPE_ADDRESS], ValueType.TYPE_ADDRESS], 
+        [MODULES.demand, 'Permission', 71, [], ValueType.TYPE_ADDRESS],       
+        [MODULES.demand, 'Has Deadline', 72, [], ValueType.TYPE_BOOL],
+        [MODULES.demand, 'Deadline', 73, [], ValueType.TYPE_U64],   
+        [MODULES.demand, 'Bounty Count', 74, [], ValueType.TYPE_U64],   
+        [MODULES.demand, 'Has Guard', 75, [], ValueType.TYPE_BOOL],       
+        [MODULES.demand, 'Guard', 76, [], ValueType.TYPE_ADDRESS],
+        [MODULES.demand, 'Has Service Picked', 77, [], ValueType.TYPE_BOOL],   
+        [MODULES.demand, 'Service Picked', 78, [], ValueType.TYPE_ADDRESS], 
+        [MODULES.demand, 'Presenter Count', 79, [], ValueType.TYPE_U64],
+        [MODULES.demand, 'Is Presenter', 80, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],   
+        [MODULES.demand, 'Who Got Bounty', 81, [ValueType.TYPE_ADDRESS], ValueType.TYPE_ADDRESS], 
     
-        [MODULES.order, 'amount', 91, [], ValueType.TYPE_U64],       
-        [MODULES.order, 'payer', 92, [], ValueType.TYPE_ADDRESS],
-        [MODULES.order, 'service', 93, [], ValueType.TYPE_ADDRESS],   
-        [MODULES.order, 'has_progress', 94, [], ValueType.TYPE_BOOL],   
-        [MODULES.order, 'progress', 95, [], ValueType.TYPE_ADDRESS],       
-        [MODULES.order, 'has_requred_info', 96, [], ValueType.TYPE_BOOL],
-        [MODULES.order, 'requred_info_service_pubkey', 97, [], ValueType.TYPE_VEC_U8],   
-        [MODULES.order, 'requred_info_customer_pubkey', 98, [], ValueType.TYPE_VEC_U8], 
-        [MODULES.order, 'requred_info_info', 99, [], ValueType.TYPE_VEC_VEC_U8],
-        [MODULES.order, 'has_discount', 100, [], ValueType.TYPE_BOOL],   
-        [MODULES.order, 'discount', 101, [], ValueType.TYPE_ADDRESS], 
-        [MODULES.order, 'balance', 102, [], ValueType.TYPE_U64], 
-        [MODULES.order, 'bRefunded', 103, [], ValueType.TYPE_U8],
-        [MODULES.order, 'bWithdrawed', 104, [], ValueType.TYPE_U8],   
+        [MODULES.order, 'Amount', 91, [], ValueType.TYPE_U64],       
+        [MODULES.order, 'Payer', 92, [], ValueType.TYPE_ADDRESS],
+        [MODULES.order, 'Service', 93, [], ValueType.TYPE_ADDRESS],   
+        [MODULES.order, 'Has Progress', 94, [], ValueType.TYPE_BOOL],   
+        [MODULES.order, 'Progress', 95, [], ValueType.TYPE_ADDRESS],       
+        [MODULES.order, 'Has Required Info', 96, [], ValueType.TYPE_BOOL],
+        [MODULES.order, 'Required Info of Service-Pubkey', 97, [], ValueType.TYPE_VEC_U8],   
+        [MODULES.order, 'Required Info of Customer-Pubkey', 98, [], ValueType.TYPE_VEC_U8], 
+        [MODULES.order, 'Required Info', 99, [], ValueType.TYPE_VEC_VEC_U8],
+        [MODULES.order, 'Discount Used', 100, [], ValueType.TYPE_BOOL],   
+        [MODULES.order, 'Discount', 101, [], ValueType.TYPE_ADDRESS], 
+        [MODULES.order, 'Balance', 102, [], ValueType.TYPE_U64], 
+        [MODULES.order, 'Be Refunded', 103, [], ValueType.TYPE_BOOL],
+        [MODULES.order, 'Be Withdrawed', 104, [], ValueType.TYPE_BOOL],   
     
-        [MODULES.service, 'permission', 111, [], ValueType.TYPE_ADDRESS],       
-        [MODULES.service, 'payee', 112, [], ValueType.TYPE_ADDRESS],
-        [MODULES.service, 'has_buy_guard', 113, [], ValueType.TYPE_BOOL],   
-        [MODULES.service, 'buy_guard', 114, [], ValueType.TYPE_ADDRESS],   
-        [MODULES.service, 'repository_contains', 115, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],       
-        [MODULES.service, 'has_withdraw_guard', 116, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
-        [MODULES.service, 'withdraw_guard_percent', 117, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],   
-        [MODULES.service, 'has_refund_guard', 118, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
-        [MODULES.service, 'refund_guard_percent', 119, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
-        [MODULES.service, 'has_sale', 120, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],   
-        [MODULES.service, 'sale_price', 121, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64], 
-        [MODULES.service, 'sale_stock', 122, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64], 
-        [MODULES.service, 'has_machine', 123, [], ValueType.TYPE_BOOL],
-        [MODULES.service, 'machine', 124, [], ValueType.TYPE_ADDRESS],   
-        [MODULES.service, 'bPaused', 125, [], ValueType.TYPE_BOOL], 
-        [MODULES.service, 'bPublished', 126, [], ValueType.TYPE_BOOL], 
-        [MODULES.service, 'has_required', 127, [], ValueType.TYPE_BOOL],
-        [MODULES.service, 'requrired_pubkey', 128, [], ValueType.TYPE_VEC_U8],   
-        [MODULES.service, 'requrired_info', 129, [], ValueType.TYPE_VEC_VEC_U8],  
+        [MODULES.service, 'Permission', 111, [], ValueType.TYPE_ADDRESS],       
+        [MODULES.service, 'Payee', 112, [], ValueType.TYPE_ADDRESS],
+        [MODULES.service, 'Has Buy-Guard', 113, [], ValueType.TYPE_BOOL],   
+        [MODULES.service, 'Buy-Guard', 114, [], ValueType.TYPE_ADDRESS],   
+        [MODULES.service, 'Contains Repository', 115, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],       
+        [MODULES.service, 'Has Withdraw-Guard', 116, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.service, 'Withdraw-Guard Percent', 117, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],   
+        [MODULES.service, 'Has Refund-Guard', 118, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
+        [MODULES.service, 'Refund-Guard Percent', 119, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
+        [MODULES.service, 'Has Sale Item', 120, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],   
+        [MODULES.service, 'Sale Item Price', 121, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64], 
+        [MODULES.service, 'Sale Item Inventory', 122, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64], 
+        [MODULES.service, 'Has Machine', 123, [], ValueType.TYPE_BOOL],
+        [MODULES.service, 'Machine', 124, [], ValueType.TYPE_ADDRESS],   
+        [MODULES.service, 'Paused', 125, [], ValueType.TYPE_BOOL], 
+        [MODULES.service, 'Published', 126, [], ValueType.TYPE_BOOL], 
+        [MODULES.service, 'Has Required Info', 127, [], ValueType.TYPE_BOOL],
+        [MODULES.service, 'Required Info of Service-Pubkey', 128, [], ValueType.TYPE_VEC_U8],   
+        [MODULES.service, 'Required Info', 129, [], ValueType.TYPE_VEC_VEC_U8],  
     
-        [MODULES.reward, 'permission', 151, [], ValueType.TYPE_ADDRESS],       
-        [MODULES.reward, 'rewards_count_remain', 152, [], ValueType.TYPE_U64],
-        [MODULES.reward, 'rewards_count_supplied', 153, [], ValueType.TYPE_U64],   
-        [MODULES.reward, 'guard_count', 154, [], ValueType.TYPE_U64],   
-        [MODULES.reward, 'has_guard', 155, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],       
-        [MODULES.reward, 'guard_portions', 156, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
-        [MODULES.reward, 'time_expire', 157, [], ValueType.TYPE_U64],   
-        [MODULES.reward, 'has_claimed', 158, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
-        [MODULES.reward, 'claimed', 159, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
-        [MODULES.reward, 'has_claimed_count', 160, [], ValueType.TYPE_U64],   
-        [MODULES.reward, 'is_sponsor', 161, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
-        [MODULES.reward, 'sponsor', 162, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
-        [MODULES.reward, 'sponsor_count', 163, [], ValueType.TYPE_U64],
-        [MODULES.reward, 'bAllowRepeatClaim', 164, [], ValueType.TYPE_BOOL],  
-        [MODULES.reward, 'claimed_portions_count', 165, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],  
+        [MODULES.reward, 'Permission', 151, [], ValueType.TYPE_ADDRESS],       
+        [MODULES.reward, 'Reward Count Left', 152, [], ValueType.TYPE_U64],
+        [MODULES.reward, 'Reward Count Supplied', 153, [], ValueType.TYPE_U64],   
+        [MODULES.reward, 'Guard Count', 154, [], ValueType.TYPE_U64],   
+        [MODULES.reward, 'Has Guard', 155, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],       
+        [MODULES.reward, 'Guard Portion', 156, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
+        [MODULES.reward, 'Deadline', 157, [], ValueType.TYPE_U64],   
+        [MODULES.reward, 'Has Claimed by Address', 158, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
+        [MODULES.reward, 'Claimed by Address', 159, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
+        [MODULES.reward, 'Address Count Claimed', 160, [], ValueType.TYPE_U64],   
+        [MODULES.reward, 'Is Sponsor', 161, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
+        [MODULES.reward, 'Portion by Sponsor', 162, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
+        [MODULES.reward, 'Sponsor Count', 163, [], ValueType.TYPE_U64],
+        [MODULES.reward, 'Allow Repeat Claim', 164, [], ValueType.TYPE_BOOL],  
+        [MODULES.reward, 'Claimed Portion by Address', 165, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],  
     
-        [MODULES.vote, 'permission', 171, [], ValueType.TYPE_ADDRESS],       
-        [MODULES.vote, 'bOptions_locked_for_voting', 172, [], ValueType.TYPE_BOOL],
-        [MODULES.vote, 'bdeadline_locked', 173, [], ValueType.TYPE_BOOL],   
-        [MODULES.vote, 'bLockedGuard', 174, [], ValueType.TYPE_BOOL],   
-        [MODULES.vote, 'max_choice_count', 175, [], ValueType.TYPE_U8],       
-        [MODULES.vote, 'deadline', 176, [], ValueType.TYPE_U64],
-        [MODULES.vote, 'has_reference', 177, [], ValueType.TYPE_BOOL],   
-        [MODULES.vote, 'reference', 178, [], ValueType.TYPE_ADDRESS], 
-        [MODULES.vote, 'has_guard', 179, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
-        [MODULES.vote, 'guard', 180, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],   
-        [MODULES.vote, 'voted', 181, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
-        [MODULES.vote, 'voted_weight', 182, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
-        [MODULES.vote, 'has_agree', 183, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
-        [MODULES.vote, 'agree_has_object', 184, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],   
-        [MODULES.vote, 'agree_object', 185, [ValueType.TYPE_VEC_U8], ValueType.TYPE_ADDRESS], 
-        [MODULES.vote, 'agree_count', 186, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64], 
-        [MODULES.vote, 'agree_votes', 187, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64],
-        [MODULES.vote, 'voted_count', 188, [], ValueType.TYPE_U64],   
-        [MODULES.vote, 'top1_name_by_count', 189, [], ValueType.TYPE_VEC_U8], 
-        [MODULES.vote, 'top1_count', 190, [], ValueType.TYPE_U64], 
-        [MODULES.vote, 'top1_name_by_votes', 191, [], ValueType.TYPE_VEC_U8], 
-        [MODULES.vote, 'top1_votes', 192, [], ValueType.TYPE_U64], 
+        [MODULES.vote, 'Permission', 171, [], ValueType.TYPE_ADDRESS],       
+        [MODULES.vote, 'Options Locked', 172, [], ValueType.TYPE_BOOL],
+        [MODULES.vote, 'Deadline Locked', 173, [], ValueType.TYPE_BOOL],   
+        [MODULES.vote, 'Vote-Guard Locked', 174, [], ValueType.TYPE_BOOL],   
+        [MODULES.vote, 'Max Choice Count', 175, [], ValueType.TYPE_U8],       
+        [MODULES.vote, 'Deadline', 176, [], ValueType.TYPE_U64],
+        [MODULES.vote, 'Has Reference', 177, [], ValueType.TYPE_BOOL],   
+        [MODULES.vote, 'Reference', 178, [], ValueType.TYPE_ADDRESS], 
+        [MODULES.vote, 'Has Vote-Guard', 179, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
+        [MODULES.vote, 'Vote-Guard', 180, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],   
+        [MODULES.vote, 'Has Voted by Address', 181, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
+        [MODULES.vote, 'Voted Weight by Address', 182, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
+        [MODULES.vote, 'Has Option', 183, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
+        [MODULES.vote, 'Has Object of Option', 184, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],   
+        [MODULES.vote, 'Option Object', 185, [ValueType.TYPE_VEC_U8], ValueType.TYPE_ADDRESS], 
+        [MODULES.vote, 'Option Count', 186, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64], 
+        [MODULES.vote, 'Option Votes', 187, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64],
+        [MODULES.vote, 'Address Count Voted', 188, [], ValueType.TYPE_U64],   
+        [MODULES.vote, 'Top1 Option by Addresses', 189, [], ValueType.TYPE_VEC_U8], 
+        [MODULES.vote, 'Top1 Count by Addresses', 190, [], ValueType.TYPE_U64], 
+        [MODULES.vote, 'Top1 Option by Votes', 191, [], ValueType.TYPE_VEC_U8], 
+        [MODULES.vote, 'Top1 Count by Votes', 192, [], ValueType.TYPE_U64], 
 
-        [MODULES.wowok, 'initor', 210, [], ValueType.TYPE_ADDRESS], 
-        [MODULES.wowok, 'everyone_guard', 211, [], ValueType.TYPE_ADDRESS], 
-        [MODULES.wowok, 'entities', 212, [], ValueType.TYPE_ADDRESS],
-        [MODULES.wowok, 'grantor_count', 213, [], ValueType.TYPE_U64],   
-        [MODULES.wowok, 'has_grantor', 214, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
-        [MODULES.wowok, 'grantor_name', 215, [ValueType.TYPE_ADDRESS], ValueType.TYPE_VEC_U8], 
-        [MODULES.wowok, 'grantor_register_time', 216, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
-        [MODULES.wowok, 'grantor_expired_time', 217, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
-        [MODULES.wowok, 'grantor_grantee', 218, [ValueType.TYPE_ADDRESS], ValueType.TYPE_ADDRESS], 
+        [MODULES.wowok, 'Builder', 210, [], ValueType.TYPE_ADDRESS], 
+        [MODULES.wowok, 'Everyone-Guard', 211, [], ValueType.TYPE_ADDRESS], 
+        [MODULES.wowok, 'Object of Entities', 212, [], ValueType.TYPE_ADDRESS],
+        [MODULES.wowok, 'Grantor Count', 213, [], ValueType.TYPE_U64],   
+        [MODULES.wowok, 'Has Grantor', 214, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
+        [MODULES.wowok, 'Grantor Name', 215, [ValueType.TYPE_ADDRESS], ValueType.TYPE_VEC_U8], 
+        [MODULES.wowok, 'Grantor Registration Time', 216, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
+        [MODULES.wowok, 'Grantor Expired Time', 217, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
+        [MODULES.wowok, 'Grantee Object for Grantor', 218, [ValueType.TYPE_ADDRESS], ValueType.TYPE_ADDRESS], 
 
-        [MODULES.entity, 'has_entity', 230, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
-        [MODULES.entity, 'entity_like', 231, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
-        [MODULES.entity, 'entity_dislike', 232, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
-        [MODULES.entity, 'entity_infomation', 233, [ValueType.TYPE_ADDRESS], ValueType.TYPE_VEC_U8], 
+        [MODULES.entity, 'Has Entity', 230, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
+        [MODULES.entity, 'Likes', 231, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
+        [MODULES.entity, 'Dislikes', 232, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
+        [MODULES.entity, 'Entity Info', 233, [ValueType.TYPE_ADDRESS], ValueType.TYPE_VEC_U8], 
+        [MODULES.entity, 'Has Resource by Entity', 234, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
+        [MODULES.entity, 'Entity Resource', 235, [ValueType.TYPE_ADDRESS], ValueType.TYPE_ADDRESS], 
     ];
-    static BoolCmd = Guard.QUERIES.filter(q => q[4] == ValueType.TYPE_BOOL);
+
+    static BoolCmd = Guard.QUERIES.filter(q => q[4] === ValueType.TYPE_BOOL);
     static IsBoolCmd = (cmd:number) : boolean => { return Guard.BoolCmd.includes((q:any) => {return q[2] == cmd}) }
-    static GetCmd = (cmd:number) : any => { 
+
+    static CmdFilter = (retType:ValueType) => { return Guard.QUERIES.filter((q)=> q[4] === retType)}
+    static GetCmd = (cmd:number | undefined) : any => { 
         return Guard.QUERIES.find((q:any) => {return q[2] == cmd}) ;
+    }
+    static GetCmdOption = (cmd:number) : Guard_Options | undefined => { 
+        const  r = Guard.GetCmd(cmd);
+        if (!r) return r;
+        return  {from:'query', name:r[1], value:r[2], group:FirstLetterUppercase(r[0])}
+    }
+
+    static GetInputParams = (cmd:number) : ValueType[] => { 
+        const r = Guard.GetCmd(cmd);
+        if (!r) return [];
+        return (r as any[])[3];
+    }
+    static GetModuleName = (cmd:number) : string => {
+        let r = Guard.GetCmd(cmd);
+        if (!r) return '';
+        return FirstLetterUppercase(r[0])
+    }
+    static NumberOptions = () : Guard_Options[] => {
+        const r: Guard_Options[] = [...Guard.CmdFilter(ValueType.TYPE_U8), ...Guard.CmdFilter(ValueType.TYPE_U64), 
+            ...Guard.CmdFilter(ValueType.TYPE_U128), ...Guard.CmdFilter(ValueType.TYPE_U256)].map((v)=> { return {from:'query', name:v[1], value:v[2], group:FirstLetterUppercase(v[0])}});
+        r.push({from:'type', name:'Txn Time', value:ContextType.TYPE_CLOCK, group:'Txn Functions'});
+        return r;
+    }
+    static CommonOptions = (retType:ValueType) : Guard_Options[] => {
+        return Guard.CmdFilter(retType).map((v)=> {return {from:'query', name:v[1], value:v[2], group:FirstLetterUppercase(v[0])}});
+    }
+    static AllOptions = () :  Guard_Options[] => {
+        return Guard.QUERIES.map((v)=>{return {from:'query', name:v[1], value:v[2], group:FirstLetterUppercase(v[0])}});
+    }
+    static StringOptions = () : Guard_Options[] => {
+        return [...Guard.CmdFilter(ValueType.TYPE_VEC_U8), ...Guard.CmdFilter(ValueType.TYPE_STRING)].map((v) => {
+            return {from:'query', name:v[1], value:v[2], group:FirstLetterUppercase(v[0])};
+        });
+    }
+    static BoolOptions = () : Guard_Options[] => {
+        const n1:Guard_Options[] = Guard.BoolCmd.map((v)=> { return {from:'query', name:v[1], value:v[2], group:FirstLetterUppercase(v[0])}});
+        const n2:Guard_Options[] = LogicsInfo.map((v) => { return {from:'type', name:v[1] as string, value:v[0] as number, group:'Compare or Logic'}});
+        return [...n1, ...n2]
+    }
+    static AddressOptions = () : Guard_Options[] => {
+        const n1:Guard_Options[] = Guard.QUERIES.filter(q => q[4] === ValueType.TYPE_ADDRESS).map((v)=> { return {from:'query', name:v[1], value:v[2], group:FirstLetterUppercase(v[0])}});
+        n1.push({from:'type', name:'Txn Signer', value:ContextType.TYPE_SIGNER, group:'Txn Functions'});
+        return [...n1]
+    }
+
+    static Options = (ret_type: ValueType | 'number' | 'any') : Guard_Options[] => {
+        if (ret_type === 'number') {
+            return Guard.NumberOptions();
+        } else if (ret_type === 'any') {
+            return Guard.AllOptions();
+        }
+
+        switch(ret_type as number) {
+            case ValueType.TYPE_BOOL:
+                return Guard.BoolOptions();
+            case ValueType.TYPE_STRING:
+                return Guard.StringOptions();
+        }
+        return Guard.CommonOptions(ret_type);
     }
 }
 
@@ -302,7 +373,7 @@ export class GuardConstantHelper {
             case ValueType.TYPE_VEC_U256:
                 let ser = SER_VALUE.find(s=>s.type==type);
                 if (!ser) ERROR(Errors.Fail, 'add_constant: invalid type');
-                bNeedSerialize ? constants.set(identifier, {type:type, value:Bcs.getInstance().ser(ser!.type, value)}) :
+                bNeedSerialize ? constants.set(identifier, {type:type, value:Bcs.getInstance().ser(ser!.type as number, value)}) :
                 constants.set(identifier,  {type:type, value:value})    
                 return         
             case ValueType.TYPE_VEC_U8:
@@ -348,7 +419,7 @@ export class GuardMaker {
         this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type));
         let ser = SER_VALUE.find(s=>s.type==type);
         if (!ser) ERROR(Errors.Fail, 'serValueParam: invalid type');
-        this.data.push(Bcs.getInstance().ser(ser!.type, param));
+        this.data.push(Bcs.getInstance().ser(ser!.type as number, param));
         this.type_validator.push(type);
     }
 
@@ -414,7 +485,7 @@ export class GuardMaker {
             this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, param));
             break;
         default:
-            ERROR(Errors.InvalidParam, 'add_param type');
+            ERROR(Errors.InvalidParam, 'add_param type' + type);
         };
         return this;
     }
@@ -497,8 +568,10 @@ export class GuardMaker {
                 if (this.type_validator[this.type_validator.length -1] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
                 if (this.type_validator[this.type_validator.length -2] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
                 break;
+            case OperatorType.TYPE_LOGIC_ALWAYS_TRUE:
+                break;
             default:
-                ERROR(Errors.InvalidParam, 'type') 
+                ERROR(Errors.InvalidParam, 'add_logic type invalid' + type) 
         }
         this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type)); // TYPE     
         this.type_validator.splice(this.type_validator.length - splice_len); // delete type stack   

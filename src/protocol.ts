@@ -3,7 +3,7 @@ import { SuiClient, SuiObjectResponse, SuiObjectDataOptions, SuiTransactionBlock
 import { Ed25519Keypair } from '@mysten/sui.js/keypairs/ed25519';
 import { BCS, getSuiMoveConfig, toHEX, fromHEX, BcsReader } from '@mysten/bcs';
 import { TransactionBlock, Inputs, TransactionResult, TransactionArgument } from '@mysten/sui.js/transactions';
-import { capitalize, IsValidArray } from './utils'
+import { capitalize, IsValidAddress, IsValidArray, IsValidU128, IsValidU64, IsValidU8, IsValidUintLarge } from './utils'
 import { GuardConstant } from './guard';
 import { isValidSuiAddress, isValidSuiObjectId } from '@mysten/sui.js/utils'
 
@@ -76,6 +76,20 @@ export enum OperatorType {
     TYPE_LOGIC_OR = 21, // OR
 }       
 
+export const LogicsInfo = [
+    [OperatorType.TYPE_LOGIC_AS_U256_GREATER, 'PositiveNumber >'],
+    [OperatorType.TYPE_LOGIC_AS_U256_GREATER_EQUAL, 'PositiveNumber >='],
+    [OperatorType.TYPE_LOGIC_AS_U256_LESSER, 'PositiveNumber <'],
+    [OperatorType.TYPE_LOGIC_AS_U256_LESSER_EQUAL, 'PositiveNumber <='],
+    [OperatorType.TYPE_LOGIC_AS_U256_EQUAL, 'PositiveNumber ='],
+    [OperatorType.TYPE_LOGIC_EQUAL, 'Strict ='],
+    [OperatorType.TYPE_LOGIC_HAS_SUBSTRING, 'Sub String'],
+    [OperatorType.TYPE_LOGIC_ALWAYS_TRUE, 'Always True'], 
+    [OperatorType.TYPE_LOGIC_NOT, 'Not'],
+    [OperatorType.TYPE_LOGIC_AND, 'And'],
+    [OperatorType.TYPE_LOGIC_OR, 'Or'], 
+];
+
 export enum ValueType {
     TYPE_BOOL = 100,
     TYPE_ADDRESS = 101,
@@ -101,6 +115,7 @@ export enum ValueType {
     TYPE_VEC_STRING = 121,
     TYPE_U256 = 122,
 }
+
 export enum RepositoryValueType {
     Address = 200,
     Address_Vec = 201,
@@ -119,50 +134,34 @@ export const RepositoryValueTypeInfo = [
     {type: RepositoryValueType.PositiveNumber_Vec, name:'Positive number or Zero vector', description:'Vector of positive number or 0'},
 ]
 
-export const ValueTypeInfo = [
-    {type:ValueType.TYPE_BOOL, name:'bool'},
-    {type:ValueType.TYPE_ADDRESS, name:'address'},
-    {type:ValueType.TYPE_U64, name:'u64'},
-    {type:ValueType.TYPE_U8, name:'u8'},
-    {type:ValueType.TYPE_VEC_U8, name:'vec-u8'},
-    {type:ValueType.TYPE_U128, name:'u128'},
-    {type:ValueType.TYPE_VEC_ADDRESS, name:'vec-address'},
-    {type:ValueType.TYPE_VEC_BOOL, name:'vec-bool'},
-    {type:ValueType.TYPE_VEC_VEC_U8, name:'vec-vec-u8'},
-    {type:ValueType.TYPE_VEC_U64, name:'vec-u64'},
-    {type:ValueType.TYPE_VEC_U128, name:'vec-u128'},
-    {type:ValueType.TYPE_OPTION_ADDRESS, name:'opt-address'},
-    {type:ValueType.TYPE_OPTION_BOOL, name:'opt-bool'},
-    {type:ValueType.TYPE_OPTION_U8, name:'opt-u8'},
-    {type:ValueType.TYPE_OPTION_U64, name:'opt-u64'},
-    {type:ValueType.TYPE_OPTION_U128, name:'opt-u128'},
-    {type:ValueType.TYPE_OPTION_U256, name:'opt-u256'},
-    {type:ValueType.TYPE_OPTION_STRING, name:'opt-string'},
-    {type:ValueType.TYPE_OPTION_VEC_U8, name:'opt-vec-u8'},
-    {type:ValueType.TYPE_VEC_U256, name:'vec-u256'},
-    {type:ValueType.TYPE_STRING, name:'string'},
-    {type:ValueType.TYPE_VEC_STRING, name:'vec-string'},
-    {type:ValueType.TYPE_U256, name:'u256'},
-]
-
 export const OperatorTypeArray = (Object.values(OperatorType) as []).filter((v)=>typeof(v) === 'number') as number[];
 export const ValueTypeArray = (Object.values(ValueType) as []).filter((v)=>typeof(v) === 'number') as number[];
-export const IsValidOperatorType = (type:number) => { return OperatorTypeArray.includes(type)}
-export const IsValidValueType = (type:number) => { return ValueTypeArray.includes(type)}
+export const IsValidOperatorType = (type:number) : boolean => { return OperatorTypeArray.includes(type)}
+export const IsValidValueType = (type:number) : boolean => { return ValueTypeArray.includes(type)}
 
+export enum ContextType {
+    TYPE_SIGNER  = 60,
+    TYPE_CLOCK = 61,
+    TYPE_WITNESS_ID = 62, 
+    TYPE_CONSTANT = 80,
+}
 interface ValueTypeString {
-    type: ValueType;
+    type: ValueType | ContextType;
     name: string;
     description: string;
+    validator?: (value:any) => boolean;
 }
 
 export const SER_VALUE: ValueTypeString[] = [
-    {type: ValueType.TYPE_BOOL, name: 'bool', description:'boolean. eg:true or false'},
-    {type: ValueType.TYPE_ADDRESS, name: 'address', description:'address or object-id. eg:0x6789af'},
-    {type: ValueType.TYPE_U64, name: 'number', description:'unsigned-64 number. eg:23870233'},
-    {type: ValueType.TYPE_U8, name: 'number', description:'unsigned-8 number. eg:255'},
-    {type: ValueType.TYPE_VEC_U8, name: '[number]', description:'unsigned-8 number array. eg:"[1,2,3]"'},
-    {type: ValueType.TYPE_U128, name: 'number', description:'unsigned-8 number. eg:12348900999'},
+    {type: ValueType.TYPE_BOOL, name: 'bool', description:'boolean. eg:true or false', validator:(value:any) => { return (value === true || value === false)}},
+    {type: ValueType.TYPE_ADDRESS, name: 'address', description:'address or object-id. eg:0x6789af', validator:IsValidAddress},
+    {type: ContextType.TYPE_WITNESS_ID, name: 'future address', description:"eg: machine's future progress, service's future order",  validator:IsValidAddress},
+    {type: ContextType.TYPE_SIGNER, name: 'txn signer', description:"signer address of the transaction, ", validator:IsValidAddress},
+    {type: ContextType.TYPE_CLOCK, name: 'txn time', description:"unsigned-64 number for the transaction time", validator:IsValidU64},
+    {type: ValueType.TYPE_U64, name: 'number', description:'unsigned-64 number. eg:23870233', validator:IsValidU64},
+    {type: ValueType.TYPE_U8, name: 'number', description:'unsigned-8 number. eg:255', validator:IsValidU8},
+    {type: ValueType.TYPE_VEC_U8, name: 'string', description:'string or unsigned-8 number array. eg:"[1,2,3]"'},
+    {type: ValueType.TYPE_U128, name: 'number', description:'unsigned-8 number. eg:12348900999', validator:IsValidU128},
     {type: ValueType.TYPE_VEC_ADDRESS, name: '[address]', description:'address array. eg:[0x2277f2, 0x3344af]'},
     {type: ValueType.TYPE_VEC_BOOL, name: '[bool]', description:'boolean array. eg:[true, false, true]'},
     {type: ValueType.TYPE_VEC_VEC_U8, name: '[[number]]', description:'array of unsigned-8 number array. eg:["i", "like", "wowok"]'},
@@ -176,17 +175,10 @@ export const SER_VALUE: ValueTypeString[] = [
     {type: ValueType.TYPE_OPTION_U256, name: 'option', description:'option of u256. eg:none or u256 value'},
     {type: ValueType.TYPE_VEC_U256, name: '[number]', description:'unsigned-256 number array. eg:[123, 778888, 42312]'},
     {type: ValueType.TYPE_VEC_STRING, name: '[string]', description:'ascii string array. eg:["abc", "hi"]'},
-    {type: ValueType.TYPE_STRING, name: 'string', description:'ascii string. eg:"wowok"'},
+    {type: ValueType.TYPE_STRING, name: 'string', description:'ascii string. eg:"wowok"', },
     {type: ValueType.TYPE_OPTION_STRING, name: 'option', description:'option of string. eg:none or string value'},
-    {type: ValueType.TYPE_U256, name: 'number', description:'unsigned-256 number. eg:12345678901233'},
+    {type: ValueType.TYPE_U256, name: 'number', description:'unsigned-256 number. eg:12345678901233', validator:IsValidUintLarge},
 ]
-
-export enum ContextType {
-    TYPE_SIGNER  = 60,
-    TYPE_CLOCK = 61,
-    TYPE_WITNESS_ID = 62, 
-    TYPE_CONSTANT = 80,
-}
 
 export type ConstantType = ValueType | ContextType.TYPE_WITNESS_ID;
 export type Data_Type = ValueType | OperatorType | ContextType;
@@ -199,9 +191,9 @@ export enum ENTRYPOINT {
 }
 
 const TESTNET = {
-    package: "0xdf85200f7a9dcac175724d10d1002c7481f718bb8f609f2ff27da47ce5d04870",
-    wowok_object: '0xcbbc4a23b63ab77291e885998ef1d03ac13537bb6b8ffb108913f8196cd7f62b',
-    entity_object: '0x362aa575fa8c1506776f13e8f5849fd932b26b080f7a6f238856f42ce6114e31',
+    package: "0x8ba9f90c9a0e5f2199a92fdc5ea255ac9df5471289cfe40a87ac90f25d93dd5b",
+    wowok_object: '0x9d33a57a09f3ff73ba51afe6ed2e671e7d78b771e34b0a1ba66e52264e34b3fd',
+    entity_object: '0xb759e1e5569f1f8d5ae30efb6efec0a639c5ef70a7c7abcc012919cf5dae33af',
 }
 
 const MAINNET = {
