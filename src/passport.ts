@@ -1,4 +1,5 @@
-import { type TransactionObjectInput, Inputs } from '@mysten/sui.js/transactions';
+import { type TransactionObjectInput, Inputs, TransactionObjectArgument} from '@mysten/sui.js/transactions';
+import { SuiObjectResponse } from '@mysten/sui.js/client';
 import { FnCallType, GuardObject, Protocol, ContextType, OperatorType, Data_Type,
     ValueType, SER_VALUE, IsValidOperatorType } from './protocol';
 import { parse_object_type, array_unique, Bcs, ulebDecode, IsValidAddress, IsValidArray,  OPTION_NONE, readOption, readOptionString } from './utils';
@@ -8,7 +9,7 @@ import { Guard } from './guard';
 
 export type Guard_Query_Object = {
     target: FnCallType, // object fnCall
-    object: TransactionObjectInput, // object 
+    object: TransactionObjectInput | string, // object 
     types: string[], // object type
     id: string, // object id
 }
@@ -19,9 +20,11 @@ export interface QueryInfo {
     type: number;
     value_or_witness: string;
     future?: string;
+    cmd?: number;
 }
 interface GuardInfo {
-    id: string;
+    id: string; // guard id
+    object: TransactionObjectInput;
     query_list: (string | QueryInfo)[]; // object or witness object query
     constant: QueryInfo[]; // witness in constant & ValueType.TYPE_ADDRESS(for Query)
     input_witness: QueryInfo[]; // witness in input
@@ -41,26 +44,29 @@ export interface DeGuardData {
     ret_type?: number;
 }
 
-export interface FutrueFill {
+export interface FutureFill {
     guard: string;
     index: number;
-    future: string;
+    witness: string;
+    future?: string;
+    cmd?: number;
+    type?: string;
 }
 export interface PassportQuery {
-    guard: GuardObject[];
+    guard: (string | TransactionObjectInput)[];
     query: Guard_Query_Object[];
     witness: Guard_Query_Object[];
 }
 export class GuardParser {
     protected guard_list: GuardInfo[] = [];
     protected protocol: Protocol;
-    protected guards: GuardObject[];
+    protected guards: string[];
     private index:number = 0;
     private get_index() { return this.index++ }
 
     private constructor(protocol: Protocol, guards: string[]) { 
         this.protocol = protocol ;
-        this.guards = guards.map(g => protocol.CurrentSession().object(g) as GuardObject);
+        this.guards = guards;
     }
     guardlist = () => { return this.guard_list }
 
@@ -283,6 +289,7 @@ export class GuardParser {
         switch (current.type) {
             case OperatorType.TYPE_LOGIC_ALWAYS_TRUE:
                 current.ret_type = ValueType.TYPE_BOOL;
+                stack.push(current);
                 return;
             case OperatorType.TYPE_LOGIC_NOT:
                 current.ret_type = ValueType.TYPE_BOOL;
@@ -416,7 +423,7 @@ export class GuardParser {
         ERROR(Errors.Fail, 'OperateParamCount: type  invalid ' + current.type);
     }
 
-    /// create GuardParser ayncly
+ /*   
     static CreateAsync = async (protocol: Protocol, guards: string[]) => {
         if (!IsValidArray(guards, IsValidAddress)) {
             ERROR(Errors.IsValidArray, 'guards');
@@ -426,6 +433,7 @@ export class GuardParser {
         const me = new GuardParser(protocol, guards);
         
         let res =  await protocol.Query_Raw(guard_list);
+        console.log(res)
         res.forEach((r) => {
             let c = r.data?.content as any;
             if (!c) return;
@@ -442,11 +450,70 @@ export class GuardParser {
         })
         return me
     }
+*/
+    private static  Parse_Guard_Helper(guards: string[], res:SuiObjectResponse[]) {
+        const protocol = Protocol.Instance();
+        const me = new GuardParser(protocol, guards);
+        res.forEach((r) => {
+            let c = r.data?.content as any;
+            if (!c) return;
+
+            let index = protocol.WOWOK_OBJECTS_TYPE().findIndex(v => {return v.includes('guard::Guard') && v == c.type});
+            if (index == -1) return;
+
+            let info:GuardInfo = {id: c.fields.id.id, query_list:[],  constant:[], input_witness:[], object:Inputs.ObjectRef(
+                {objectId:c.fields.id.id, digest:r.data?.digest??'', version:r.data?.version ?? ''}
+            )};
+            me.parse_constant(info,  c.fields.constants); // MUST first
+            if (c.fields.input.type === (protocol.Package() + '::bcs::BCS')) {
+                me.parse_bcs(info,  Uint8Array.from(c.fields.input.fields.bytes)); // second
+            }
+            me.guard_list.push(info);
+        })
+        return me
+    }
+
+    static Create = async (guards: string[], onGuardInfo?:(parser:GuardParser|undefined)=>void) => {
+        if (!IsValidArray(guards, IsValidAddress)) {
+            if (onGuardInfo) onGuardInfo(undefined);
+            return undefined;
+        }
+
+        let guard_list = array_unique(guards);
+        const protocol = Protocol.Instance();
+        
+        if (onGuardInfo) {
+            protocol.Query_Raw(guard_list)
+                .then((res) => { onGuardInfo(GuardParser.Parse_Guard_Helper(guards, res)); })
+                .catch((e) => { onGuardInfo(undefined); })            
+        } else {
+            const res = await protocol.Query_Raw(guard_list);
+            return GuardParser.Parse_Guard_Helper(guards, res);
+        }
+    }
+
+    future_fills = () : FutureFill[] => {
+        const ret : FutureFill[] = [];
+        this.guard_list.forEach((g) => {
+            g.query_list.forEach((v) => {
+                if (typeof(v) !== 'string') {
+                    ret.push({guard:g.id, index:v.index, witness:v.value_or_witness, cmd:v.cmd});
+                }
+            })
+            // cmd already in query_list, so filter it out.
+            g.constant.filter((v)=>v.type === ContextType.TYPE_WITNESS_ID && v.cmd === undefined).forEach((v) => {
+                ret.push({guard:g.id, index:v.index, witness:v.value_or_witness});
+            })
+            g.input_witness.forEach((v) => {
+                ret.push({guard:g.id, index:v.index, witness:v.value_or_witness});
+            })
+        }); return ret;
+    }
 
     parse_constant = (info:GuardInfo, constants:any)  => {
         constants.forEach((v:any) => {
             if (v.type == (this.protocol.Package() + '::guard::Constant')) {
-                // ValueType.TYPE_ADDRESS: Query_Cmd maybe used the address, so save it for using
+                // ValueType.TYPE_ADDRESS: Query_Cmd maybe used the address, so save it for querying
                 if (v.fields.type == ContextType.TYPE_WITNESS_ID || v.fields.type == ValueType.TYPE_ADDRESS) {
                     info.constant.push({identifier:v.fields.identifier,  index:this.get_index(), type:v.fields.type,
                         value_or_witness:'0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(v.fields.value))});
@@ -507,14 +574,14 @@ export class GuardParser {
                 let type = arr.splice(0, 1);
                 if (type[0] == ValueType.TYPE_ADDRESS || type[0] == ContextType.TYPE_WITNESS_ID) {
                     let addr = '0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(arr)).toString();
-                    arr.splice(0, 33); // address + cmd              
+                    const offset = arr.splice(0, 33); // address + cmd              
                     if (type[0] == ValueType.TYPE_ADDRESS) {
                         info.query_list.push(addr);
                     } else if (type[0] == ContextType.TYPE_WITNESS_ID){
-                        info.query_list.push({index:this.get_index(), type:type[0], value_or_witness:addr});
+                        info.query_list.push({index:this.get_index(), type:type[0], value_or_witness:addr, cmd:offset[offset.length-1]});
                     }
                 } else if (type[0] == ContextType.TYPE_CONSTANT) {
-                    let identifer = arr.splice(0, 2); // key + cmd
+                    const identifer = arr.splice(0, 2); // key + cmd
                     let constant = info.constant.find((v) => 
                         (v.identifier == identifer[0]) && 
                         ((v.type == ValueType.TYPE_ADDRESS) || (v.type == ContextType.TYPE_WITNESS_ID)));
@@ -522,7 +589,11 @@ export class GuardParser {
                     if (constant?.type == ValueType.TYPE_ADDRESS) {
                         info.query_list.push(constant.value_or_witness);
                     } else if (constant?.type == ContextType.TYPE_WITNESS_ID) {
-                        info.query_list.push({identifier:identifer[0], type:constant.type, value_or_witness:constant.value_or_witness, index:this.get_index()});
+                        const index = this.get_index();
+                        info.query_list.push({identifier:identifer[0], type:constant.type, value_or_witness:constant.value_or_witness, 
+                            index:index, cmd:identifer[identifer.length-1]}); // query witness in constant
+                        constant.cmd = identifer[identifer.length-1]; // mark this is a cmd in querylist(avoid multi input future by singer)
+                        constant.index = index;
                     } 
                 } else {
                     ERROR(Errors.Fail, 'constant type invalid');
@@ -535,7 +606,7 @@ export class GuardParser {
         } 
     }
 
-    private get_object(guardid:string, info:QueryInfo, fill?:FutrueFill[]) :  string  {
+    private get_object(guardid:string, info:QueryInfo, fill?:FutureFill[]) :  string  {
         let r = fill?.find(i => guardid == i.guard && i.index == info.index);
         if (!r || !r.future) {
             if (!info.future) {
@@ -547,12 +618,14 @@ export class GuardParser {
         return info.future!
     }
 
-    done = async (fill?:FutrueFill[]) : Promise<PassportQuery>=> {
+    done = async (fill?:FutureFill[], onPassportQueryReady?:(passport:PassportQuery | undefined)=>void) : Promise<PassportQuery | undefined>=> {
         let objects: string[] = [];
         this.guard_list.forEach((g) => {
-            g.constant.filter(v => v.type == ContextType.TYPE_WITNESS_ID).forEach((q) => {
+            // futures in constant table (all witness)
+            g.constant.filter(v => v.type == ContextType.TYPE_WITNESS_ID /*&& v.cmd === undefined*/).forEach((q) => {
                 objects.push(this.get_object(g.id, q, fill));
             })
+            // objects to query
             let list = g.query_list.map((q) => {
                 if (typeof(q) === "string") {
                     objects.push(q)
@@ -563,40 +636,56 @@ export class GuardParser {
                     return r
                 }
             })
-            g.query_list =  list;
+            g.query_list =  list; // all to string to query
             g.input_witness.forEach((q) => {
                 objects.push(this.get_object(g.id, q, fill));
             })
         })
 
-        // objects info
-        let res = await  this.protocol.Query_Raw(array_unique(objects), {showType:true});
+        if (onPassportQueryReady) {
+            this.protocol.Query_Raw(array_unique(objects), {showType:true}).then((res) => {
+                onPassportQueryReady(this.done_helper(res));
+            }).catch(e => {
+                console.log(e);
+                onPassportQueryReady(undefined);
+            })
+            return undefined;
+        } else {
+            const res = await this.protocol.Query_Raw(array_unique(objects), {showType:true});
+            return this.done_helper(res);
+        }
+    }
+
+    private done_helper(res:SuiObjectResponse[]) {
         let query: Guard_Query_Object[] = [];
         let witness: Guard_Query_Object[] = [];
+        let guards: TransactionObjectInput[] = [];
         this.guard_list.forEach(g => {
-            g.query_list.forEach(q => {
+            g.query_list.forEach(q => { // query list
                 let r = res.find(r => r.data?.objectId == q as string);  
                 if (!r)   { ERROR(Errors.Fail, 'query object not match')} 
-                let object = this.object_query(r!.data);
+                let object = this.object_query(r!.data); // build passport query objects
                 if (!object) { ERROR(Errors.Fail, 'query object fail')} 
                 query.push(object!);
             })
-            res.forEach(q => {
-                let r1 = g.constant.find(v  => v.future == q.data?.objectId);
-                let r2 = g.input_witness.find(v  => v.future == q.data?.objectId)
+            res.forEach(q => { // witness(address & query) list
+                let r1 = g.constant.find(v  => v.future === q.data?.objectId);
+                let r2 = g.input_witness.find(v  => v.future === q.data?.objectId)
                 // not match r1 || r2 means query-cmd, not witness-cmd
                 if (r1 || r2) {
-                    let object = this.object_query(q.data, 'witness');
+                    let object = this.object_query(q.data, 'witness'); // witness address onchain check
                     if (!object)  { ERROR(Errors.Fail, 'witness object fail') }
                     witness.push(object!);
                 }
             })
+            guards.push(g.object);
         })
 
-        return {guard:this.guards, query:query,  witness:witness} as PassportQuery;
+        return {guard:guards, query:query,  witness:witness} as PassportQuery;
     }
 
-    private object_query = (data: any, method:string='guard_query') : Guard_Query_Object | undefined=> {
+    // create onchain query for objects : object, movecall-types, id
+    private object_query = (data: any, method:'guard_query'|'witness'='guard_query') : Guard_Query_Object | undefined=> {
         for (let k = 0; k < this.protocol.WOWOK_OBJECTS_TYPE().length; k++) {
             if (data.type.includes(this.protocol.WOWOK_OBJECTS_TYPE()[k]) ) { // type: pack::m::Object<...>
                 return  { target:this.protocol.WOWOK_OBJECTS_PREFIX_TYPE()[k] + method as FnCallType,
@@ -620,12 +709,10 @@ export class Passport {
 
     get_object () { return this.passport }
     // return passport object used
-    constructor (protocol:Protocol, query:PassportQuery)  {
+    // bObject(true) in cmd env; (false) in service env
+    constructor (protocol:Protocol, query:PassportQuery, bObject:boolean=false)  {
         if (!query.guard || query.guard.length > Passport.MAX_GUARD_COUNT)   {
             ERROR(Errors.InvalidParam, 'guards' )
-        }
-        if (!Protocol.IsValidObjects(query.guard)) {
-            ERROR(Errors.IsValidObjects, 'guards')
         }
 
         this.protocol = protocol;
@@ -639,7 +726,7 @@ export class Passport {
         query.guard.forEach((g) => {
             txb.moveCall({
                 target:protocol.PassportFn('guard_add') as FnCallType,
-                arguments:[this.passport, Protocol.TXB_OBJECT(txb, g)]
+                arguments:[this.passport, txb.object(g)]
             });        
         })
 
@@ -652,7 +739,7 @@ export class Passport {
             })
         })
 
-        // rules: 'verify' & 'query' in turns；'verify' at final end.
+        // rules: 'verify' & 'query' in turns; 'verify' at final end.
         query?.query.forEach((q) => {
             let address = txb.moveCall({
                 target: protocol.PassportFn('passport_verify') as FnCallType,
@@ -660,7 +747,7 @@ export class Passport {
             }); 
             txb.moveCall({
                 target: q.target as FnCallType,
-                arguments: [ txb.object(q.object), this.passport, address ],
+                arguments: [ bObject ? txb.object(q.object) : txb.object(q.id), this.passport, address ],
                 typeArguments: q.types,
             })
         })

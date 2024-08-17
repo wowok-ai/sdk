@@ -19,7 +19,7 @@ export class Demand {
         let d = new Demand(protocol,  bounty_type, permission)
         d.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object)
         return d
-    }
+    }   
 
     private constructor(protocol:Protocol, bounty_type:string, permission:PermissionObject) {
         this.bounty_type = bounty_type;
