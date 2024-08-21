@@ -3,6 +3,7 @@ import { FnCallType, TxbObject, PermissionObject, PermissionAddress, GuardObject
 import { array_unique, IsValidAddress, IsValidArray,  IsValidDesription, IsValidUintLarge, Bcs, IsValidName} from './utils';
 import { ERROR, Errors } from './exception';
 import { ValueType } from './protocol';
+import { Passport } from './passport';
 
 export enum PermissionIndex {
     repository = 100,
@@ -84,6 +85,19 @@ export interface PermissionInfoType {
     module: string;
     guard?: string;
 }
+
+export interface PermissionAnswer {
+    who: string;
+    owner?: boolean;
+    admin?: boolean;
+    items?: PermissionAnswerItem[]; // items === undefined, while errors
+}
+export interface PermissionAnswerItem {
+    query: PermissionIndexType;
+    permission: boolean;
+    guard?: string;
+}
+export type OnPermissionAnswer = (answer: PermissionAnswer) => void;
 
 export const PermissionInfo : PermissionInfoType[] = [
     {index:PermissionIndex.repository, name:'Repository', description:'Launch new Repository', module: 'repository'},
@@ -436,11 +450,81 @@ export class  Permission {
             arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(new_owner, BCS.ADDRESS)]
         });        
     }
+    query_permissions(address_queried:string, permissions:PermissionIndexType[]) {
+        if (!IsValidAddress(address_queried)) {
+            ERROR(Errors.InvalidParam, 'query_permissions');
+        }
+
+        if (permissions.length === 0 || permissions.length > Permission.MAX_QUERY_COUNT) {
+            ERROR(Errors.InvalidParam, 'permissions count');
+        }
+
+        const txb = this.protocol.CurrentSession();
+        txb.moveCall({
+            target:this.protocol.PermissionFn('query_permissions') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(address_queried, BCS.ADDRESS), txb.pure(permissions, 'vector<u64>')]
+        })   
+    }
+
+    QueryPermissions(address_queried:string, permissions:PermissionIndexType[], onPermissionAnswer:OnPermissionAnswer, sender?:string) {
+        this.query_permissions(address_queried, permissions);
+        Protocol.Client().devInspectTransactionBlock({sender:sender ?? address_queried, 
+            transactionBlock:this.protocol.CurrentSession()}).then((res) => {
+            if (res.results && res.results[0].returnValues && res.results[0].returnValues.length !== 3 )  {
+                onPermissionAnswer({who:address_queried});
+                return 
+            }
+
+            const perm = Bcs.getInstance().de(BCS.U8, Uint8Array.from((res.results as any)[0].returnValues[0][0]));
+
+            if (perm === Permission.PERMISSION_ADMIN || perm === Permission.PERMISSION_OWNER_AND_ADMIN) {
+                onPermissionAnswer({who:address_queried, admin:true, owner:perm%2===1, items:[]})
+            } else {
+                const perms = Bcs.getInstance().de('vector<u8>', Uint8Array.from((res.results as any)[0].returnValues[1][0]));
+                const guards = Bcs.getInstance().de('vector<address>', Uint8Array.from((res.results as any)[0].returnValues[2][0]));
+                if (perms.length !== permissions.length) {
+                    onPermissionAnswer({who:address_queried});
+                    return
+                }
+
+                const items: PermissionAnswerItem[] = permissions.map((v, index) => {
+                    const p = perms[index] === Permission.PERMISSION_QUERY_NONE ? false : true;
+                    let g : any = undefined;
+                    if (p && perms[index] < guards.length) {
+                        g = '0x' + guards[perms[index] as number];
+                    }
+                    return {query:v, permission:p, guard:g} 
+                })
+                onPermissionAnswer({who:address_queried, admin:false, owner:perm%2===1, items:items});
+            }
+        }).catch((e) => {
+            console.log(e);
+            onPermissionAnswer({who:address_queried});
+        })
+    }
+    static HasPermission(answer:PermissionAnswer|undefined, index:PermissionIndexType) : {has:boolean, guard?:string, owner?:boolean} {
+        if (answer) {
+            if (answer.admin) return {has:true, owner:answer.owner}; // admin
+            let i = answer.items?.find((v)=>v.query === index);
+            if (i) {
+                return {has:i.permission, guard:i.guard, owner:answer.owner};
+            }          
+        }
+        return {has:false}
+    }
 
     static MAX_ADMIN_COUNT = 64;
     static MAX_ENTITY_COUNT = 2000;
     static MAX_PERMISSION_INDEX_COUNT = 200;
     static MAX_PERSONAL_PERMISSION_COUNT = 200; 
+    static MAX_QUERY_COUNT = 250; // 
+    static PERMISSION_QUERY_NONE = 255;
+    static PERMISSION_QUERY_HAS = 254;
+    static PERMISSION_NORMAL = 0;
+    static PERMISSION_OWNER = 1;
+    static PERMISSION_ADMIN = 2;
+    static PERMISSION_OWNER_AND_ADMIN = 3;
+
     static IsValidUserDefinedIndex = (index:number)  => { 
         return index >= PermissionIndex.user_defined_start && IsValidUintLarge(index)
     }

@@ -241,7 +241,11 @@ export class Bcs {
         return new Uint8Array();
     }
 
-    de(type:ValueType, data:Uint8Array | any) : any {
+    de(type:ValueType | string,  data:Uint8Array | any) : any {
+        if (typeof(type) === 'string') {
+            return this.bcs.de(type, data);
+        }
+
         switch(type) {
             case ValueType.TYPE_BOOL:
                 return this.bcs.de(BCS.BOOL, data);

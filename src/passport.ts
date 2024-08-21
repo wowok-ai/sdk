@@ -751,7 +751,6 @@ export class Passport {
                 typeArguments: q.types,
             })
         })
-        
         txb.moveCall({
             target: protocol.PassportFn('passport_verify') as FnCallType,
             arguments: [ this.passport,  txb.object(Protocol.CLOCK_OBJECT) ]

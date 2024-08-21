@@ -97,7 +97,7 @@ export class Entity {
     }
 
     query_ent(address_queried:string) {
-        if (!address_queried) {
+        if (!IsValidAddress(address_queried)) {
             ERROR(Errors.InvalidParam, 'query_ent');
         }
 
