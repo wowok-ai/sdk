@@ -1,11 +1,11 @@
 import { bcs, BCS, toHEX, fromHEX, getSuiMoveConfig } from '@mysten/bcs';
 import { IsValidArray, IsValidPercent, IsValidName_AllowEmpty, Bcs, array_unique, IsValidTokenType, IsValidDesription, 
-    IsValidAddress, IsValidEndpoint, OptionNone, IsValidUintLarge, IsValidInt, IsValidName, } from './utils'
+    IsValidAddress, IsValidEndpoint, IsValidUintLarge, IsValidInt, IsValidName, } from './utils'
 import { FnCallType, GuardObject, PassportObject, PermissionObject, RepositoryObject, MachineObject, ServiceAddress, 
     ServiceObject, DiscountObject, OrderObject, OrderAddress, CoinObject, Protocol, ValueType,
     TxbObject} from './protocol';
 import { ERROR, Errors } from './exception';
-import { Resource } from './resource';
+import { type TransactionResult, Transaction as TransactionBlock } from '@mysten/sui/transactions';
 
 export type Service_Guard_Percent = {
     guard:GuardObject;
@@ -62,24 +62,24 @@ export class Service {
     protected pay_token_type;
     protected permission;
     protected object : TxbObject;
-    protected protocol;
+    protected txb;
 
     //static token2coin = (token:string) => { return '0x2::coin::Coin<' + token + '>'};
 
     get_pay_type() {  return this.pay_token_type }
     get_object() { return this.object }
-    private constructor(protocol: Protocol, pay_token_type:string, permission:PermissionObject) {
+    private constructor(txb: TransactionBlock, pay_token_type:string, permission:PermissionObject) {
         this.pay_token_type = pay_token_type
-        this.protocol = protocol
+        this.txb = txb
         this.permission = permission
         this.object = ''
     }
-    static From(protocol: Protocol, token_type:string, permission:PermissionObject, object:TxbObject) : Service {
-        let s = new Service(protocol, token_type, permission);
-        s.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object);
+    static From(txb: TransactionBlock, token_type:string, permission:PermissionObject, object:TxbObject) : Service {
+        let s = new Service(txb, token_type, permission);
+        s.object = Protocol.TXB_OBJECT(txb, object);
         return s
     }
-    static New(protocol: Protocol, token_type:string, permission:PermissionObject, description:string, 
+    static New(txb: TransactionBlock, token_type:string, permission:PermissionObject, description:string, 
         payee_address:string, endpoint?:string, passport?:PassportObject) : Service {
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects)
@@ -99,21 +99,20 @@ export class Service {
         }
 
         let pay_token_type = token_type;
-        let s = new Service(protocol, pay_token_type, permission);
-        let txb = protocol.CurrentSession();
-        let ep = endpoint? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_STRING, endpoint)) : OptionNone(txb);
+        let s = new Service(txb, pay_token_type, permission);
+        let ep = txb.pure.option('string', endpoint ? endpoint : undefined);
         
 
         if (passport) {
             s.object = txb.moveCall({
-                target:protocol.ServiceFn('new_with_passport') as FnCallType,
-                arguments:[passport, txb.pure(description), txb.pure(payee_address, BCS.ADDRESS), ep, Protocol.TXB_OBJECT(txb, permission)],
+                target:Protocol.Instance().ServiceFn('new_with_passport') as FnCallType,
+                arguments:[passport, txb.pure.string(description), txb.pure.address(payee_address), ep, Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments:[pay_token_type],
             })
         } else {
             s.object = txb.moveCall({
-                target:protocol.ServiceFn('new') as FnCallType,
-                arguments:[txb.pure(description), txb.pure(payee_address, BCS.ADDRESS), ep, Protocol.TXB_OBJECT(txb, permission)],
+                target:Protocol.Instance().ServiceFn('new') as FnCallType,
+                arguments:[txb.pure.string(description), txb.pure.address(payee_address), ep, Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments:[pay_token_type],
             })
         }
@@ -121,18 +120,16 @@ export class Service {
     }
 
     launch() : ServiceAddress  {
-        let txb = this.protocol.CurrentSession();
-        return txb.moveCall({
-            target:this.protocol.ServiceFn('create') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object)],
+        return this.txb.moveCall({
+            target:Protocol.Instance().ServiceFn('create') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object)],
             typeArguments:[this.pay_token_type]
     })
 }
     destroy() {
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.ServiceFn('destroy') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(txb, this.object)],
+        this.txb.moveCall({
+            target:Protocol.Instance().ServiceFn('destroy') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object)],
             typeArguments:[this.pay_token_type]
         })   
     }
@@ -142,17 +139,16 @@ export class Service {
             ERROR(Errors.IsValidDesription)
         }
         
-        let txb = this.protocol.CurrentSession();
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('description_set_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(description), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('description_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(description), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
         } else {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('description_set') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(description), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('description_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(description), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
         }
@@ -164,20 +160,21 @@ export class Service {
         if (!IsValidName(item)) {
             ERROR(Errors.IsValidName, 'item')
         }
-
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('price_set_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(price, BCS.U64), 
-                    txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('price_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(item), 
+                    this.txb.pure.u64(price), 
+                    this.txb.pure.bool(bNotFoundAssert), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
         } else {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('price_set') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(price, BCS.U64), 
-                    txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('price_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(item), 
+                    this.txb.pure.u64(price), 
+                    this.txb.pure.bool(bNotFoundAssert), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
         }
@@ -189,20 +186,21 @@ export class Service {
         if (!IsValidInt(stock)) {
             ERROR(Errors.IsValidInt, 'stock')
         }
-
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('stock_set_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(stock, BCS.U64), 
-                    txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('stock_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(item), 
+                    this.txb.pure.u64(stock), 
+                    this.txb.pure.bool(bNotFoundAssert), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
         } else {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('stock_set') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(stock, BCS.U64), 
-                    txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('stock_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(item), 
+                    this.txb.pure.u64(stock), 
+                    this.txb.pure.bool(bNotFoundAssert), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
         }
@@ -214,20 +212,21 @@ export class Service {
         if (!IsValidUintLarge(stock_add)) {
             ERROR(Errors.IsValidUint, 'stock_add')
         }
-
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('stock_add_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(stock_add, BCS.U64), 
-                    txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('stock_add_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(item), 
+                    this.txb.pure.u64(stock_add), 
+                    this.txb.pure.bool(bNotFoundAssert), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })  
         } else {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('stock_add') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(stock_add, BCS.U64), 
-                    txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('stock_add') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(item), 
+                    this.txb.pure.u64(stock_add), 
+                    this.txb.pure.bool(bNotFoundAssert), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })        
         }
@@ -240,44 +239,46 @@ export class Service {
             ERROR(Errors.IsValidUint, 'stock_reduce')
         }
 
-        let txb = this.protocol.CurrentSession();
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('stock_reduce_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(stock_reduce, BCS.U64), 
-                    txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('stock_reduce_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(item), 
+                    this.txb.pure.u64(stock_reduce), 
+                    this.txb.pure.bool(bNotFoundAssert), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
         } else {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('stock_reduce') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), txb.pure(stock_reduce, BCS.U64), 
-                    txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('stock_reduce') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(item), 
+                    this.txb.pure.u64(stock_reduce), 
+                    this.txb.pure.bool(bNotFoundAssert), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
         }
     }
-    set_sale_endpoint(item:string, endpoint?:string, bNotFoundAssert:boolean=true, passport?:PassportObject) {
+
+    set_sale_endpoint(item:string, endpoint?:string|null, bNotFoundAssert:boolean=true, passport?:PassportObject) {
         if (!IsValidName(item)) {
             ERROR(Errors.IsValidName, 'set_sale_endpoint')
         }
         if (endpoint && !IsValidEndpoint(endpoint)) {
             ERROR(Errors.IsValidEndpoint, 'set_sale_endpoint')
         }
-        let txb = this.protocol.CurrentSession();
-        let ep = endpoint? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_STRING, endpoint)) : OptionNone(txb);
+        
+        let ep =  this.txb.pure.option('string', endpoint ? endpoint : undefined);
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('sale_endpoint_set_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), ep, 
-                    txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('sale_endpoint_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(item), ep, 
+                    this.txb.pure.bool(bNotFoundAssert), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
         } else {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('sale_endpoint_set') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(item), ep, 
-                    txb.pure(bNotFoundAssert, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('sale_endpoint_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(item), ep, 
+                    this.txb.pure.bool(bNotFoundAssert), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
         }        
@@ -287,18 +288,17 @@ export class Service {
         if (!IsValidAddress(payee)) {
             ERROR(Errors.IsValidAddress, 'payee');
         }
-
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('payee_set_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(payee, BCS.ADDRESS), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('payee_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(payee), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
         } else {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('payee_set') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(payee, BCS.ADDRESS), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('payee_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(payee), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
         }
@@ -307,18 +307,17 @@ export class Service {
         if (!Protocol.IsValidObjects([repository])) {
             ERROR(Errors.IsValidObjects, 'repository_add');
         }
-
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('repository_add_with_passport') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, repository), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('repository_add_with_passport') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, repository), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
         } else {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('repository_add') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, repository), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('repository_add') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, repository), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })  
         }
@@ -329,35 +328,34 @@ export class Service {
         if (!IsValidArray(repository_address, IsValidAddress)) {
             ERROR(Errors.IsValidArray,  'repository_address');
         }
-
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
             if (removeall) {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('repository_remove_all_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('repository_remove_all_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]
                 })
             } else {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('repository_remove_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(repository_address!), 'vector<address>'), 
-                        Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('repository_remove_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(repository_address!)), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]
                 })                    
             }
         } else {
             if (removeall) {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('repository_remove_all') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('repository_remove_all') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]
                 })
             } else {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('repository_remove') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(repository_address!), 'vector<address>'), 
-                        Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('repository_remove') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(repository_address!)), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]
                 })                       
             }
@@ -375,21 +373,20 @@ export class Service {
         if (!bValid) {
             ERROR(Errors.InvalidParam, 'guards')
         }
-
-        let txb = this.protocol.CurrentSession();
+        
         guards.forEach((guard) => { 
             if (passport) {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('withdraw_guard_add_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard.guard), 
-                        txb.pure(guard.percent, BCS.U8), Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('withdraw_guard_add_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, guard.guard), 
+                        this.txb.pure.u8(guard.percent), Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]            
                     })
             } else {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('withdraw_guard_add') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard.guard), txb.pure(guard.percent, BCS.U8), 
-                        Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('withdraw_guard_add') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, guard.guard), this.txb.pure.u8(guard.percent), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]            
                     })
             }
@@ -404,34 +401,33 @@ export class Service {
             ERROR(Errors.IsValidArray, 'guard_address')
         }
 
-        let txb = this.protocol.CurrentSession();
         if (passport) {
             if (removeall) {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('withdraw_guard_remove_all_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('withdraw_guard_remove_all_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]
                 })    
             } else {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('withdraw_guard_remove_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(guard_address!), 'vector<address>'), 
-                        Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('withdraw_guard_remove_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(guard_address!)), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]
                 })            
             }
         } else {
             if (removeall) {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('withdraw_guard_remove_all') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('withdraw_guard_remove_all') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]
                 })     
             } else {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('withdraw_guard_remove') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(guard_address!), 'vector<address>'), 
-                        Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('withdraw_guard_remove') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(guard_address!)), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]
                 })            
             }
@@ -449,20 +445,19 @@ export class Service {
             ERROR(Errors.InvalidParam, 'guards')
         }
 
-        let txb = this.protocol.CurrentSession();
         guards.forEach((guard) => { 
             if (passport) {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('refund_guard_add_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard.guard), 
-                        txb.pure(guard.percent, BCS.U8), Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('refund_guard_add_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, guard.guard), 
+                        this.txb.pure.u8(guard.percent), Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]            
                 })                
             } else {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('refund_guard_add') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard.guard), txb.pure(guard.percent, BCS.U8), 
-                        Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('refund_guard_add') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, guard.guard), this.txb.pure.u8(guard.percent), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]            
                 })
             }
@@ -474,34 +469,33 @@ export class Service {
             ERROR(Errors.InvalidParam, 'guard_address')
         }
 
-        let txb = this.protocol.CurrentSession();
         if (passport) {
             if (removeall) {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('refund_guard_remove_all_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('refund_guard_remove_all_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]
                 })
             } else {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('refund_guard_remove_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(guard_address!), 'vector<address>'),
-                        Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('refund_guard_remove_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(guard_address!)),
+                        Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]
                 })
             }
         } else {
             if (removeall) {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('refund_guard_remove_all') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('refund_guard_remove_all') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]
                 })
             } else {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('refund_guard_remove') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(guard_address!), 'vector<address>'),
-                        Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('refund_guard_remove') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(guard_address!)),
+                        Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]
                 })
             }
@@ -534,25 +528,24 @@ export class Service {
             }
             names.push(s.item); price.push(s.price); stock.push(s.stock); endpoint.push(s.endpoint ?? '')
         })
-
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('sales_add_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, names)), 
-                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, endpoint)), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, price)), 
-                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, stock)), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_BOOL, bExistAssert)),
-                    Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('sales_add_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, names)), 
+                    this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, endpoint)), this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, price)), 
+                    this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, stock)), this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_BOOL, bExistAssert)),
+                    Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
         } else {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('sales_add') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, names)), 
-                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, endpoint)),
-                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, price)), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, stock)), 
-                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_BOOL, bExistAssert)),
-                    Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('sales_add') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, names)), 
+                    this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, endpoint)),
+                    this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, price)), this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, stock)), 
+                    this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_BOOL, bExistAssert)),
+                    Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
         }
@@ -563,20 +556,19 @@ export class Service {
         if (!IsValidArray(sales, IsValidName)) {
             ERROR(Errors.IsValidArray, 'remove_sales')
         }
-
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('sales_remove_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(sales!))), 
-                    Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('sales_remove_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(sales!))), 
+                    Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })            
         } else {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('sales_remove') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(sales!))), 
-                    Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('sales_remove') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(sales!))), 
+                    Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })            
         }     
@@ -600,32 +592,30 @@ export class Service {
         if (!bValid) {
             ERROR(Errors.InvalidParam, 'discount_dispatch')
         }
-
-        let txb = this.protocol.CurrentSession();
+        const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         discount_dispatch.forEach((discount) => {
-            let price_greater = discount.discount?.price_greater ? 
-                txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_U64, discount.discount.price_greater)) : OptionNone(txb);
-            let time_start = discount.discount?.time_start ? 
-                txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_U64, discount.discount.time_start)) : OptionNone(txb);
+            let price_greater = this.txb.pure.option('u64', discount.discount?.price_greater);
+            let time_start = this.txb.pure.option('u64', discount.discount?.time_start);
 
             if (passport) {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('dicscount_create_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(discount.discount.name), 
-                        txb.pure(discount.discount.type, BCS.U8), 
-                        txb.pure(discount.discount.off, BCS.U64), price_greater, time_start, 
-                        txb.pure(discount.discount.duration_minutes, BCS.U64), txb.pure(discount.count, BCS.U64), 
-                        Protocol.TXB_OBJECT(txb, this.permission), txb.pure(discount.receiver, BCS.ADDRESS), txb.object(Protocol.CLOCK_OBJECT)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('dicscount_create_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(discount.discount.name), 
+                        this.txb.pure.u8(discount.discount.type), 
+                        this.txb.pure.u64(discount.discount.off), price_greater, time_start, 
+                        this.txb.pure.u64(discount.discount.duration_minutes), this.txb.pure.u64(discount.count), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission), this.txb.pure.address(discount.receiver), this.txb.object(clock)],
                     typeArguments:[this.pay_token_type]
                 });
             } else {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('dicscount_create') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(discount.discount.name), 
-                        txb.pure(discount.discount.type, BCS.U8), 
-                        txb.pure(discount.discount.off, BCS.U64), price_greater, time_start, 
-                        txb.pure(discount.discount.duration_minutes, BCS.U64), txb.pure(discount.count, BCS.U64), 
-                        Protocol.TXB_OBJECT(txb, this.permission), txb.pure(discount.receiver, BCS.ADDRESS), txb.object(Protocol.CLOCK_OBJECT)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('dicscount_create') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(discount.discount.name), 
+                        this.txb.pure.u8(discount.discount.type), 
+                        this.txb.pure.u64(discount.discount.off), price_greater, time_start, 
+                        this.txb.pure.u64(discount.discount.duration_minutes), this.txb.pure.u64(discount.count), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission), this.txb.pure.address(discount.receiver), 
+                        this.txb.object(clock)],
                     typeArguments:[this.pay_token_type]
                 })
             }
@@ -637,82 +627,79 @@ export class Service {
         if (!Protocol.IsValidObjects([order]))  {
             ERROR(Errors.IsValidObjects, 'order')
         }
-
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('withdraw_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('withdraw_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })        
         } else {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('withdraw') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('withdraw') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })               
         }
         
     }
     set_buy_guard(guard?:GuardObject, passport?:PassportObject) {
-        let txb = this.protocol.CurrentSession();
         if (passport) {
             if (guard) {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('buy_guard_set_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard), Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('buy_guard_set_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, guard), Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]
                 })        
             } else {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('buy_guard_none_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('buy_guard_none_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]
                 })   
             }
         } else {
             if (guard) {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('buy_guard_set') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard), Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('buy_guard_set') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, guard), Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]
                 })        
             } else {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('buy_guard_none') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('buy_guard_none') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]
                 })   
             }
         }
     }
     set_machine(machine?:MachineObject, passport?:PassportObject) {
-        let txb = this.protocol.CurrentSession();
         if (passport) {
             if (machine) {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('machine_set_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, machine), Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('machine_set_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, machine), Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]
                 })        
             } else {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('machine_none_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('machine_none_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]
                 })   
             }
         } else {
             if (machine) {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('machine_set') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, machine), Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('machine_set') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, machine), Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]
                 })        
             } else {
-                txb.moveCall({
-                    target:this.protocol.ServiceFn('machine_none') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('machine_none') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.pay_token_type]
                 })   
             }
@@ -724,52 +711,48 @@ export class Service {
             ERROR(Errors.IsValidEndpoint);
         }
 
-        let txb = this.protocol.CurrentSession();
-        let ep = endpoint? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_STRING, endpoint)) : OptionNone(txb);
-        
+        let ep = this.txb.pure.option('string', endpoint ? endpoint : undefined);
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('endpoint_set_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), ep, Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('endpoint_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), ep, Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })      
         } else {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('endpoint_set') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), ep, Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('endpoint_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), ep, Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })      
         }   
     }
     publish(passport?:PassportObject) {
-        let txb = this.protocol.CurrentSession();
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('publish_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('publish_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })   
         } else {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('publish') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('publish') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })   
         }      
         
     }
     clone(passport?:PassportObject) : ServiceObject  {
-        let txb = this.protocol.CurrentSession();
         if (passport) {
-            return txb.moveCall({
-                target:this.protocol.ServiceFn('clone_withpassport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+            return this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('clone_withpassport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })    
         } else {
-            return txb.moveCall({
-                target:this.protocol.ServiceFn('clone') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+            return this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('clone') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })    
         }  
@@ -784,37 +767,36 @@ export class Service {
         }
 
         let req = array_unique(customer_required) as string[];
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('required_set_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), 
-                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, req)), 
-                    txb.pure(pubkey, BCS.STRING), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('required_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
+                    this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, req)), 
+                    this.txb.pure.string(pubkey), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })         
         } else {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('required_set') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), 
-                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, req)), 
-                    txb.pure(pubkey, BCS.STRING), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('required_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
+                    this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, req)), 
+                    this.txb.pure.string(pubkey), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })         
         }
     }
     remove_customer_required(passport?:PassportObject) {
-        let txb = this.protocol.CurrentSession();
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('required_none_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('required_none_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })  
         } else {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('required_none') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('required_none') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })  
         }       
@@ -823,20 +805,19 @@ export class Service {
         if (!pubkey) {
             ERROR(Errors.InvalidParam, 'pubkey')
         }
-
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('required_pubkey_set_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(pubkey, 'vector<u8>'), 
-                    Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('required_pubkey_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(pubkey), 
+                    Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })    
         } else {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('required_pubkey_set') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(pubkey, 'vector<u8>'), 
-                    Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('required_pubkey_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(pubkey), 
+                    Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })    
         }     
@@ -848,36 +829,34 @@ export class Service {
         if (!pubkey) {
             ERROR(Errors.InvalidParam, 'pubkey')
         }
-
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('order_pubkey_update_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), txb.pure(pubkey, 'vector<u8>'), 
-                    Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('order_pubkey_update_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order), this.txb.pure.string(pubkey), 
+                    Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })   
         } else {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('order_pubkey_update') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), txb.pure(pubkey, 'vector<u8>'), 
-                    Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('order_pubkey_update') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order), this.txb.pure.string(pubkey), 
+                    Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })   
         }    
     }
     pause(pause:boolean, passport?:PassportObject) {
-        let txb = this.protocol.CurrentSession();
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('pause_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(pause, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('pause_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.bool(pause), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })     
         } else {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('pause') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(pause, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('pause') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.bool(pause), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })     
         }    
@@ -888,17 +867,16 @@ export class Service {
             ERROR(Errors.IsValidObjects, 'order')
         }
 
-        let txb = this.protocol.CurrentSession();
         if (passport) {
-            txb.moveCall({
-            target:this.protocol.ServiceFn('refund_with_passport') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), passport],
+            this.txb.moveCall({
+            target:Protocol.Instance().ServiceFn('refund_with_passport') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order), passport],
             typeArguments:[this.pay_token_type]
             })               
         } else {
-            txb.moveCall({
-                target:this.protocol.ServiceFn('refund') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('refund') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order)],
                 typeArguments:[this.pay_token_type]
             })            
         }
@@ -911,14 +889,13 @@ export class Service {
         if (!customer_info_crypto.pubkey || !customer_info_crypto.customer_info_crypt) {
             ERROR(Errors.InvalidParam, 'customer_info_crypto')
         }
-
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.ServiceFn('order_required_info_update') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), 
-                txb.pure(customer_info_crypto.pubkey, 'vector<u8>'), 
-                txb.pure(customer_info_crypto.customer_pubkey, 'vector<u8>'), 
-                txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_VEC_U8, array_unique(customer_info_crypto.customer_info_crypt)))],
+        
+        this.txb.moveCall({
+            target:Protocol.Instance().ServiceFn('order_required_info_update') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order), 
+                this.txb.pure.string(customer_info_crypto.pubkey), 
+                this.txb.pure.string(customer_info_crypto.customer_pubkey), 
+                this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_VEC_U8, array_unique(customer_info_crypto.customer_info_crypt)))],
             typeArguments:[this.pay_token_type]
         })    
         
@@ -944,42 +921,41 @@ export class Service {
 
         let name:string[] = []; let price:number[] = [];    let stock:number[] = []; let order;
         buy_items.forEach((b) => { name.push(b.item); price.push(b.max_price); stock.push(b.count)})
-
-        let txb = this.protocol.CurrentSession();
+        const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         if (passport) {
             if (discount) {
-                order = txb.moveCall({
-                    target:this.protocol.ServiceFn('dicount_buy_with_passport') as FnCallType,
-                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, name)), 
-                        txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, price)), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, stock)), 
-                        Protocol.TXB_OBJECT(txb, coin), Protocol.TXB_OBJECT(txb, discount), txb.object(Protocol.CLOCK_OBJECT)],                   
+                order = this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('dicount_buy_with_passport') as FnCallType,
+                    arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, name)), 
+                        this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, price)), this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, stock)), 
+                        Protocol.TXB_OBJECT(this.txb, coin), Protocol.TXB_OBJECT(this.txb, discount), this.txb.object(clock)],                   
                     typeArguments:[this.pay_token_type]            
             })} else {
-                order = txb.moveCall({
-                    target:this.protocol.ServiceFn('buy_with_passport') as FnCallType,
-                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, name)), 
-                        txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, price)), 
-                        txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, stock)), 
-                        Protocol.TXB_OBJECT(txb, coin)],
+                order = this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('buy_with_passport') as FnCallType,
+                    arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, name)), 
+                        this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, price)), 
+                        this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, stock)), 
+                        Protocol.TXB_OBJECT(this.txb, coin)],
                     typeArguments:[this.pay_token_type]            
             })}             
         } else {
             if (discount) {
-                order = txb.moveCall({
-                    target:this.protocol.ServiceFn('disoucnt_buy') as FnCallType,
-                    arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, name)), 
-                        txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, price)), 
-                        txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, stock)), 
-                        Protocol.TXB_OBJECT(txb, coin), 
-                        Protocol.TXB_OBJECT(txb, discount), txb.object(Protocol.CLOCK_OBJECT)],                
+                order = this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('disoucnt_buy') as FnCallType,
+                    arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('string', name), 
+                        this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, price)), 
+                        this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, stock)), 
+                        Protocol.TXB_OBJECT(this.txb, coin), 
+                        Protocol.TXB_OBJECT(this.txb, discount), this.txb.object(clock)],                
                     typeArguments:[this.pay_token_type]            
             })} else {
-                order = txb.moveCall({
-                    target:this.protocol.ServiceFn('buy') as FnCallType,
-                    arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, name)), 
-                        txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, price)), 
-                        txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, stock)), 
-                        Protocol.TXB_OBJECT(txb, coin)],
+                order = this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('buy') as FnCallType,
+                    arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('string', name), 
+                        this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, price)), 
+                        this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, stock)), 
+                        Protocol.TXB_OBJECT(this.txb, coin)],
                     typeArguments:[this.pay_token_type]            
             })}           
         }
@@ -989,15 +965,15 @@ export class Service {
         }
 
         if (machine) {
-            return txb.moveCall({
-                target:this.protocol.ServiceFn('order_create_with_machine') as FnCallType,
-                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), Protocol.TXB_OBJECT(txb, machine)],
+            return this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('order_create_with_machine') as FnCallType,
+                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order), Protocol.TXB_OBJECT(this.txb, machine)],
                 typeArguments:[this.pay_token_type]            
             })        
         } else {
-            return txb.moveCall({
-                target:this.protocol.ServiceFn('order_create') as FnCallType,
-                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order)],
+            return this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('order_create') as FnCallType,
+                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order)],
                 typeArguments:[this.pay_token_type]            
             })  
         }
@@ -1008,10 +984,9 @@ export class Service {
             ERROR(Errors.IsValidObjects, 'order & machine');
         }
 
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.ServiceFn('order_create_with_machine') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, order), Protocol.TXB_OBJECT(txb, machine)],
+        this.txb.moveCall({
+            target:Protocol.Instance().ServiceFn('order_create_with_machine') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order), Protocol.TXB_OBJECT(this.txb, machine)],
             typeArguments:[this.pay_token_type]            
         })    
     }
@@ -1021,10 +996,9 @@ export class Service {
             ERROR(Errors.IsValidObjects)
         }
 
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.ServiceFn('permission_set') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), Protocol.TXB_OBJECT(txb, new_permission)],
+        this.txb.moveCall({
+            target:Protocol.Instance().ServiceFn('permission_set') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission), Protocol.TXB_OBJECT(this.txb, new_permission)],
             typeArguments:[this.pay_token_type]            
         })    
         this.permission = new_permission

@@ -1,33 +1,31 @@
-import { type TransactionResult } from '@mysten/sui.js/transactions';
+import { type TransactionResult, Transaction as TransactionBlock } from '@mysten/sui/transactions';
 import { BCS } from '@mysten/bcs';
 import { FnCallType, Protocol, PassportObject, PermissionObject, GuardObject, DemandAddress, TxbObject, ResourceObject} from './protocol';
 import { IsValidDesription, IsValidUintLarge, IsValidAddress, IsValidArgType, } from './utils'
 import { Errors, ERROR}  from './exception'
-import { Resource } from './resource'
-
 
 export class Demand {
     protected bounty_type;
     protected permission ;
-    protected object : TxbObject ;
-    protected protocol;
+    protected object : TxbObject;
+    protected txb;
 
     get_bounty_type() {  return this.bounty_type }
     get_object() { return this.object }
 
-    static From(protocol:Protocol, bounty_type:string, permission:PermissionObject, object:TxbObject) : Demand {
-        let d = new Demand(protocol,  bounty_type, permission)
-        d.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object)
+    static From(txb:TransactionBlock, bounty_type:string, permission:PermissionObject, object:TxbObject) : Demand {
+        let d = new Demand(txb,  bounty_type, permission)
+        d.object = Protocol.TXB_OBJECT(txb, object)
         return d
     }   
 
-    private constructor(protocol:Protocol, bounty_type:string, permission:PermissionObject) {
+    private constructor(txb:TransactionBlock, bounty_type:string, permission:PermissionObject) {
         this.bounty_type = bounty_type;
         this.permission = permission;
-        this.protocol = protocol;
+        this.txb = txb;
         this.object = '';
     }
-    static New(protocol:Protocol, bounty_type:string, permission:PermissionObject, description:string, 
+    static New(txb:TransactionBlock, bounty_type:string, permission:PermissionObject, description:string, 
         bounty:TransactionResult | string, passport?:PassportObject) : Demand {
         if (!Protocol.IsValidObjects([permission, bounty])) {
             ERROR(Errors.IsValidObjects, 'permission, bounty');
@@ -39,18 +37,17 @@ export class Demand {
             ERROR(Errors.IsValidArgType, bounty_type);
         }
 
-        let  d = new Demand(protocol, bounty_type, permission);
-        let txb = protocol.CurrentSession();
+        let  d = new Demand(txb, bounty_type, permission);
         if (passport) {
             d.object = txb.moveCall({
-                target:protocol.DemandFn('new_with_passport') as FnCallType,
-                arguments:[passport, txb.pure(description), txb.object(bounty), Protocol.TXB_OBJECT(txb, permission)],
+                target:Protocol.Instance().DemandFn('new_with_passport') as FnCallType,
+                arguments:[passport, txb.pure.string(description), txb.object(bounty), Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments:[bounty_type],
             })        
         } else {
             d.object = txb.moveCall({
-                target:protocol.DemandFn('new') as FnCallType,
-                arguments:[txb.pure(description), txb.object(bounty), Protocol.TXB_OBJECT(txb, permission)],
+                target:Protocol.Instance().DemandFn('new') as FnCallType,
+                arguments:[txb.pure.string(description), txb.object(bounty), Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments:[bounty_type],
             })        
         }
@@ -58,35 +55,34 @@ export class Demand {
     }
 
     launch() : DemandAddress {
-        let txb = this.protocol.CurrentSession();
-        return txb.moveCall({
-            target:this.protocol.DemandFn('create') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object)],
+        return this.txb.moveCall({
+            target:Protocol.Instance().DemandFn('create') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object)],
             typeArguments:[this.bounty_type],
         })
     }
     
     destroy() {
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.DemandFn('destroy') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(txb, this.object)],
+        this.txb.moveCall({
+            target:Protocol.Instance().DemandFn('destroy') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object)],
             typeArguments:[this.bounty_type]
         }) 
     }
     
     refund(passport?:PassportObject)  {
-        let txb = this.protocol.CurrentSession();
+        const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.DemandFn('refund_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().DemandFn('refund_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
+                    this.txb.object(clock), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.bounty_type],
             })
         } else {
-            txb.moveCall({
-                target:this.protocol.DemandFn('refund') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().DemandFn('refund') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(clock), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.bounty_type],
             })            
         }
@@ -97,22 +93,19 @@ export class Demand {
         if (!IsValidUintLarge(time)) {
             ERROR(Errors.IsValidUint, 'time');
         }
-
-        let txb = this.protocol.CurrentSession();
+        const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.DemandFn('time_expand_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(minutes_duration, BCS.BOOL),
-                    txb.pure(time, BCS.U64), 
-                    txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().DemandFn('time_expand_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.bool(minutes_duration),
+                    this.txb.pure.u64(time), this.txb.object(clock), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.bounty_type],
             })  
         } else {
-            txb.moveCall({
-                target:this.protocol.DemandFn('time_expand') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object),  txb.pure(minutes_duration, BCS.BOOL),
-                    txb.pure(time, BCS.U64), 
-                    txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().DemandFn('time_expand') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object),  this.txb.pure.bool(minutes_duration),
+                    this.txb.pure.u64(time), this.txb.object(clock), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.bounty_type],
             })          
         }
@@ -122,35 +115,34 @@ export class Demand {
         if (guard && !Protocol.IsValidObjects([guard])) {
             ERROR(Errors.IsValidObjects, 'guard');
         }
-    
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
             if (guard) {
-                txb.moveCall({
-                    target:this.protocol.DemandFn('guard_set_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard), 
-                        Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().DemandFn('guard_set_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, guard), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.bounty_type],
                 })            
             } else {
-                txb.moveCall({
-                    target:this.protocol.DemandFn('guard_none_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().DemandFn('guard_none_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.bounty_type],
                 })               
             }
         } else {
             if (guard) {
-                txb.moveCall({
-                    target:this.protocol.DemandFn('guard_set') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard), 
-                        Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().DemandFn('guard_set') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, guard), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.bounty_type],
                 })            
             } else {
-                txb.moveCall({
-                    target:this.protocol.DemandFn('guard_none') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().DemandFn('guard_none') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
                     typeArguments:[this.bounty_type],
                 })               
             }        
@@ -162,18 +154,17 @@ export class Demand {
             ERROR(Errors.IsValidDesription);
         }
     
-        let txb = this.protocol.CurrentSession();
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.DemandFn('description_set_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(description), 
-                    Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().DemandFn('description_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(description), 
+                    Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.bounty_type],
             })    
         } else {
-            txb.moveCall({
-                target:this.protocol.DemandFn('description_set') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(description), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().DemandFn('description_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(description), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.bounty_type],
             })    
         }
@@ -184,21 +175,20 @@ export class Demand {
             ERROR(Errors.IsValidAddress)
         }
     
-        let txb = this.protocol.CurrentSession();
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.DemandFn('yes_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), 
-                    txb.pure(service_address, BCS.ADDRESS), 
-                    Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().DemandFn('yes_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
+                    this.txb.pure.address(service_address), 
+                    Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.bounty_type],
             })    
         } else {
-            txb.moveCall({
-                target:this.protocol.DemandFn('yes') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), 
-                    txb.pure(service_address, BCS.ADDRESS), 
-                    Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().DemandFn('yes') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
+                    this.txb.pure.address(service_address), 
+                    Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.bounty_type],
             })    
         }
@@ -208,11 +198,10 @@ export class Demand {
         if (!Protocol.IsValidObjects([bounty])) {
             ERROR(Errors.IsValidObjects)
         }
-
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.DemandFn('deposit') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, bounty)],
+        
+        this.txb.moveCall({
+            target:Protocol.Instance().DemandFn('deposit') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, bounty)],
             typeArguments:[this.bounty_type],
         })    
     }
@@ -227,20 +216,19 @@ export class Demand {
         if (!IsValidArgType(service_pay_type)) {
             ERROR(Errors.IsValidArgType, 'service_pay_type')
         }
-
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.DemandFn('present_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, service_address), 
-                    txb.pure(tips)],
+            this.txb.moveCall({
+                target:Protocol.Instance().DemandFn('present_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, service_address), 
+                    this.txb.pure.string(tips)],
                 typeArguments:[this.bounty_type, service_pay_type],
             })   
         } else {
-            txb.moveCall({
-                target:this.protocol.DemandFn('present') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, service_address), 
-                    txb.pure(tips)],
+            this.txb.moveCall({
+                target:Protocol.Instance().DemandFn('present') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, service_address), 
+                    this.txb.pure.string(tips)],
                 typeArguments:[this.bounty_type, service_pay_type],
             })   
         } 
@@ -250,10 +238,9 @@ export class Demand {
             ERROR(Errors.IsValidObjects)
         }
     
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.DemandFn('permission_set') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), Protocol.TXB_OBJECT(txb, new_permission)],
+        this.txb.moveCall({
+            target:Protocol.Instance().DemandFn('permission_set') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission), Protocol.TXB_OBJECT(this.txb, new_permission)],
             typeArguments:[this.bounty_type]            
         })    
         this.permission = new_permission

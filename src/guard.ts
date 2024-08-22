@@ -4,6 +4,7 @@ import { Protocol, LogicsInfo, GuardAddress, FnCallType, Data_Type, MODULES, Con
 import { concatenate, array_equal } from './utils';
 import { IsValidDesription, Bcs, IsValidInt, IsValidAddress, FirstLetterUppercase } from './utils';
 import { ERROR, Errors } from './exception';
+import { Transaction as TransactionBlock } from '@mysten/sui/transactions';
 
 export type GuardConstant = Map<number, Guard_Vriable>;
 
@@ -22,7 +23,7 @@ export  interface Guard_Options {
 
 export class Guard {
     static MAX_INPUT_LENGTH = 2048;
-    static launch(protocol:Protocol, description:string, maker:GuardMaker) : GuardAddress  {
+    static launch(txb:TransactionBlock, description:string, maker:GuardMaker) : GuardAddress  {
         if (!maker.IsReady()) {
             ERROR(Errors.InvalidParam, 'launch maker');
         }
@@ -45,13 +46,12 @@ export class Guard {
             ERROR(Errors.InvalidParam, 'launch constants')
         }
         
-        let txb = protocol.CurrentSession();
         let input = new  Uint8Array(bcs_input); // copy new uint8array to reserve!
 
         // reserve the  bytes for guard
         let guard = txb.moveCall({
-            target: protocol.GuardFn('new') as FnCallType,
-            arguments: [txb.pure(description), txb.pure([].slice.call(input.reverse()))],  
+            target: Protocol.Instance().GuardFn('new') as FnCallType,
+            arguments: [txb.pure.string(description), txb.pure.vector('u8', [].slice.call(input.reverse()))],  
         });
 
         constants?.forEach((v, k) => {
@@ -61,8 +61,8 @@ export class Guard {
                 }
 
                 txb.moveCall({
-                    target:protocol.GuardFn("constant_add") as FnCallType,
-                    arguments:[guard, txb.pure(k, BCS.U8), txb.pure(v.type, BCS.U8), txb.pure([].slice.call(v.witness)), txb.pure(true, BCS.BOOL)]
+                    target:Protocol.Instance().GuardFn("constant_add") as FnCallType,
+                    arguments:[guard, txb.pure.u8(k), txb.pure.u8(v.type), txb.pure.vector('u8', [].slice.call(v.witness)), txb.pure.bool(true)]
                 })            
             } else {
                 if (!v.value)   {
@@ -70,28 +70,28 @@ export class Guard {
                 }
     
                 txb.moveCall({
-                    target:protocol.GuardFn("constant_add") as FnCallType,
-                    arguments:[guard, txb.pure(k, BCS.U8), txb.pure(v.type, BCS.U8), txb.pure([].slice.call(v.value)), txb.pure(true, BCS.BOOL)]
+                    target:Protocol.Instance().GuardFn("constant_add") as FnCallType,
+                    arguments:[guard, txb.pure.u8(k), txb.pure.u8(v.type), txb.pure.vector('u8', [].slice.call(v.value)), txb.pure.bool(true)]
                 }) 
             }
         });
     
         return txb.moveCall({
-            target:protocol.GuardFn("create") as FnCallType,
+            target:Protocol.Instance().GuardFn("create") as FnCallType,
             arguments:[guard]
         });
     }
     
-    static signer_guard(protocol: Protocol) : GuardAddress {
-        return protocol.CurrentSession().moveCall({
-            target: protocol.GuardFn('signer_guard') as FnCallType,
+    static signer_guard(txb: TransactionBlock) : GuardAddress {
+        return txb.moveCall({
+            target: Protocol.Instance().GuardFn('signer_guard') as FnCallType,
             arguments: []
         }); 
     }
     
-    static everyone_guard(protocol:Protocol) : GuardAddress {
-        return protocol.CurrentSession().moveCall({
-            target: protocol.GuardFn('everyone_guard') as FnCallType,
+    static everyone_guard(txb:TransactionBlock) : GuardAddress {
+        return txb.moveCall({
+            target: Protocol.Instance().GuardFn('everyone_guard') as FnCallType,
             arguments: []
         }); 
     }

@@ -4,6 +4,7 @@ import { array_unique, IsValidAddress, IsValidArray,  IsValidDesription, IsValid
 import { ERROR, Errors } from './exception';
 import { ValueType } from './protocol';
 import { Passport } from './passport';
+import { Transaction as TransactionBlock } from '@mysten/sui/transactions';
 
 export enum PermissionIndex {
     repository = 100,
@@ -183,46 +184,43 @@ export type Permission_Entity = {
 }
 
 export class  Permission {
-    protected protocol;
+    protected txb;
     protected object : TxbObject;
     
     get_object()  { return this.object }
-    private constructor(protocol:Protocol) {
-        this.protocol = protocol;
+    private constructor(txb:TransactionBlock) {
+        this.txb = txb;
         this.object = '';
     }
-    static From(protocol:Protocol, object:TxbObject) : Permission {
-        let p =  new Permission(protocol);
-        p.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object);
+    static From(txb:TransactionBlock, object:TxbObject) : Permission {
+        let p =  new Permission(txb);
+        p.object = Protocol.TXB_OBJECT(txb, object);
         return p
     }
 
-    static New(protocol:Protocol, description:string) : Permission {
+    static New(txb:TransactionBlock, description:string) : Permission {
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription)
         }
-        let p = new Permission(protocol);
-        let txb = protocol.CurrentSession();
+        let p = new Permission(txb);
         p.object = txb.moveCall({
-            target: protocol.PermissionFn('new') as FnCallType,
-            arguments: [txb.pure(description)]
+            target: Protocol.Instance().PermissionFn('new') as FnCallType,
+            arguments: [txb.pure.string(description)]
         });
         return p
     }
 
     launch() : PermissionAddress {
-        let txb = this.protocol.CurrentSession();
-        return txb.moveCall({ // address returned
-            target:this.protocol.PermissionFn('create')  as FnCallType,
-            arguments:[ Protocol.TXB_OBJECT(txb, this.object) ]        
+        return this.txb.moveCall({ // address returned
+            target:Protocol.Instance().PermissionFn('create')  as FnCallType,
+            arguments:[ Protocol.TXB_OBJECT(this.txb, this.object) ]        
         })
     }
 
     destroy()  {
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.PermissionFn('destroy') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(txb, this.object)],
+        this.txb.moveCall({
+            target:Protocol.Instance().PermissionFn('destroy') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object)],
         })  
     }
     add_userdefine(index: number, name:string) {
@@ -233,10 +231,9 @@ export class  Permission {
         if (!IsValidName(name)) {
             ERROR(Errors.IsValidName, 'add_userdefine');
         }
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.PermissionFn('user_define_add') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(index, BCS.U64), txb.pure(name)]
+        this.txb.moveCall({
+            target:Protocol.Instance().PermissionFn('user_define_add') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u64(index), this.txb.pure.string(name)]
         })   
     }
     
@@ -245,10 +242,9 @@ export class  Permission {
             ERROR(Errors.IsValidUserDefinedIndex, 'add_userdefine');
         }
 
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.PermissionFn('user_define_remove') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(index, BCS.U64)]
+        this.txb.moveCall({
+            target:Protocol.Instance().PermissionFn('user_define_remove') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u64(index)]
         })   
     }
 
@@ -256,11 +252,11 @@ export class  Permission {
         if (!IsValidAddress(old_entity) || !IsValidAddress(new_entity)) {
             ERROR(Errors.IsValidAddress, 'change_entity')
         }
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.PermissionFn('change_entity') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(old_entity, BCS.ADDRESS), 
-                txb.pure(new_entity, BCS.ADDRESS) ]
+
+        this.txb.moveCall({
+            target:Protocol.Instance().PermissionFn('change_entity') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(old_entity), 
+                this.txb.pure.address(new_entity) ]
         })     
     }
 
@@ -271,17 +267,16 @@ export class  Permission {
             ERROR(Errors.IsValidArray, 'add_entity2');
         }
 
-        let txb = this.protocol.CurrentSession();
         if (index) {
-            txb.moveCall({
-                target:this.protocol.PermissionFn('add_with_index') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(index, BCS.U64),
-                    txb.pure(array_unique(entities), 'vector<address>')]
+            this.txb.moveCall({
+                target:Protocol.Instance().PermissionFn('add_with_index') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u64(index),
+                    this.txb.pure.vector('address', array_unique(entities))]
             })       
         } else {
-            txb.moveCall({
-                target:this.protocol.PermissionFn('add') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(entities), 'vector<address>')]
+            this.txb.moveCall({
+                target:Protocol.Instance().PermissionFn('add') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(entities))]
             })                   
         }
     }
@@ -303,9 +298,7 @@ export class  Permission {
             ERROR(Errors.InvalidParam, 'entities');
         }
 
-        let txb = this.protocol.CurrentSession();
         let guards:any[]  = [];
-
         for (let i = 0; i < entities.length; i++) {
             let entity = entities[i];
             let indexes :number[] = [];
@@ -324,19 +317,19 @@ export class  Permission {
                 }      
             }    
             //if (indexes.length > 0) {
-                txb.moveCall({
-                    target:this.protocol.PermissionFn('add_batch') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(entity.entity_address, BCS.ADDRESS), 
-                        txb.pure(indexes, 'vector<u64>')]
+                this.txb.moveCall({
+                    target:Protocol.Instance().PermissionFn('add_batch') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity.entity_address), 
+                        this.txb.pure.vector('u64', indexes)]
                 })            
             //}
         } 
         // set guards
         guards.forEach(({entity_address, index, guard}) => {
-            txb.moveCall({
-                target:this.protocol.PermissionFn('guard_set') as FnCallType,
-                arguments:[ Protocol.TXB_OBJECT(txb, this.object), txb.pure(entity_address, BCS.ADDRESS), 
-                    txb.pure(index, BCS.U64), Protocol.TXB_OBJECT(txb, guard)]
+            this.txb.moveCall({
+                target:Protocol.Instance().PermissionFn('guard_set') as FnCallType,
+                arguments:[ Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure(entity_address, BCS.ADDRESS), 
+                    this.txb.pure.u64(index), Protocol.TXB_OBJECT(this.txb, guard)]
             })
         })
     }
@@ -350,18 +343,17 @@ export class  Permission {
             ERROR(Errors.IsValidPermissionIndex, 'index')
         }
 
-        let txb = this.protocol.CurrentSession();
         if (guard) {
-            txb.moveCall({
-                target:this.protocol.PermissionFn('guard_set') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(entity_address, BCS.ADDRESS), 
-                    txb.pure(index, BCS.U64), Protocol.TXB_OBJECT(txb, guard)]
+            this.txb.moveCall({
+                target:Protocol.Instance().PermissionFn('guard_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity_address), 
+                    this.txb.pure.u64(index), Protocol.TXB_OBJECT(this.txb, guard)]
             })    
         } else {
-            txb.moveCall({
-                target:this.protocol.PermissionFn('guard_none') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(entity_address, BCS.ADDRESS), 
-                    txb.pure(index, BCS.U64)]
+            this.txb.moveCall({
+                target:Protocol.Instance().PermissionFn('guard_none') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity_address), 
+                    this.txb.pure.u64(index)]
             })       
         };
     }
@@ -374,11 +366,10 @@ export class  Permission {
             ERROR(Errors.InvalidParam, 'index')
         }
 
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.PermissionFn('remove_index') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(entity_address, BCS.ADDRESS), 
-                txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, array_unique(index)))]
+        this.txb.moveCall({
+            target:Protocol.Instance().PermissionFn('remove_index') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity_address), 
+                this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, array_unique(index)))]
         })            
     }
     remove_entity(entity_address:string[])  {
@@ -386,21 +377,20 @@ export class  Permission {
             ERROR(Errors.IsValidArray)
         }
 
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.PermissionFn('remove') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(entity_address), 'vector<address>')]
+        this.txb.moveCall({
+            target:Protocol.Instance().PermissionFn('remove') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(entity_address))]
         })           
-        ;
     }
+
     set_description(description:string)  {
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription)
         }
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.PermissionFn('description_set') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(description)]
+
+        this.txb.moveCall({
+            target:Protocol.Instance().PermissionFn('description_set') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(description)]
         })
         ;
     }
@@ -410,12 +400,10 @@ export class  Permission {
             ERROR(Errors.IsValidArray)
         }
 
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.PermissionFn('admin_add_batch')  as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(admin), 'vector<address>')]
+        this.txb.moveCall({
+            target:Protocol.Instance().PermissionFn('admin_add_batch')  as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address',  array_unique(admin))]
         });           
-        ;
     }
 
     remove_admin(admin:string[], removeall?:boolean)  {
@@ -424,16 +412,15 @@ export class  Permission {
             ERROR(Errors.IsValidArray, 'admin')
         }
 
-        let txb = this.protocol.CurrentSession();
         if (removeall) {
-            txb.moveCall({
-                target:this.protocol.PermissionFn('admins_clear')  as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object)]
+            this.txb.moveCall({
+                target:Protocol.Instance().PermissionFn('admins_clear')  as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object)]
             });    
         } else if (admin) {
-            txb.moveCall({
-                target:this.protocol.PermissionFn('admin_remove_batch')  as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(admin), 'vector<address>')]
+            this.txb.moveCall({
+                target:Protocol.Instance().PermissionFn('admin_remove_batch')  as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(admin))]
             });            
         }
         
@@ -444,10 +431,9 @@ export class  Permission {
             ERROR(Errors.IsValidAddress)
         }
 
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.PermissionFn('builder_set')  as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(new_owner, BCS.ADDRESS)]
+        this.txb.moveCall({
+            target:Protocol.Instance().PermissionFn('builder_set')  as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(new_owner)]
         });        
     }
     query_permissions(address_queried:string, permissions:PermissionIndexType[]) {
@@ -459,17 +445,15 @@ export class  Permission {
             ERROR(Errors.InvalidParam, 'permissions count');
         }
 
-        const txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.PermissionFn('query_permissions') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(address_queried, BCS.ADDRESS), txb.pure(permissions, 'vector<u64>')]
+        this.txb.moveCall({
+            target:Protocol.Instance().PermissionFn('query_permissions') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address_queried), this.txb.pure.vector('u64', permissions)]
         })   
     }
 
-    QueryPermissions(address_queried:string, permissions:PermissionIndexType[], onPermissionAnswer:OnPermissionAnswer, sender?:string) {
+    QueryPermissions(txb:TransactionBlock, address_queried:string, permissions:PermissionIndexType[], onPermissionAnswer:OnPermissionAnswer, sender?:string) {
         this.query_permissions(address_queried, permissions);
-        Protocol.Client().devInspectTransactionBlock({sender:sender ?? address_queried, 
-            transactionBlock:this.protocol.CurrentSession()}).then((res) => {
+        Protocol.Client().devInspectTransactionBlock({sender:sender ?? address_queried, transactionBlock:txb}).then((res) => {
             if (res.results && res.results[0].returnValues && res.results[0].returnValues.length !== 3 )  {
                 onPermissionAnswer({who:address_queried});
                 return 

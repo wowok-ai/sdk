@@ -1,8 +1,8 @@
 import { bcs, BCS, toHEX, fromHEX, getSuiMoveConfig, TypeName, BcsReader } from '@mysten/bcs';
-import { TransactionBlock, Inputs, TransactionResult, TransactionArgument } from '@mysten/sui.js/transactions';
-import { SuiObjectResponse, DynamicFieldPage } from '@mysten/sui.js/client';
+import { Transaction as TransactionBlock, Inputs, TransactionResult, TransactionArgument } from '@mysten/sui/transactions';
+import { SuiObjectResponse, DynamicFieldPage } from '@mysten/sui/client';
 import { ERROR, Errors } from './exception';
-import { isValidSuiAddress, isValidSuiObjectId } from '@mysten/sui.js/utils'
+import { isValidSuiAddress, isValidSuiObjectId } from '@mysten/sui/utils'
 import { RepositoryValueType, ValueType, Protocol } from './protocol'
 
 export const MAX_U8 = BigInt('255');
@@ -473,7 +473,7 @@ export const ResolveBalance = (balance:string, decimals:number) : string => {
     }
 }
 
-export const OptionNone = (txb:TransactionBlock) : TransactionArgument => { return txb.pure([], BCS.U8) };
+//export const OptionNone = (txb:TransactionBlock) : TransactionArgument => { return txb.pure.option([], BCS.U8) };
 
 export type ArgType = {
     isCoin: boolean;

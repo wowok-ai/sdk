@@ -1,4 +1,4 @@
-import { TransactionArgument, TransactionBlock, type TransactionResult } from '@mysten/sui.js/transactions';
+import { TransactionArgument, Transaction as TransactionBlock, type TransactionResult, } from '@mysten/sui/transactions';
 import { BCS} from '@mysten/bcs';
 import { FnCallType, GuardObject, PassportObject, PermissionObject, RewardAddress, Protocol, TxbObject, } from './protocol';
 import { array_unique, IsValidAddress, IsValidArgType, IsValidArray, IsValidDesription,  IsValidUintLarge, } from './utils';
@@ -15,22 +15,22 @@ export class Reward {
     protected earnest_type;
     protected permission ;
     protected object:TxbObject;
-    protected protocol;
+    protected txb;
     
     get_earnest_type() {  return this.earnest_type }
     get_object() { return this.object }
-    private constructor(protocol:Protocol, earnest_type:string, permission:PermissionObject) {
-        this.protocol = protocol
+    private constructor(txb:TransactionBlock, earnest_type:string, permission:PermissionObject) {
+        this.txb = txb
         this.earnest_type = earnest_type
         this.permission = permission
         this.object = ''
     }
-    static From(protocol:Protocol, earnest_type:string, permission:PermissionObject, object:TxbObject) : Reward {
-        let r = new Reward(protocol, earnest_type,  permission);
-        r.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object);
+    static From(txb:TransactionBlock, earnest_type:string, permission:PermissionObject, object:TxbObject) : Reward {
+        let r = new Reward(txb, earnest_type,  permission);
+        r.object = Protocol.TXB_OBJECT(txb, object);
         return  r
     }
-    static New(protocol:Protocol, earnest_type:string, permission:PermissionObject, description:string, 
+    static New(txb:TransactionBlock, earnest_type:string, permission:PermissionObject, description:string, 
         ms_expand:boolean, time:number, passport?:PassportObject) : Reward {
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects, 'permission')
@@ -45,21 +45,20 @@ export class Reward {
             ERROR(Errors.IsValidUint, 'time')
         }
 
-        let r = new Reward(protocol, earnest_type,  permission);
-        let txb = protocol.CurrentSession()
-
+        let r = new Reward(txb, earnest_type,  permission);
+        const clock = txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         if (passport) {
             r.object = txb.moveCall({
-                target:protocol.RewardFn('new_with_passport') as FnCallType,
-                arguments:[passport, txb.pure(description), txb.pure(ms_expand, BCS.BOOL), txb.pure(time, BCS.U64), 
-                    txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, permission)],
+                target:Protocol.Instance().RewardFn('new_with_passport') as FnCallType,
+                arguments:[passport, txb.pure.string(description), txb.pure.bool(ms_expand), txb.pure.u64(time), 
+                    txb.object(clock), Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments:[earnest_type]
             })
         } else {
             r.object = txb.moveCall({
-                target:protocol.RewardFn('new') as FnCallType,
-                arguments:[txb.pure(description), txb.pure(ms_expand, BCS.BOOL), txb.pure(time, BCS.U64), 
-                    txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, permission)], 
+                target:Protocol.Instance().RewardFn('new') as FnCallType,
+                arguments:[txb.pure.string(description), txb.pure.bool(ms_expand), txb.pure.u64(time), 
+                    txb.object(clock), Protocol.TXB_OBJECT(txb, permission)], 
                 typeArguments:[earnest_type]
             })
         }
@@ -67,34 +66,32 @@ export class Reward {
     }
     
     launch(): RewardAddress  {
-        let txb = this.protocol.CurrentSession();
-        return txb.moveCall({
-            target:this.protocol.RewardFn('create') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object)], 
+        return this.txb.moveCall({
+            target:Protocol.Instance().RewardFn('create') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object)], 
             typeArguments:[this.earnest_type]
         })
     }
 
     destroy()  {
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.RewardFn('destroy') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(txb, this.object)],
+        this.txb.moveCall({
+            target:Protocol.Instance().RewardFn('destroy') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object)],
         })   
     }
 
     refund(passport?:PassportObject) {
-        let txb = this.protocol.CurrentSession();
+        const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.RewardFn('refund_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, this.permission)], 
+            this.txb.moveCall({
+                target:Protocol.Instance().RewardFn('refund_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(clock), Protocol.TXB_OBJECT(this.txb, this.permission)], 
                 typeArguments:[this.earnest_type]
             })  
         } else {
-            txb.moveCall({
-                target:this.protocol.RewardFn('refund') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, this.permission)], 
+            this.txb.moveCall({
+                target:Protocol.Instance().RewardFn('refund') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(clock), Protocol.TXB_OBJECT(this.txb, this.permission)], 
                 typeArguments:[this.earnest_type]
             })        
         }
@@ -104,24 +101,22 @@ export class Reward {
         if (!IsValidUintLarge(time)) {
             ERROR(Errors.IsValidUint, 'minutes_expand')
         }
-
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.RewardFn('time_expand_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(ms_expand, BCS.BOOL),
-                    txb.pure(time, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)], 
+            this.txb.moveCall({
+                target:Protocol.Instance().RewardFn('time_expand_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.bool(ms_expand),
+                    this.txb.pure.u64(time), Protocol.TXB_OBJECT(this.txb, this.permission)], 
                 typeArguments:[this.earnest_type]
             })
         } else {
-            txb.moveCall({
-                target:this.protocol.RewardFn('time_expand') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(ms_expand, BCS.BOOL),
-                    txb.pure(time, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)], 
+            this.txb.moveCall({
+                target:Protocol.Instance().RewardFn('time_expand') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object),this.txb.pure.bool(ms_expand),
+                    this.txb.pure.u64(time), Protocol.TXB_OBJECT(this.txb, this.permission)], 
                 typeArguments:[this.earnest_type]
             })
         }
-        
     }
 
     add_guard(gurads:RewardGuardPortions[], passport?:PassportObject)  {
@@ -136,23 +131,22 @@ export class Reward {
             ERROR(Errors.InvalidParam, 'gurads')
         }
 
-        let txb = this.protocol.CurrentSession();
         if (passport) {
             gurads.forEach((guard) => 
-                txb.moveCall({
-                    target:this.protocol.RewardFn('guard_add_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), 
-                        Protocol.TXB_OBJECT(txb, guard.guard), txb.pure(guard.portions, BCS.U8), 
-                        Protocol.TXB_OBJECT(txb, this.permission)], 
+                this.txb.moveCall({
+                    target:Protocol.Instance().RewardFn('guard_add_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
+                        Protocol.TXB_OBJECT(this.txb, guard.guard), this.txb.pure.u8(guard.portions), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission)], 
                     typeArguments:[this.earnest_type]
                 })
             )
         } else {
             gurads.forEach((guard) => 
-                txb.moveCall({
-                    target:this.protocol.RewardFn('guard_add') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard.guard), 
-                        txb.pure(guard.portions, BCS.U8), Protocol.TXB_OBJECT(txb, this.permission)], 
+                this.txb.moveCall({
+                    target:Protocol.Instance().RewardFn('guard_add') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, guard.guard), 
+                        this.txb.pure.u8(guard.portions), Protocol.TXB_OBJECT(this.txb, this.permission)], 
                     typeArguments:[this.earnest_type]
                 })
             )
@@ -167,35 +161,34 @@ export class Reward {
         if (!IsValidArray(guards, IsValidAddress)) {
             ERROR(Errors.IsValidArray, 'guards')
         }
-
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
             if (removeall) {
-                txb.moveCall({
-                    target:this.protocol.RewardFn('guard_remove_all_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)], 
+                this.txb.moveCall({
+                    target:Protocol.Instance().RewardFn('guard_remove_all_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)], 
                     typeArguments:[this.earnest_type]
                 })
             } else {
-                txb.moveCall({
-                    target:this.protocol.RewardFn('guard_remove_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(array_unique(guards), 'vector<address>'), 
-                        Protocol.TXB_OBJECT(txb, this.permission)], 
+                this.txb.moveCall({
+                    target:Protocol.Instance().RewardFn('guard_remove_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(guards)), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission)], 
                     typeArguments:[this.earnest_type]
                 })
             }
         } else {
             if (removeall) {
-                txb.moveCall({
-                    target:this.protocol.RewardFn('guard_remove_all') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)], 
+                this.txb.moveCall({
+                    target:Protocol.Instance().RewardFn('guard_remove_all') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)], 
                     typeArguments:[this.earnest_type]
                 })
             } else {
-                txb.moveCall({
-                    target:this.protocol.RewardFn('guard_remove') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(guards, 'vector<address>'), 
-                        Protocol.TXB_OBJECT(txb, this.permission)], 
+                this.txb.moveCall({
+                    target:Protocol.Instance().RewardFn('guard_remove') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(guards)), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission)], 
                     typeArguments:[this.earnest_type]
                 })
             }
@@ -203,19 +196,18 @@ export class Reward {
         
     }
     allow_repeat_claim(allow_repeat_claim:boolean, passport?:PassportObject)  {
-        let txb = this.protocol.CurrentSession();
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.RewardFn('allow_repeat_claim_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), 
-                    txb.pure(allow_repeat_claim, BCS.BOOL)], 
+            this.txb.moveCall({
+                target:Protocol.Instance().RewardFn('allow_repeat_claim_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission), 
+                    this.txb.pure.bool(allow_repeat_claim)], 
                 typeArguments:[this.earnest_type]
             })
         } else {
-            txb.moveCall({
-                target:this.protocol.RewardFn('allow_repeat_claim') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), 
-                    txb.pure(allow_repeat_claim, BCS.BOOL)], 
+            this.txb.moveCall({
+                target:Protocol.Instance().RewardFn('allow_repeat_claim') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission), 
+                    this.txb.pure.bool(allow_repeat_claim)], 
                 typeArguments:[this.earnest_type]
             })
         }
@@ -225,83 +217,80 @@ export class Reward {
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription)
         }
-
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.RewardFn('description_set_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(description), Protocol.TXB_OBJECT(txb, this.permission)], 
+            this.txb.moveCall({
+                target:Protocol.Instance().RewardFn('description_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(description), Protocol.TXB_OBJECT(this.txb, this.permission)], 
                 typeArguments:[this.earnest_type]
             })
         } else {
-            txb.moveCall({
-                target:this.protocol.RewardFn('description_set') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(description), Protocol.TXB_OBJECT(txb, this.permission)], 
+            this.txb.moveCall({
+                target:Protocol.Instance().RewardFn('description_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(description), Protocol.TXB_OBJECT(this.txb, this.permission)], 
                 typeArguments:[this.earnest_type]
             })
         }
     }
 
     lock_guards(passport?:PassportObject)  {
-        let txb = this.protocol.CurrentSession();
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.RewardFn('guard_lock_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)], 
+            this.txb.moveCall({
+                target:Protocol.Instance().RewardFn('guard_lock_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)], 
                 typeArguments:[this.earnest_type]
             })
         } else {
-            txb.moveCall({
-                target:this.protocol.RewardFn('guard_lock') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)], 
+            this.txb.moveCall({
+                target:Protocol.Instance().RewardFn('guard_lock') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)], 
                 typeArguments:[this.earnest_type]
             })
         }
     }
 
     claim(passport?:PassportObject)  {
-        let txb = this.protocol.CurrentSession();
+        const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.RewardFn('claim_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.object(Protocol.CLOCK_OBJECT)], 
+            this.txb.moveCall({
+                target:Protocol.Instance().RewardFn('claim_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(clock)], 
                 typeArguments:[this.earnest_type]
             })
         } else {
-            txb.moveCall({
-                target:this.protocol.RewardFn('claim') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.object(Protocol.CLOCK_OBJECT)], 
+            this.txb.moveCall({
+                target:Protocol.Instance().RewardFn('claim') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(clock)], 
                 typeArguments:[this.earnest_type]
             })        
         }
-        ;
     }
-    deposit(rewards:TransactionResult[])  {
-        console.log(rewards)
+
+    deposit(rewards:(TransactionResult | TransactionArgument)[])  {
         if (!rewards || !Protocol.IsValidObjects(rewards)) {
             ERROR(Errors.IsValidArray)
         }
 
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.RewardFn('deposit') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.makeMoveVec({objects:array_unique(rewards)})], //@
+        this.txb.moveCall({
+            target:Protocol.Instance().RewardFn('deposit') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.makeMoveVec({elements:array_unique(rewards)})], //@
             typeArguments:[this.earnest_type]
         })
     }
+
     allow_claim(bAllowClaim: boolean, passport?:PassportObject) {
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.RewardFn('allow_claim_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission),
-                    txb.pure(bAllowClaim, BCS.BOOL)], 
+            this.txb.moveCall({
+                target:Protocol.Instance().RewardFn('allow_claim_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission),
+                    this.txb.pure.bool(bAllowClaim)], 
                 typeArguments:[this.earnest_type]
             })      
         } else {
-            txb.moveCall({
-                target:this.protocol.RewardFn('allow_claim') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), txb.pure(bAllowClaim, BCS.BOOL)], 
+            this.txb.moveCall({
+                target:Protocol.Instance().RewardFn('allow_claim') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission), this.txb.pure.bool(bAllowClaim)], 
                 typeArguments:[this.earnest_type]
             })            
         }
@@ -312,10 +301,10 @@ export class Reward {
             ERROR(Errors.IsValidObjects)
         }
 
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.RewardFn('permission_set') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission), Protocol.TXB_OBJECT(txb, new_permission)],
+        
+        this.txb.moveCall({
+            target:Protocol.Instance().RewardFn('permission_set') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission), Protocol.TXB_OBJECT(this.txb, new_permission)],
             typeArguments:[this.earnest_type]            
         })    
         this.permission = new_permission

@@ -1,8 +1,8 @@
-import { BCS } from '@mysten/bcs';
 import { FnCallType, PassportObject, PermissionObject, GuardObject, VoteAddress, Protocol, TxbObject} from './protocol';
-import { IsValidDesription, IsValidUintLarge, IsValidAddress, OptionNone, Bcs, array_unique, IsValidArray, IsValidName } from './utils';
+import { IsValidDesription, IsValidUintLarge, IsValidAddress, Bcs, array_unique, IsValidArray, IsValidName } from './utils';
 import { ERROR, Errors } from './exception';
 import { ValueType } from './protocol';
+import { Transaction as TransactionBlock} from '@mysten/sui/transactions';
 
 export const MAX_AGREES_COUNT = 200;
 export const MAX_CHOICE_COUNT = 200;
@@ -15,20 +15,20 @@ export type VoteOption = {
 export class Vote {
     protected permission;
     protected object : TxbObject;
-    protected protocol;
+    protected txb;
     
     get_object() { return this.object }
-    private constructor(protocol:Protocol, permission:PermissionObject) {
+    private constructor(txb:TransactionBlock, permission:PermissionObject) {
         this.object = '';
-        this.protocol = protocol;
+        this.txb = txb;
         this.permission = permission;
     }
-    static From(protocol:Protocol, permission:PermissionObject, object:TxbObject) : Vote {
-        let v = new Vote(protocol, permission);
-        v.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object)
+    static From(txb:TransactionBlock, permission:PermissionObject, object:TxbObject) : Vote {
+        let v = new Vote(txb, permission);
+        v.object = Protocol.TXB_OBJECT(txb, object)
         return v
     }
-    static New(protocol:Protocol, permission:PermissionObject, description:string, minutes_duration:boolean,  time:number,
+    static New(txb:TransactionBlock, permission:PermissionObject, description:string, minutes_duration:boolean,  time:number,
         max_choice_count?:number, reference_address?:string, passport?:PassportObject) : Vote {
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects,  'permission')
@@ -49,40 +49,38 @@ export class Vote {
             ERROR(Errors.IsValidAddress, 'reference_address')
         }
 
-        let v = new Vote(protocol, permission);    
-        let txb  = protocol.CurrentSession();
-        let reference = reference_address?  txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_ADDRESS, reference_address)) : OptionNone(txb);
+        let v = new Vote(txb, permission);    
+        
+        let reference = txb.pure.option('address', reference_address ? reference_address : undefined);
         let choice_count = max_choice_count ? max_choice_count : 1;
-
+        const clock = txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         if (passport) {
             v.object = txb.moveCall({
-                target:protocol.VoteFn('new_with_passport') as FnCallType,
-                arguments:[passport, txb.pure(description), reference, txb.pure(Protocol.CLOCK_OBJECT), txb.pure(minutes_duration, BCS.BOOL),
-                    txb.pure(time, BCS.U64), txb.pure(choice_count, BCS.U8), Protocol.TXB_OBJECT(txb, permission)]
+                target:Protocol.Instance().VoteFn('new_with_passport') as FnCallType,
+                arguments:[passport, txb.pure.string(description), reference, txb.object(clock), txb.pure.bool(minutes_duration),
+                    txb.pure.u64(time), txb.pure.u8(choice_count), Protocol.TXB_OBJECT(txb, permission)]
             })
         } else {
             v.object = txb.moveCall({
-                target:protocol.VoteFn('new') as FnCallType,
-                arguments:[txb.pure(description), reference, txb.pure(Protocol.CLOCK_OBJECT), txb.pure(minutes_duration, BCS.BOOL),
-                    txb.pure(time, BCS.U64), txb.pure(choice_count, BCS.U8), Protocol.TXB_OBJECT(txb, permission)]
+                target:Protocol.Instance().VoteFn('new') as FnCallType,
+                arguments:[txb.pure.string(description), reference, txb.object(clock), txb.pure.bool(minutes_duration),
+                    txb.pure.u64(time), txb.pure.u8(choice_count), Protocol.TXB_OBJECT(txb, permission)]
             })
         }
         return v
     }
 
     launch() : VoteAddress {
-        let txb = this.protocol.CurrentSession();
-        return txb.moveCall({
-            target:this.protocol.VoteFn('create') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object)]
+        return this.txb.moveCall({
+            target:Protocol.Instance().VoteFn('create') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object)]
         })
     }
 
     destroy() {
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.VoteFn('destroy') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object)]
+        this.txb.moveCall({
+            target:Protocol.Instance().VoteFn('destroy') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object)]
         })
     }
 
@@ -90,38 +88,35 @@ export class Vote {
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription)
         }
-
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.VoteFn('description_set_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(description), Protocol.TXB_OBJECT(txb, this.permission)]
+            this.txb.moveCall({
+                target:Protocol.Instance().VoteFn('description_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(description), Protocol.TXB_OBJECT(this.txb, this.permission)]
             })
         } else {
-            txb.moveCall({
-                target:this.protocol.VoteFn('description_set') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(description), Protocol.TXB_OBJECT(txb, this.permission)]
+            this.txb.moveCall({
+                target:Protocol.Instance().VoteFn('description_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(description), Protocol.TXB_OBJECT(this.txb, this.permission)]
             })
         }
-        
     }
 
-    set_reference(reference_address?:string, passport?:PassportObject)   {
+    set_reference(reference_address?:string|null, passport?:PassportObject)   {
         if (reference_address && !IsValidAddress(reference_address)) {
             ERROR(Errors.IsValidAddress)
         }
-
-        let txb = this.protocol.CurrentSession();
-        let reference = reference_address?  txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_ADDRESS, reference_address)) : OptionNone(txb); 
+        
+        let reference = this.txb.pure.option('address', reference_address ? reference_address : undefined); 
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.VoteFn('reference_set_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), reference, Protocol.TXB_OBJECT(txb, this.permission)]
+            this.txb.moveCall({
+                target:Protocol.Instance().VoteFn('reference_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), reference, Protocol.TXB_OBJECT(this.txb, this.permission)]
             })
         } else {
-            txb.moveCall({
-                target:this.protocol.VoteFn('reference_set') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), reference, Protocol.TXB_OBJECT(txb, this.permission)]
+            this.txb.moveCall({
+                target:Protocol.Instance().VoteFn('reference_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), reference, Protocol.TXB_OBJECT(this.txb, this.permission)]
             })
         }
         
@@ -134,18 +129,17 @@ export class Vote {
             ERROR(Errors.IsValidUint, 'add_guard')
         }
 
-        let txb = this.protocol.CurrentSession();
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.VoteFn('guard_add_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard), 
-                    txb.pure(weight, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)]
+            this.txb.moveCall({
+                target:Protocol.Instance().VoteFn('guard_add_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, guard), 
+                    this.txb.pure.u64(weight), Protocol.TXB_OBJECT(this.txb, this.permission)]
             })
         } else {
-            txb.moveCall({
-                target:this.protocol.VoteFn('guard_add') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, guard), 
-                    txb.pure(weight, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)]
+            this.txb.moveCall({
+                target:Protocol.Instance().VoteFn('guard_add') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, guard), 
+                    this.txb.pure.u64(weight), Protocol.TXB_OBJECT(this.txb, this.permission)]
             })
         }
     }
@@ -156,33 +150,32 @@ export class Vote {
         if (!IsValidArray(guard_address, IsValidAddress)) {
             ERROR(Errors.IsValidArray, 'remove_guard')
         }
-
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
             if (removeall) {
-                txb.moveCall({
-                    target:this.protocol.VoteFn('guard_remove_all_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)]
+                this.txb.moveCall({
+                    target:Protocol.Instance().VoteFn('guard_remove_all_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)]
                 })      
             } else {
-                txb.moveCall({
-                    target:this.protocol.VoteFn('guard_remove_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), 
-                        txb.pure(array_unique(guard_address), 'vector<address>'), Protocol.TXB_OBJECT(txb, this.permission)]
+                this.txb.moveCall({
+                    target:Protocol.Instance().VoteFn('guard_remove_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
+                        this.txb.pure.vector('address', array_unique(guard_address)), Protocol.TXB_OBJECT(this.txb, this.permission)]
                 })        
             }
         } else {
             if (removeall) {
-                txb.moveCall({
-                    target:this.protocol.VoteFn('guard_remove_all') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)]
+                this.txb.moveCall({
+                    target:Protocol.Instance().VoteFn('guard_remove_all') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)]
                 })      
             } else {
-                txb.moveCall({
-                    target:this.protocol.VoteFn('guard_remove') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), 
-                        txb.pure(array_unique(guard_address), 'vector<address>'), 
-                        Protocol.TXB_OBJECT(txb, this.permission)]
+                this.txb.moveCall({
+                    target:Protocol.Instance().VoteFn('guard_remove') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
+                        this.txb.pure.vector('address', array_unique(guard_address)), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission)]
                 })        
             }
         }
@@ -200,23 +193,20 @@ export class Vote {
             ERROR(Errors.InvalidParam, 'options')
         }
 
-        let txb = this.protocol.CurrentSession();
         options.forEach((option) => {
-            let reference = option?.reference_address ? 
-                txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_ADDRESS, option.reference_address)) : 
-                OptionNone(txb); 
+            let reference = this.txb.pure.option('address', option?.reference_address) ;
 
             if (passport) {
-                txb.moveCall({
-                    target:this.protocol.VoteFn('agrees_add_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(option.name), 
-                        reference, Protocol.TXB_OBJECT(txb, this.permission)]
+                this.txb.moveCall({
+                    target:Protocol.Instance().VoteFn('agrees_add_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(option.name), 
+                        reference, Protocol.TXB_OBJECT(this.txb, this.permission)]
                 })       
             } else {
-                txb.moveCall({
-                    target:this.protocol.VoteFn('agrees_add') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(option.name), 
-                        reference, Protocol.TXB_OBJECT(txb, this.permission)]
+                this.txb.moveCall({
+                    target:Protocol.Instance().VoteFn('agrees_add') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(option.name), 
+                        reference, Protocol.TXB_OBJECT(this.txb, this.permission)]
                 })                 
             }
         })
@@ -228,34 +218,33 @@ export class Vote {
         if (options && !IsValidArray(options, IsValidAddress)) {
             ERROR(Errors.IsValidArray, 'remove_option')
         }
-
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
             if (removeall) {
-                txb.moveCall({
-                    target:this.protocol.VoteFn('agrees_remove_all_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)]
+                this.txb.moveCall({
+                    target:Protocol.Instance().VoteFn('agrees_remove_all_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)]
                 })      
             } else {
-                txb.moveCall({
-                    target:this.protocol.VoteFn('agrees_remove_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), 
-                        txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(options))), 
-                        Protocol.TXB_OBJECT(txb, this.permission)]
+                this.txb.moveCall({
+                    target:Protocol.Instance().VoteFn('agrees_remove_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
+                        this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(options))), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission)]
                 })             
             }
         } else {
             if (removeall) {
-                txb.moveCall({
-                    target:this.protocol.VoteFn('agrees_remove_all') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)]
+                this.txb.moveCall({
+                    target:Protocol.Instance().VoteFn('agrees_remove_all') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)]
                 })      
             } else {
-                txb.moveCall({
-                    target:this.protocol.VoteFn('agrees_remove') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(txb, this.object), 
-                        txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(options))), 
-                        Protocol.TXB_OBJECT(txb, this.permission)]
+                this.txb.moveCall({
+                    target:Protocol.Instance().VoteFn('agrees_remove') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
+                        this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(options))), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission)]
                 })        
             }
         }
@@ -265,47 +254,45 @@ export class Vote {
             ERROR(Errors.InvalidParam, 'max_choice_count')
         }
 
-        let txb = this.protocol.CurrentSession();
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.VoteFn('max_choice_count_set_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), 
-                    txb.pure(max_choice_count, BCS.U8), Protocol.TXB_OBJECT(txb, this.permission)]
+            this.txb.moveCall({
+                target:Protocol.Instance().VoteFn('max_choice_count_set_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
+                    this.txb.pure.u8(max_choice_count), Protocol.TXB_OBJECT(this.txb, this.permission)]
             })   
         } else {
-            txb.moveCall({
-                target:this.protocol.VoteFn('max_choice_count_set') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(max_choice_count, BCS.U8), Protocol.TXB_OBJECT(txb, this.permission)]
+            this.txb.moveCall({
+                target:Protocol.Instance().VoteFn('max_choice_count_set') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u8(max_choice_count), Protocol.TXB_OBJECT(this.txb, this.permission)]
             })   
         }  
     }
 
     open_voting(passport?:PassportObject)  {
-        let txb = this.protocol.CurrentSession();
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.VoteFn('options_locked_for_voting_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)]
+            this.txb.moveCall({
+                target:Protocol.Instance().VoteFn('options_locked_for_voting_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)]
             })   
         } else {
-            txb.moveCall({
-                target:this.protocol.VoteFn('options_locked_for_voting') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)]
+            this.txb.moveCall({
+                target:Protocol.Instance().VoteFn('options_locked_for_voting') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)]
             })   
         }
     }
 
     lock_deadline(passport?:PassportObject)  {
-        let txb = this.protocol.CurrentSession();
+        const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.VoteFn('deadline_locked_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, this.permission)]
+            this.txb.moveCall({
+                target:Protocol.Instance().VoteFn('deadline_locked_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(clock), Protocol.TXB_OBJECT(this.txb, this.permission)]
             })   
         } else {
-            txb.moveCall({
-                target:this.protocol.VoteFn('deadline_locked') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.object(Protocol.CLOCK_OBJECT), Protocol.TXB_OBJECT(txb, this.permission)]
+            this.txb.moveCall({
+                target:Protocol.Instance().VoteFn('deadline_locked') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(clock), Protocol.TXB_OBJECT(this.txb, this.permission)]
             })   
         }
     }
@@ -314,34 +301,32 @@ export class Vote {
         if (!IsValidUintLarge(time)) {
             ERROR(Errors.IsValidUint, 'time')
         }
-
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.VoteFn('deadline_expand_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(ms_expand, BCS.BOOL),
-                    txb.pure(time, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)]
+            this.txb.moveCall({
+                target:Protocol.Instance().VoteFn('deadline_expand_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.bool(ms_expand),
+                    this.txb.pure.u64(time), Protocol.TXB_OBJECT(this.txb, this.permission)]
             })  
         } else {
-            txb.moveCall({
-                target:this.protocol.VoteFn('deadline_expand') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(ms_expand, BCS.BOOL),
-                    txb.pure(time, BCS.U64), Protocol.TXB_OBJECT(txb, this.permission)]
+            this.txb.moveCall({
+                target:Protocol.Instance().VoteFn('deadline_expand') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.bool(ms_expand),
+                    this.txb.pure.u64(time), Protocol.TXB_OBJECT(this.txb, this.permission)]
             })  
         } 
-        
     }
+
     lock_guard(passport?:PassportObject)  {
-        let txb = this.protocol.CurrentSession();
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.VoteFn('guard_lock_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)]
+            this.txb.moveCall({
+                target:Protocol.Instance().VoteFn('guard_lock_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)]
             })   
         } else {
-            txb.moveCall({
-                target:this.protocol.VoteFn('guard_lock') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.permission)]
+            this.txb.moveCall({
+                target:Protocol.Instance().VoteFn('guard_lock') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)]
             })   
         }
     }
@@ -352,32 +337,29 @@ export class Vote {
             ERROR(Errors.InvalidParam, 'agree')
         }
 
-        let txb = this.protocol.CurrentSession();
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.VoteFn('with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(txb, this.object), 
-                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(options)))]
+            this.txb.moveCall({
+                target:Protocol.Instance().VoteFn('with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
+                    this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(options)))]
             })  
         } else {
-            txb.moveCall({
-                target:this.protocol.VoteFn('this.object') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(txb, this.object), 
-                    txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(options)))]
+            this.txb.moveCall({
+                target:Protocol.Instance().VoteFn('this.object') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
+                    this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(options)))]
             })           
         }
-        
     }
 
     change_permission(new_permission:PermissionObject)  {
         if (!Protocol.IsValidObjects([new_permission])) {
             ERROR(Errors.IsValidObjects)
         }
-
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.VoteFn('this.permission_set') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb,this.permission), Protocol.TXB_OBJECT(txb, new_permission)],         
+        
+        this.txb.moveCall({
+            target:Protocol.Instance().VoteFn('this.permission_set') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb,this.permission), Protocol.TXB_OBJECT(this.txb, new_permission)],         
         })    
         this.permission = new_permission
     }

@@ -1,11 +1,12 @@
-import { type TransactionObjectInput, Inputs, TransactionObjectArgument} from '@mysten/sui.js/transactions';
-import { SuiObjectResponse } from '@mysten/sui.js/client';
+import { type TransactionObjectInput, Inputs, Transaction as TransactionBlock} from '@mysten/sui/transactions';
+import { SuiObjectResponse } from '@mysten/sui/client';
 import { FnCallType, GuardObject, Protocol, ContextType, OperatorType, Data_Type,
     ValueType, SER_VALUE, IsValidOperatorType } from './protocol';
 import { parse_object_type, array_unique, Bcs, ulebDecode, IsValidAddress, IsValidArray,  OPTION_NONE, readOption, readOptionString } from './utils';
 import { BCS, BcsReader } from '@mysten/bcs';
 import { ERROR, Errors } from './exception';
 import { Guard } from './guard';
+import { SUI_CLOCK_OBJECT_ID } from '@mysten/sui/utils';
 
 export type Guard_Query_Object = {
     target: FnCallType, // object fnCall
@@ -59,13 +60,11 @@ export interface PassportQuery {
 }
 export class GuardParser {
     protected guard_list: GuardInfo[] = [];
-    protected protocol: Protocol;
     protected guards: string[];
     private index:number = 0;
     private get_index() { return this.index++ }
 
-    private constructor(protocol: Protocol, guards: string[]) { 
-        this.protocol = protocol ;
+    private constructor(guards: string[]) { 
         this.guards = guards;
     }
     guardlist = () => { return this.guard_list }
@@ -453,7 +452,7 @@ export class GuardParser {
 */
     private static  Parse_Guard_Helper(guards: string[], res:SuiObjectResponse[]) {
         const protocol = Protocol.Instance();
-        const me = new GuardParser(protocol, guards);
+        const me = new GuardParser(guards);
         res.forEach((r) => {
             let c = r.data?.content as any;
             if (!c) return;
@@ -512,7 +511,7 @@ export class GuardParser {
 
     parse_constant = (info:GuardInfo, constants:any)  => {
         constants.forEach((v:any) => {
-            if (v.type == (this.protocol.Package() + '::guard::Constant')) {
+            if (v.type == (Protocol.Instance().Package() + '::guard::Constant')) {
                 // ValueType.TYPE_ADDRESS: Query_Cmd maybe used the address, so save it for querying
                 if (v.fields.type == ContextType.TYPE_WITNESS_ID || v.fields.type == ValueType.TYPE_ADDRESS) {
                     info.constant.push({identifier:v.fields.identifier,  index:this.get_index(), type:v.fields.type,
@@ -643,7 +642,7 @@ export class GuardParser {
         })
 
         if (onPassportQueryReady) {
-            this.protocol.Query_Raw(array_unique(objects), {showType:true}).then((res) => {
+            Protocol.Instance().Query_Raw(array_unique(objects), {showType:true}).then((res) => {
                 onPassportQueryReady(this.done_helper(res));
             }).catch(e => {
                 console.log(e);
@@ -651,7 +650,7 @@ export class GuardParser {
             })
             return undefined;
         } else {
-            const res = await this.protocol.Query_Raw(array_unique(objects), {showType:true});
+            const res = await Protocol.Instance().Query_Raw(array_unique(objects), {showType:true});
             return this.done_helper(res);
         }
     }
@@ -686,9 +685,9 @@ export class GuardParser {
 
     // create onchain query for objects : object, movecall-types, id
     private object_query = (data: any, method:'guard_query'|'witness'='guard_query') : Guard_Query_Object | undefined=> {
-        for (let k = 0; k < this.protocol.WOWOK_OBJECTS_TYPE().length; k++) {
-            if (data.type.includes(this.protocol.WOWOK_OBJECTS_TYPE()[k]) ) { // type: pack::m::Object<...>
-                return  { target:this.protocol.WOWOK_OBJECTS_PREFIX_TYPE()[k] + method as FnCallType,
+        for (let k = 0; k < Protocol.Instance().WOWOK_OBJECTS_TYPE().length; k++) {
+            if (data.type.includes(Protocol.Instance().WOWOK_OBJECTS_TYPE()[k]) ) { // type: pack::m::Object<...>
+                return  { target:Protocol.Instance().WOWOK_OBJECTS_PREFIX_TYPE()[k] + method as FnCallType,
                     object:Inputs.SharedObjectRef({
                         objectId: data.objectId,
                         mutable: false,
@@ -705,70 +704,68 @@ export class GuardParser {
 export class Passport {
     static MAX_GUARD_COUNT = 8;
     protected passport;
-    protected protocol;
+    protected txb;
 
     get_object () { return this.passport }
     // return passport object used
     // bObject(true) in cmd env; (false) in service env
-    constructor (protocol:Protocol, query:PassportQuery, bObject:boolean=false)  {
+    constructor (txb:TransactionBlock, query:PassportQuery, bObject:boolean=false)  {
         if (!query.guard || query.guard.length > Passport.MAX_GUARD_COUNT)   {
             ERROR(Errors.InvalidParam, 'guards' )
         }
 
-        this.protocol = protocol;
-        let txb = protocol.CurrentSession();
-        this.passport = txb.moveCall({
-            target: protocol.PassportFn('new') as FnCallType,
+        this.txb = txb;
+        this.passport = this.txb.moveCall({
+            target:Protocol.Instance().PassportFn('new') as FnCallType,
             arguments: []
         });
 
         // add others guards, if any
         query.guard.forEach((g) => {
-            txb.moveCall({
-                target:protocol.PassportFn('guard_add') as FnCallType,
-                arguments:[this.passport, txb.object(g)]
+            this.txb.moveCall({
+                target:Protocol.Instance().PassportFn('guard_add') as FnCallType,
+                arguments:[this.passport, this.txb.object(g)]
             });        
         })
 
         // witness
         query?.witness.forEach((w) => {
-            txb.moveCall({
+            this.txb.moveCall({
                 target: w.target as FnCallType,
-                arguments: [this.passport, txb.object(w.object)],
+                arguments: [this.passport, this.txb.object(w.object)],
                 typeArguments: w.types,
             })
         })
 
+        const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         // rules: 'verify' & 'query' in turns; 'verify' at final end.
         query?.query.forEach((q) => {
-            let address = txb.moveCall({
-                target: protocol.PassportFn('passport_verify') as FnCallType,
-                arguments: [ this.passport, txb.object(Protocol.CLOCK_OBJECT)]
+            let address = this.txb.moveCall({
+                target: Protocol.Instance().PassportFn('passport_verify') as FnCallType,
+                arguments: [ this.passport, this.txb.object(clock)]
             }); 
-            txb.moveCall({
+            this.txb.moveCall({
                 target: q.target as FnCallType,
-                arguments: [ bObject ? txb.object(q.object) : txb.object(q.id), this.passport, address ],
+                arguments: [ bObject ? this.txb.object(q.object) : this.txb.object(q.id), this.passport, address ],
                 typeArguments: q.types,
             })
         })
-        txb.moveCall({
-            target: protocol.PassportFn('passport_verify') as FnCallType,
-            arguments: [ this.passport,  txb.object(Protocol.CLOCK_OBJECT) ]
+        this.txb.moveCall({
+            target: Protocol.Instance().PassportFn('passport_verify') as FnCallType,
+            arguments: [ this.passport,  this.txb.object(clock) ]
         });  
     }
     
     destroy() {
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target: this.protocol.PassportFn('destroy') as FnCallType,
+        this.txb.moveCall({
+            target: Protocol.Instance().PassportFn('destroy') as FnCallType,
             arguments: [ this.passport ]
         });  
     }
 
     freeze() {
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target: this.protocol.PassportFn('freezen') as FnCallType,
+        this.txb.moveCall({
+            target: Protocol.Instance().PassportFn('freezen') as FnCallType,
             arguments: [ this.passport ]
         });  
     }

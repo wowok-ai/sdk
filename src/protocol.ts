@@ -1,11 +1,11 @@
 import { SuiClient, SuiObjectResponse, SuiObjectDataOptions, SuiTransactionBlockResponseOptions, 
-    SuiTransactionBlockResponse, SuiObjectChange } from '@mysten/sui.js/client';
-import { Ed25519Keypair } from '@mysten/sui.js/keypairs/ed25519';
+    SuiTransactionBlockResponse, SuiObjectChange } from '@mysten/sui/client';
+import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { BCS, getSuiMoveConfig, toHEX, fromHEX, BcsReader } from '@mysten/bcs';
-import { TransactionBlock, Inputs, TransactionResult, TransactionArgument } from '@mysten/sui.js/transactions';
+import { Transaction as TransactionBlock, Inputs, TransactionResult, TransactionArgument } from '@mysten/sui/transactions';
 import { capitalize, IsValidAddress, IsValidArray, IsValidU128, IsValidU64, IsValidU8, IsValidUintLarge } from './utils'
 import { GuardConstant } from './guard';
-import { isValidSuiAddress, isValidSuiObjectId } from '@mysten/sui.js/utils'
+import { isValidSuiAddress, isValidSuiObjectId } from '@mysten/sui/utils'
 
 export enum MODULES {
     machine = 'machine',
@@ -27,34 +27,34 @@ export enum MODULES {
 }
 
 export type PermissionAddress = TransactionResult;
-export type PermissionObject = TransactionResult | string;
+export type PermissionObject = TransactionResult | string | TransactionArgument;
 export type RepositoryAddress = TransactionResult;
-export type RepositoryObject = TransactionResult | string;
+export type RepositoryObject = TransactionResult | string | TransactionArgument;
 export type GuardAddress = TransactionResult;
-export type GuardObject = TransactionResult | string ;
+export type GuardObject = TransactionResult | string | TransactionArgument ;
 export type MachineAddress = TransactionResult;
-export type MachineObject = TransactionResult | string;
+export type MachineObject = TransactionResult | string | TransactionArgument;
 export type PassportObject = TransactionResult;
 export type DemandAddress = TransactionResult;
-export type DemandObject = TransactionResult | string;
-export type ServiceObject = TransactionResult  | string;
+export type DemandObject = TransactionResult | string | TransactionArgument;
+export type ServiceObject = TransactionResult  | string | TransactionArgument;
 export type ServiceAddress = TransactionResult;
-export type ProgressObject = TransactionResult | string;
+export type ProgressObject = TransactionResult | string | TransactionArgument;
 export type ProgressAddress = TransactionResult;
-export type RewardObject = TransactionResult | string;
+export type RewardObject = TransactionResult | string | TransactionArgument;
 export type RewardAddress = TransactionResult;
-export type OrderObject = TransactionResult | string;
+export type OrderObject = TransactionResult | string | TransactionArgument;
 export type OrderAddress = TransactionResult;
-export type DiscountObject = TransactionResult | string;
-export type CoinObject = TransactionResult | string;
-export type VoteObject = TransactionResult | string;
+export type DiscountObject = TransactionResult | string | TransactionArgument;
+export type CoinObject = TransactionResult | string | TransactionArgument;
+export type VoteObject = TransactionResult | string | TransactionArgument;
 export type VoteAddress = TransactionResult;
-export type ResourceObject = TransactionResult | string;
+export type ResourceObject = TransactionResult | string | TransactionArgument;
 export type ResourceAddress = TransactionResult;
-export type EntityObject = TransactionResult | string;
+export type EntityObject = TransactionResult | string | TransactionArgument;
 export type EntityAddress = TransactionResult;
 
-export type TxbObject = string | TransactionResult | GuardObject |  RepositoryObject | PermissionObject | MachineObject | PassportObject |
+export type TxbObject = string | TransactionResult | TransactionArgument | GuardObject |  RepositoryObject | PermissionObject | MachineObject | PassportObject |
     DemandObject | ServiceObject | RewardObject | OrderObject | DiscountObject | VoteObject | DemandObject | ResourceObject | EntityObject;
 
 export type WowokObject = TransactionResult;
@@ -316,8 +316,8 @@ export class Protocol {
         const privkey = fromHEX(priv_key);
         const keypair = Ed25519Keypair.fromSecretKey(privkey);
 
-        const response = await client.signAndExecuteTransactionBlock({
-            transactionBlock: this.CurrentSession(), 
+        const response = await client.signAndExecuteTransaction({
+            transaction: this.CurrentSession(), 
             signer: keypair,
             options,
             
@@ -392,13 +392,10 @@ export class Protocol {
         }; return 'loading';
     }
 
-    static CLOCK_OBJECT = Inputs.SharedObjectRef({
-        objectId:"0x6",
-        mutable: false,
-        initialSharedVersion: 1,
-    });
-    static TXB_OBJECT(txb:TransactionBlock, arg:TxbObject) : TransactionResult {
-        if (typeof arg == 'string') return txb.object(arg) as TransactionResult;
+    static CLOCK_OBJECT = {objectId:'0x6', mutable:false, initialSharedVersion:1};
+
+    static TXB_OBJECT(txb:TransactionBlock, arg:TxbObject) : TransactionArgument {
+        if (typeof(arg) == 'string') return txb.object(arg) as TransactionArgument;
         return arg;
     }
     static IsValidObjects = (arr:TxbObject[]) : boolean => { 

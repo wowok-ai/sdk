@@ -2,54 +2,50 @@ import { BCS } from '@mysten/bcs';
 import { Protocol, FnCallType, TxbObject, ResourceAddress, PermissionObject} from './protocol';
 import { IsValidDesription, IsValidAddress, IsValidName, IsValidArray,  } from './utils';
 import { ERROR, Errors } from './exception';
-
+import { Transaction as TransactionBlock} from '@mysten/sui/transactions';
 
 export class Wowok {
 
     protected object:TxbObject;
-    protected protocol;
+    protected txb;
 
     get_object() { return this.object }
-    private constructor(protocol:Protocol) {
-        this.protocol = protocol;
+    private constructor(txb:TransactionBlock) {
+        this.txb = txb;
         this.object = '';
     }
 
-    static From(protocol:Protocol) : Wowok {
-        let r = new Wowok(protocol);
-        r.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), protocol.WowokObject());
+    static From(txb:TransactionBlock) : Wowok {
+        let r = new Wowok(txb);
+        r.object = Protocol.TXB_OBJECT(txb, Protocol.Instance().WowokObject());
         return r
     }
 
     register_grantor(name:string, grantee_permission:PermissionObject) {
         if (!IsValidName(name)) ERROR(Errors.IsValidName, 'register_grantor');
         if (!Protocol.IsValidObjects([grantee_permission])) ERROR(Errors.IsValidObjects, 'register_grantor');
-
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.WowokFn('grantor_register') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(name), txb.object(Protocol.CLOCK_OBJECT), 
-                Protocol.TXB_OBJECT(txb, grantee_permission)]
+        const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
+        
+        this.txb.moveCall({
+            target:Protocol.Instance().WowokFn('grantor_register') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(name), this.txb.object(clock), 
+                Protocol.TXB_OBJECT(this.txb, grantee_permission)]
         })
     }
 
     grantor_time_expand_1year(grantor:string) {
         if (!IsValidAddress(grantor)) ERROR(Errors.IsValidAddress, 'grantor_time_expand_1year');
-
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.WowokFn('grantor_time_expand_1year') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(grantor, BCS.ADDRESS)]
+        this.txb.moveCall({
+            target:Protocol.Instance().WowokFn('grantor_time_expand_1year') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(grantor)]
         })
     }
 
     grantor_rename(new_name:string) {
         if (!IsValidName(new_name)) ERROR(Errors.IsValidName, 'grantor_rename');
-
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.WowokFn('grantor_time_expand_1year') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(txb, this.object), txb.pure(new_name)]
+        this.txb.moveCall({
+            target:Protocol.Instance().WowokFn('grantor_time_expand_1year') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(new_name)]
         })
     }
 }

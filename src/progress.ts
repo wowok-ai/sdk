@@ -2,9 +2,10 @@ import { BCS } from '@mysten/bcs';
 import { FnCallType, PermissionObject, RepositoryObject, PassportObject, MachineObject, 
     ProgressObject, ProgressAddress, Protocol, ValueType,
     TxbObject} from './protocol';
-import { Bcs, array_unique,IsValidName, IsValidAddress, IsValidArray, OptionNone, IsValidInt  } from './utils'
+import { Bcs, array_unique,IsValidName, IsValidAddress, IsValidArray, IsValidInt  } from './utils'
 import { ERROR, Errors } from './exception';
-import { Resource } from './resource';
+import { type TransactionResult, Transaction as TransactionBlock } from '@mysten/sui/transactions';
+
 
 export type ProgressNext = {
     next_node_name: string;
@@ -39,37 +40,36 @@ export class Progress {
     protected permission ;
     protected machine;
     protected object : TxbObject;
-    protected protocol;
+    protected txb;
 
     get_object() { return this.object }
-    private constructor(protocol:Protocol, machine:MachineObject, permission:PermissionObject) {
+    private constructor(txb:TransactionBlock, machine:MachineObject, permission:PermissionObject) {
         this.permission = permission;
-        this.protocol = protocol;
+        this.txb = txb;
         this.machine = machine;
         this.object = '';
     }
-    static From(protocol:Protocol, machine:MachineObject, permission:PermissionObject, object:TxbObject) : Progress{
-        let p = new Progress(protocol, machine, permission)
-        p.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object);
+    static From(txb:TransactionBlock, machine:MachineObject, permission:PermissionObject, object:TxbObject) : Progress{
+        let p = new Progress(txb, machine, permission)
+        p.object = Protocol.TXB_OBJECT(txb, object);
         return p
     }
-    static New(protocol:Protocol, machine:MachineObject, permission:PermissionObject, task?:string, passport?:PassportObject) : Progress {
+    static New(txb:TransactionBlock, machine:MachineObject, permission:PermissionObject, task?:string | null, passport?:PassportObject) : Progress {
         if (!Protocol.IsValidObjects([machine, permission])) {
             ERROR(Errors.IsValidObjects, 'machine & permission')
         }
 
-        let p = new Progress(protocol, machine, permission);
-        let txb = protocol.CurrentSession();
-        let t = task? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_ADDRESS, task)) : OptionNone(txb);
+        let p = new Progress(txb, machine, permission);
+        let t = txb.pure.option('address', task ? task : undefined);
 
         if (passport) {
             p.object = txb.moveCall({
-                target:protocol.ProgressFn('new_with_passport') as FnCallType,
+                target:Protocol.Instance().ProgressFn('new_with_passport') as FnCallType,
                 arguments: [passport, t, Protocol.TXB_OBJECT(txb, machine), Protocol.TXB_OBJECT(txb, permission)],
             })    
         } else {
             p.object = txb.moveCall({
-                target:protocol.ProgressFn('new') as FnCallType,
+                target:Protocol.Instance().ProgressFn('new') as FnCallType,
                 arguments: [t, Protocol.TXB_OBJECT(txb, machine), Protocol.TXB_OBJECT(txb, permission)],
             })    
         }
@@ -77,10 +77,10 @@ export class Progress {
     }
 
     launch() : ProgressAddress {
-        let txb = this.protocol.CurrentSession();
-        return txb.moveCall({
-            target:this.protocol.ProgressFn('create') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(txb, this.object)],
+        
+        return this.txb.moveCall({
+            target:Protocol.Instance().ProgressFn('create') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object)],
         })   
     }
 
@@ -91,19 +91,19 @@ export class Progress {
         if (!Progress.IsValidProgressNext(parent_next)) {
             ERROR(Errors.InvalidParam, 'parent_next')
         }
-        let txb = this.protocol.CurrentSession();
-        return txb.moveCall({
-            target:this.protocol.ProgressFn('create_as_child') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, parent), 
-                txb.pure(parent_next.next_node_name), txb.pure(parent_next.forward)],
+        
+        return this.txb.moveCall({
+            target:Protocol.Instance().ProgressFn('create_as_child') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, parent), 
+                this.txb.pure.string(parent_next.next_node_name), this.txb.pure.string(parent_next.forward)],
         })   
     }
 
     destroy()  {
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.ProgressFn('destroy') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(txb, this.object)],
+        
+        this.txb.moveCall({
+            target:Protocol.Instance().ProgressFn('destroy') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object)],
         })   
     }
 
@@ -115,20 +115,20 @@ export class Progress {
             ERROR(Errors.InvalidParam, 'addresses')
         }
 
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ProgressFn('namedOperator_set_with_passport') as FnCallType,
-                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), txb.pure(name), 
-                    txb.pure(array_unique(addresses), 'vector<address>'), 
-                Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ProgressFn('namedOperator_set_with_passport') as FnCallType,
+                arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(name), 
+                    this.txb.pure.vector('address', array_unique(addresses)), 
+                Protocol.TXB_OBJECT(this.txb, this.machine), Protocol.TXB_OBJECT(this.txb, this.permission)],
             })  
         } else {
-            txb.moveCall({
-                target:this.protocol.ProgressFn('namedOperator_set') as FnCallType,
-                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(name), 
-                    txb.pure(array_unique(addresses), 'vector<address>'), 
-                Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ProgressFn('namedOperator_set') as FnCallType,
+                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(name), 
+                    this.txb.pure.vector('address', array_unique(addresses)), 
+                Protocol.TXB_OBJECT(this.txb, this.machine), Protocol.TXB_OBJECT(this.txb, this.permission)],
             })  
         }  
     }
@@ -138,18 +138,18 @@ export class Progress {
             ERROR(Errors.IsValidAddress)
         }
 
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ProgressFn('task_set_with_passport') as FnCallType,
-                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), 
-                    txb.pure(task_address, BCS.ADDRESS), Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ProgressFn('task_set_with_passport') as FnCallType,
+                arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), 
+                    this.txb.pure.address(task_address), Protocol.TXB_OBJECT(this.txb, this.machine), Protocol.TXB_OBJECT(this.txb, this.permission)],
             })   
         } else {
-            txb.moveCall({
-                target:this.protocol.ProgressFn('task_set') as FnCallType,
-                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(task_address, BCS.ADDRESS), 
-                    Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ProgressFn('task_set') as FnCallType,
+                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(task_address), 
+                    Protocol.TXB_OBJECT(this.txb, this.machine), Protocol.TXB_OBJECT(this.txb, this.permission)],
             })   
         } 
     }
@@ -158,32 +158,32 @@ export class Progress {
             ERROR(Errors.IsValidObjects, 'repository')
         }
 
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
             if (repository) {
-                txb.moveCall({
-                    target:this.protocol.ProgressFn('context_repository_set_with_passport') as FnCallType,
-                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, repository), 
-                        Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ProgressFn('context_repository_set_with_passport') as FnCallType,
+                    arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, repository), 
+                        Protocol.TXB_OBJECT(this.txb, this.machine), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 })            
             } else {
-                txb.moveCall({
-                    target:this.protocol.ProgressFn('context_repository_none_with_passport') as FnCallType,
-                    arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), 
-                        Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ProgressFn('context_repository_none_with_passport') as FnCallType,
+                    arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), 
+                        Protocol.TXB_OBJECT(this.txb, this.machine), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 })           
             }
         } else {
             if (repository) {
-                txb.moveCall({
-                    target:this.protocol.ProgressFn('context_repository_set') as FnCallType,
-                    arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, repository), 
-                        Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ProgressFn('context_repository_set') as FnCallType,
+                    arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, repository), 
+                        Protocol.TXB_OBJECT(this.txb, this.machine), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 })            
             } else {
-                txb.moveCall({
-                    target:this.protocol.ProgressFn('context_repository_none') as FnCallType,
-                    arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
+                this.txb.moveCall({
+                    target:Protocol.Instance().ProgressFn('context_repository_none') as FnCallType,
+                    arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 })           
             }
         }
@@ -192,36 +192,36 @@ export class Progress {
         if (!Progress.IsValidProgressNext(next)) {
             ERROR(Errors.InvalidParam, 'next')
         }
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ProgressFn('unhold_with_passport') as FnCallType,
-                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), 
-                    Protocol.TXB_OBJECT(txb, this.machine), txb.pure(next.next_node_name), 
-                    txb.pure(next.forward), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ProgressFn('unhold_with_passport') as FnCallType,
+                arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), 
+                    Protocol.TXB_OBJECT(this.txb, this.machine), this.txb.pure.string(next.next_node_name), 
+                    this.txb.pure.string(next.forward), Protocol.TXB_OBJECT(this.txb, this.permission)],
             })     
         } else {
-            txb.moveCall({
-                target:this.protocol.ProgressFn('unhold') as FnCallType,
-                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine), 
-                    txb.pure(next.next_node_name), txb.pure(next.forward), 
-                    Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ProgressFn('unhold') as FnCallType,
+                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), 
+                    this.txb.pure.string(next.next_node_name), this.txb.pure.string(next.forward), 
+                    Protocol.TXB_OBJECT(this.txb, this.permission)],
             })           
         }
     }
     parent_none(passport?:PassportObject) {
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ProgressFn('parent_none_with_passport') as FnCallType,
-                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), 
-                    Protocol.TXB_OBJECT(txb, this.machine), Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ProgressFn('parent_none_with_passport') as FnCallType,
+                arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), 
+                    Protocol.TXB_OBJECT(this.txb, this.machine), Protocol.TXB_OBJECT(this.txb, this.permission)],
             }) 
         } else {
-            txb.moveCall({
-                target:this.protocol.ProgressFn('parent_none') as FnCallType,
-                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine), 
-                    Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ProgressFn('parent_none') as FnCallType,
+                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), 
+                    Protocol.TXB_OBJECT(this.txb, this.permission)],
             }) 
         }
     }
@@ -234,26 +234,26 @@ export class Progress {
             ERROR(Errors.InvalidParam, 'parent')
         }
 
-        let txb = this.protocol.CurrentSession();
+        
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ProgressFn('parent_set_with_passport') as FnCallType,
-                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine), 
-                    txb.pure(parent.parent_id, BCS.ADDRESS), 
-                    txb.pure(parent.parent_session_id, BCS.U64), 
-                    txb.pure(parent.next_node),
-                    txb.pure(parent.forward),
-                    Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ProgressFn('parent_set_with_passport') as FnCallType,
+                arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), 
+                    this.txb.pure.address(parent.parent_id), 
+                    this.txb.pure.u64(parent.parent_session_id), 
+                    this.txb.pure.string(parent.next_node),
+                    this.txb.pure.string(parent.forward),
+                    Protocol.TXB_OBJECT(this.txb, this.permission)],
             })  
         } else {
-            txb.moveCall({
-                target:this.protocol.ProgressFn('parent_set') as FnCallType,
-                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine), 
-                    txb.pure(parent.parent_id, BCS.ADDRESS), 
-                    txb.pure(parent.parent_session_id, BCS.U64), 
-                    txb.pure(parent.next_node),
-                    txb.pure(parent.forward),
-                    Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ProgressFn('parent_set') as FnCallType,
+                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), 
+                    this.txb.pure.address(parent.parent_id), 
+                    this.txb.pure.u64(parent.parent_session_id), 
+                    this.txb.pure.string(parent.next_node),
+                    this.txb.pure.string(parent.forward),
+                    Protocol.TXB_OBJECT(this.txb, this.permission)],
             })  
         }
     }
@@ -269,23 +269,23 @@ export class Progress {
             ERROR(Errors.IsValidAddress, 'sub_id');
         }
 
-        let txb = this.protocol.CurrentSession();
-        let diliverable = deliverables_address? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_ADDRESS, deliverables_address)) : OptionNone(txb)
-        let sub = sub_id? txb.pure(Bcs.getInstance().ser(ValueType.TYPE_OPTION_ADDRESS, sub_id)) : OptionNone(txb)
+        
+        let diliverable = this.txb.pure.option('address', deliverables_address ? deliverables_address  : undefined);
+        let sub = this.txb.pure.option('address', sub_id ? sub_id : undefined);
         
         if (passport) {
-            txb.moveCall({
-                target:this.protocol.ProgressFn('next_with_passport') as FnCallType,
-                arguments: [passport, Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine), 
-                    txb.pure(next.next_node_name), 
-                    txb.pure(next.forward), diliverable, sub, 
-                    Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ProgressFn('next_with_passport') as FnCallType,
+                arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), 
+                    this.txb.pure.string(next.next_node_name), 
+                    this.txb.pure.string(next.forward), diliverable, sub, 
+                    Protocol.TXB_OBJECT(this.txb, this.permission)],
             })    
         } else {
-            txb.moveCall({
-                target:this.protocol.ProgressFn('next') as FnCallType,
-                arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine), txb.pure(next.next_node_name), 
-                    txb.pure(next.forward), diliverable, sub, Protocol.TXB_OBJECT(txb, this.permission)],
+            this.txb.moveCall({
+                target:Protocol.Instance().ProgressFn('next') as FnCallType,
+                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), this.txb.pure.string(next.next_node_name), 
+                    this.txb.pure.string(next.forward), diliverable, sub, Protocol.TXB_OBJECT(this.txb, this.permission)],
             })               
         }
     }
@@ -295,11 +295,11 @@ export class Progress {
             ERROR(Errors.InvalidParam, 'next')
         }
 
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target:this.protocol.ProgressFn('hold') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(txb, this.object), Protocol.TXB_OBJECT(txb, this.machine), txb.pure(next.next_node_name), 
-                txb.pure(next.forward), txb.pure(hold, BCS.BOOL), Protocol.TXB_OBJECT(txb, this.permission)],
+        
+        this.txb.moveCall({
+            target:Protocol.Instance().ProgressFn('hold') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), this.txb.pure.string(next.next_node_name), 
+                this.txb.pure.string(next.forward), this.txb.pure.bool(hold), Protocol.TXB_OBJECT(this.txb, this.permission)],
         })  
     }
     static rpc_de_sessions = (session: any) : Session[] => {
