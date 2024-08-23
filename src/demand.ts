@@ -1,5 +1,4 @@
 import { type TransactionResult, Transaction as TransactionBlock } from '@mysten/sui/transactions';
-import { BCS } from '@mysten/bcs';
 import { FnCallType, Protocol, PassportObject, PermissionObject, GuardObject, DemandAddress, TxbObject, ResourceObject} from './protocol';
 import { IsValidDesription, IsValidUintLarge, IsValidAddress, IsValidArgType, } from './utils'
 import { Errors, ERROR}  from './exception'

@@ -1,4 +1,3 @@
-import { BCS } from '@mysten/bcs';
 import { Protocol, FnCallType, ValueType, RepositoryValueType, RepositoryAddress, PermissionObject, PassportObject, TxbObject} from './protocol';
 import { PermissionIndexType, Permission } from './permission'
 import { Bcs, array_unique, IsValidDesription, IsValidAddress, IsValidArray, IsValidName,  ValueTypeConvert} from './utils';

@@ -1,4 +1,3 @@
-import { BCS, encodeStr, getSuiMoveConfig } from '@mysten/bcs';
 import { Protocol, FnCallType, TxbObject, ResourceAddress, PermissionObject, ResourceObject} from './protocol';
 import { IsValidDesription, IsValidAddress, IsValidName, isValidHttpUrl, Bcs,  } from './utils';
 import { ERROR, Errors } from './exception';

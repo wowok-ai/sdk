@@ -1,7 +1,7 @@
 import { SuiClient, SuiObjectResponse, SuiObjectDataOptions, SuiTransactionBlockResponseOptions, 
     SuiTransactionBlockResponse, SuiObjectChange } from '@mysten/sui/client';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
-import { BCS, getSuiMoveConfig, toHEX, fromHEX, BcsReader } from '@mysten/bcs';
+import { toHEX, fromHEX, BcsReader } from '@mysten/bcs';
 import { Transaction as TransactionBlock, Inputs, TransactionResult, TransactionArgument } from '@mysten/sui/transactions';
 import { capitalize, IsValidAddress, IsValidArray, IsValidU128, IsValidU64, IsValidU8, IsValidUintLarge } from './utils'
 import { GuardConstant } from './guard';

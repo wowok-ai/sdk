@@ -1,4 +1,3 @@
-import { BCS } from '@mysten/bcs';
 import { Protocol, FnCallType, TxbObject, ResourceAddress, PermissionObject} from './protocol';
 import { IsValidDesription, IsValidAddress, IsValidName, IsValidArray,  } from './utils';
 import { ERROR, Errors } from './exception';

@@ -1,9 +1,8 @@
-import { BCS } from '@mysten/bcs';
 import { FnCallType, TxbObject, PermissionObject, PermissionAddress, GuardObject, Protocol} from './protocol';
 import { array_unique, IsValidAddress, IsValidArray,  IsValidDesription, IsValidUintLarge, Bcs, IsValidName} from './utils';
 import { ERROR, Errors } from './exception';
 import { ValueType } from './protocol';
-import { Passport } from './passport';
+import { BCS } from '@mysten/bcs';
 import { Transaction as TransactionBlock } from '@mysten/sui/transactions';
 
 export enum PermissionIndex {
@@ -328,7 +327,7 @@ export class  Permission {
         guards.forEach(({entity_address, index, guard}) => {
             this.txb.moveCall({
                 target:Protocol.Instance().PermissionFn('guard_set') as FnCallType,
-                arguments:[ Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure(entity_address, BCS.ADDRESS), 
+                arguments:[ Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity_address), 
                     this.txb.pure.u64(index), Protocol.TXB_OBJECT(this.txb, guard)]
             })
         })
@@ -486,7 +485,7 @@ export class  Permission {
             onPermissionAnswer({who:address_queried});
         })
     }
-    static HasPermission(answer:PermissionAnswer|undefined, index:PermissionIndexType) : {has:boolean, guard?:string, owner?:boolean} {
+    static HasPermission(answer:PermissionAnswer|undefined, index:PermissionIndexType) : {has:boolean, guard?:string, owner?:boolean} | undefined {
         if (answer) {
             if (answer.admin) return {has:true, owner:answer.owner}; // admin
             let i = answer.items?.find((v)=>v.query === index);
@@ -494,7 +493,7 @@ export class  Permission {
                 return {has:i.permission, guard:i.guard, owner:answer.owner};
             }          
         }
-        return {has:false}
+        return undefined
     }
 
     static MAX_ADMIN_COUNT = 64;

@@ -3,7 +3,6 @@ import { SuiObjectResponse } from '@mysten/sui/client';
 import { FnCallType, GuardObject, Protocol, ContextType, OperatorType, Data_Type,
     ValueType, SER_VALUE, IsValidOperatorType } from './protocol';
 import { parse_object_type, array_unique, Bcs, ulebDecode, IsValidAddress, IsValidArray,  OPTION_NONE, readOption, readOptionString } from './utils';
-import { BCS, BcsReader } from '@mysten/bcs';
 import { ERROR, Errors } from './exception';
 import { Guard } from './guard';
 import { SUI_CLOCK_OBJECT_ID } from '@mysten/sui/utils';

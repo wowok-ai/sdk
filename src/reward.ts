@@ -1,9 +1,7 @@
 import { TransactionArgument, Transaction as TransactionBlock, type TransactionResult, } from '@mysten/sui/transactions';
-import { BCS} from '@mysten/bcs';
 import { FnCallType, GuardObject, PassportObject, PermissionObject, RewardAddress, Protocol, TxbObject, } from './protocol';
 import { array_unique, IsValidAddress, IsValidArgType, IsValidArray, IsValidDesription,  IsValidUintLarge, } from './utils';
 import { ERROR, Errors } from './exception';
-import { Resource } from './resource';
 
 export type CoinReward = TransactionResult;
 export type RewardGuardPortions = {

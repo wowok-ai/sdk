@@ -1,5 +1,5 @@
 
-import { BCS } from '@mysten/bcs';
+
 import { Protocol, LogicsInfo, GuardAddress, FnCallType, Data_Type, MODULES, ContextType, ValueType,  OperatorType, ConstantType, SER_VALUE} from './protocol';
 import { concatenate, array_equal } from './utils';
 import { IsValidDesription, Bcs, IsValidInt, IsValidAddress, FirstLetterUppercase } from './utils';

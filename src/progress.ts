@@ -1,4 +1,4 @@
-import { BCS } from '@mysten/bcs';
+
 import { FnCallType, PermissionObject, RepositoryObject, PassportObject, MachineObject, 
     ProgressObject, ProgressAddress, Protocol, ValueType,
     TxbObject} from './protocol';

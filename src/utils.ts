@@ -473,8 +473,6 @@ export const ResolveBalance = (balance:string, decimals:number) : string => {
     }
 }
 
-//export const OptionNone = (txb:TransactionBlock) : TransactionArgument => { return txb.pure.option([], BCS.U8) };
-
 export type ArgType = {
     isCoin: boolean;
     coin: string;
