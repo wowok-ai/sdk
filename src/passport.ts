@@ -5,7 +5,6 @@ import { FnCallType, GuardObject, Protocol, ContextType, OperatorType, Data_Type
 import { parse_object_type, array_unique, Bcs, ulebDecode, IsValidAddress, IsValidArray,  OPTION_NONE, readOption, readOptionString } from './utils';
 import { ERROR, Errors } from './exception';
 import { Guard } from './guard';
-import { SUI_CLOCK_OBJECT_ID } from '@mysten/sui/utils';
 
 export type Guard_Query_Object = {
     target: FnCallType, // object fnCall
@@ -768,6 +767,49 @@ export class Passport {
             arguments: [ this.passport ]
         });  
     }
+
+    query_result(sender:string, handleResult:OnQueryPassportResult) {
+        this.txb.moveCall({
+            target: Protocol.Instance().PassportFn('query_result') as FnCallType,
+            arguments: [ this.passport ]
+        });  
+
+        Protocol.Client().devInspectTransactionBlock({sender:sender, transactionBlock:this.txb}).then((res) => {
+            const r = Passport.ResolveQueryRes(this.txb, res);
+            if (r) handleResult(r);
+        })
+    }
+
+    query_result_async = async (sender:string) : Promise<QueryPassportResult | undefined> => {
+        this.txb.moveCall({
+            target: Protocol.Instance().PassportFn('query_result') as FnCallType,
+            arguments: [ this.passport ]
+        });  
+
+        const res = await Protocol.Client().devInspectTransactionBlock({sender:sender, transactionBlock:this.txb});
+        return Passport.ResolveQueryRes(this.txb, res);
+    }
+
+    private static  ResolveQueryRes(txb:TransactionBlock, res:any) : QueryPassportResult | undefined {
+        for (let i = 0; i < res.results?.length; ++ i) {
+            const v = res.results[i];
+            if (v?.returnValues && v.returnValues.length === 2 && 
+                v.returnValues[0][1] === 'bool' && v.returnValues[1][1] === 'vector<address>') { // (bool, vector<address>)
+                const result = Bcs.getInstance().de('bool', Uint8Array.from(v.returnValues[0][0]));
+                const guards = Bcs.getInstance().de('vector<address>', Uint8Array.from(v.returnValues[1][0])).map((v:string)=>'0x'+v);
+                return {txb:txb, result:result, guards:guards}
+            }
+        }
+        return undefined
+    }
 }
+
+export interface QueryPassportResult {
+    txb: TransactionBlock;
+    result: boolean;
+    guards: string[];
+}
+
+export type OnQueryPassportResult = (result:QueryPassportResult) => void;
 
 

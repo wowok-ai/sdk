@@ -7,30 +7,30 @@ import { Transaction as TransactionBlock } from '@mysten/sui/transactions';
 
 export enum PermissionIndex {
     repository = 100,
-    repository_set_description_set = 101,
-    repository_set_policy_mode = 102,
-    repository_add_remove_policies = 103,
-    repository_set_policy_description = 105,
-    repository_set_policy_permission = 106,
+    repository_description = 101,
+    repository_policy_mode = 102,
+    repository_policies = 103,
+    repository_policy_description = 105,
+    repository_policy_permission = 106,
     repository_reference = 107,
 
     vote = 150,
-    vote_set_description = 151,
-    vote_set_reference = 152, 
+    vote_description = 151,
+    vote_reference = 152, 
     vote_guard = 153,
     vote_option = 155,
-    vote_set_max_choice_count = 157,
+    vote_max_choice_count = 157,
     vote_open_voting = 158,
     vote_lock_deadline = 159,
     vote_expand_deadline = 160,
     vote_lock_guard = 161,
 
     service = 200,
-    service_set_description = 201,
-    service_set_price = 202,
-    service_set_add_reduce_stock = 203,
-    service_set_sale_endpoint = 204,
-    service_set_payee = 205,
+    service_description = 201,
+    service_price = 202,
+    service_stock = 203,
+    service_sale_endpoint = 204,
+    service_payee = 205,
     service_repository = 206,
     service_withdraw_guards = 208,
     service_refund_guards = 210,
@@ -38,9 +38,9 @@ export enum PermissionIndex {
     service_remove_sales = 213,
     service_discount_transfer = 214,
     service_withdraw = 216,
-    service_set_buy_guard = 217,
-    service_set_machine = 218,
-    service_set_endpoint = 219,
+    service_buy_guard = 217,
+    service_machine = 218,
+    service_endpoint = 219,
     service_publish = 220,
     service_clone = 221,
     service_customer_required = 222,
@@ -51,29 +51,31 @@ export enum PermissionIndex {
     reward_refund = 241,
     reward_expand_time = 242,
     reward_guard = 243,
-    reward_set_description = 245,
+    reward_description = 245,
     reward_lock_guards = 246,
+    reward_claim_repeatably = 247,
+    reward_allow_claiming = 248,
 
     demand = 260,
     demand_refund = 261,
     demand_expand_time = 262,
-    demand_set_guard = 263,
-    demand_set_description = 264,
+    demand_guard = 263,
+    demand_description = 264,
     demand_yes = 265,
 
     machine = 600,
-    machine_set_description = 601,
+    machine_description = 601,
     machine_repository = 602,
     machine_clone =  604,
     machine_node = 606,
-    machine_set_endpoint = 608,
+    machine_endpoint = 608,
     machine_pause = 609,
     machine_publish = 610,
 
     progress = 650,
-    progress_set_namedOperator = 651,
+    progress_namedOperator = 651,
     progress_bind_task = 652,
-    progress_set_context_repository = 653,
+    progress_context_repository = 653,
     progress_unhold = 654,
     user_defined_start = 10000,
 }
@@ -101,29 +103,29 @@ export type OnPermissionAnswer = (answer: PermissionAnswer) => void;
 
 export const PermissionInfo : PermissionInfoType[] = [
     {index:PermissionIndex.repository, name:'Repository', description:'Launch new Repository', module: 'repository'},
-    {index:PermissionIndex.repository_set_description_set, name:'Description', description:'Set Repository description', module: 'repository'},
-    {index:PermissionIndex.repository_set_policy_mode, name:'Policy mode', description:'Set Repository policy mode', module: 'repository'},
-    {index:PermissionIndex.repository_add_remove_policies, name:'Policy', description:'Add/Remove Repository policy', module: 'repository'},
-    {index:PermissionIndex.repository_set_policy_description, name:'Policy Description', description:'Set Repository policy description', module: 'repository'},
-    {index:PermissionIndex.repository_set_policy_permission, name:'Policy Permission', description:'Set Repository policy permission',  module: 'repository'},
+    {index:PermissionIndex.repository_description, name:'Description', description:'Set Repository description', module: 'repository'},
+    {index:PermissionIndex.repository_policy_mode, name:'Policy mode', description:'Set Repository policy mode', module: 'repository'},
+    {index:PermissionIndex.repository_policies, name:'Policy', description:'Add/Remove/Edit Repository policy', module: 'repository'},
+    {index:PermissionIndex.repository_policy_description, name:'Policy Description', description:'Set Repository policy description', module: 'repository'},
+    {index:PermissionIndex.repository_policy_permission, name:'Policy Permission', description:'Set Repository policy permission',  module: 'repository'},
     {index:PermissionIndex.repository_reference, name:'Reference', description:'Set Repository reference', module: 'repository'},
 
     {index:PermissionIndex.vote, name:'Vote', description:'Launch new Vote', module: 'vote'},
-    {index:PermissionIndex.vote_set_description, name:'Description', description:'Set Vote description', module: 'vote'},
-    {index:PermissionIndex.vote_set_reference, name:'Reference', description:'Set Vote reference', module: 'vote'},
+    {index:PermissionIndex.vote_description, name:'Description', description:'Set Vote description', module: 'vote'},
+    {index:PermissionIndex.vote_reference, name:'Reference', description:'Set Vote reference', module: 'vote'},
     {index:PermissionIndex.vote_guard, name:'Guard', description:'Set Vote guards', module: 'vote'},
     {index:PermissionIndex.vote_option, name:'Option', description:'Set Vote options', module: 'vote'},
-    {index:PermissionIndex.vote_set_max_choice_count, name:'Choice count', description:'Set Vote max choice count', module: 'vote'},
+    {index:PermissionIndex.vote_max_choice_count, name:'Choice count', description:'Set Vote max choice count', module: 'vote'},
     {index:PermissionIndex.vote_open_voting, name:'Open voting', description:'Open voting', module: 'vote'},
     {index:PermissionIndex.vote_lock_deadline, name:'Lock deadline', description:'Set Vote deadline immutable', module: 'vote'},
     {index:PermissionIndex.vote_expand_deadline, name:'Expand deadline', description:'Expand Vote deadline', module: 'vote'},
     {index:PermissionIndex.vote_lock_guard, name:'Lock Guard', description:'Set Vote guards immutable', module: 'vote'},
 
     {index:PermissionIndex.service, name:'Service', description:'Launch new Service', module: 'service'},
-    {index:PermissionIndex.service_set_description, name:'Description', description:'Set Service description', module: 'service'},
-    {index:PermissionIndex.service_set_price, name:'Price', description:'Set Service item price', module: 'service'},
-    {index:PermissionIndex.service_set_add_reduce_stock, name:'Inventory', description:'Set Service item inventory', module: 'service'},
-    {index:PermissionIndex.service_set_payee, name:'Payee', description:'Set Service payee', module: 'service'},
+    {index:PermissionIndex.service_description, name:'Description', description:'Set Service description', module: 'service'},
+    {index:PermissionIndex.service_price, name:'Price', description:'Set Service item price', module: 'service'},
+    {index:PermissionIndex.service_stock, name:'Inventory', description:'Set Service item inventory', module: 'service'},
+    {index:PermissionIndex.service_payee, name:'Payee', description:'Set Service payee', module: 'service'},
     {index:PermissionIndex.service_repository, name:'Repository', description:'Set Service repositories', module: 'service'},
     {index:PermissionIndex.service_withdraw_guards, name:'Withdraw Guard', description:'Set Service withdraw guards', module: 'service'},
     {index:PermissionIndex.service_refund_guards, name:'Refund Guard', description:'Set Service refund guards', module: 'service'},
@@ -131,9 +133,9 @@ export const PermissionInfo : PermissionInfoType[] = [
     {index:PermissionIndex.service_remove_sales, name:'Remove sales', description:'Remove sale items for Service', module: 'service'},
     {index:PermissionIndex.service_discount_transfer, name:'Discount', description:'Launch discounts for Service', module: 'service'},
     {index:PermissionIndex.service_withdraw, name:'Withdraw', description:'Widthraw from Service orders', module: 'service'},
-    {index:PermissionIndex.service_set_buy_guard, name:'Buyer Guard', description:'Set Guard of buying for Service', module: 'service'},
-    {index:PermissionIndex.service_set_machine, name:'Machine', description:'Set Machine for Service', module: 'service'},
-    {index:PermissionIndex.service_set_endpoint, name:'Endpoint', description:'Set Service endpoint', module: 'service'},
+    {index:PermissionIndex.service_buy_guard, name:'Buyer Guard', description:'Set Guard of buying for Service', module: 'service'},
+    {index:PermissionIndex.service_machine, name:'Machine', description:'Set Machine for Service', module: 'service'},
+    {index:PermissionIndex.service_endpoint, name:'Endpoint', description:'Set Service endpoint', module: 'service'},
     {index:PermissionIndex.service_publish, name:'Publish', description:'Publish Service', module: 'service'},
     {index:PermissionIndex.service_clone, name:'Clone', description:'Clone Service', module: 'service'},
     {index:PermissionIndex.service_customer_required, name:'Buyer info', description:'Set Service buyer info required', module: 'service'},
@@ -143,30 +145,32 @@ export const PermissionInfo : PermissionInfoType[] = [
     {index:PermissionIndex.reward, name:'Reward', description:'Launch new Reward', module: 'reward'},
     {index:PermissionIndex.reward_refund, name:'Refund', description:'Refund from Reward', module: 'reward'},
     {index:PermissionIndex.reward_expand_time, name:'Expand deadline', description:'Expand Reward deadline', module: 'reward'},
-    {index:PermissionIndex.reward_guard, name:'Guard', description:'build machine', module: 'Set Reward guard'},
-    {index:PermissionIndex.reward_set_description, name:'Description', description:'Set Reward description', module: 'reward'},
+    {index:PermissionIndex.reward_guard, name:'Guard', description:'Set Reward guard', module: 'reward'},
+    {index:PermissionIndex.reward_description, name:'Description', description:'Set Reward description', module: 'reward'},
     {index:PermissionIndex.reward_lock_guards, name:'Lock Guard', description:'Set Reward guard immutable', module: 'reward'},
+    {index:PermissionIndex.reward_claim_repeatably, name:'Claim repeatably', description:'Allow claimming repeatably', module: 'reward'},
+    {index:PermissionIndex.reward_allow_claiming, name:'Allow claiming', description:'Allow claiming', module: 'reward'},
 
     {index:PermissionIndex.demand, name:'Demand', description:'Launch new Demand', module: 'demand'},
     {index:PermissionIndex.demand_refund, name:'Refund', description:'Refund from Demand', module: 'demand'},
     {index:PermissionIndex.demand_expand_time, name:'Expand deadline', description:'Expand Demand deadline', module: 'demand'},
-    {index:PermissionIndex.demand_set_guard, name:'Guard', description:'Set Demand guard', module: 'demand'},
-    {index:PermissionIndex.demand_set_description, name:'Description', description:'Set Demand description', module: 'demand'},
+    {index:PermissionIndex.demand_guard, name:'Guard', description:'Set Demand guard', module: 'demand'},
+    {index:PermissionIndex.demand_description, name:'Description', description:'Set Demand description', module: 'demand'},
     {index:PermissionIndex.demand_yes, name:'Yes', description:'Pick the Deamand serice', module: 'demand'},
 
     {index:PermissionIndex.machine, name: 'Machine', description:'Launch new Machine', module: 'machine'},
-    {index:PermissionIndex.machine_set_description, name: 'Description', description:'Set Machine description', module: 'machine'},
+    {index:PermissionIndex.machine_description, name: 'Description', description:'Set Machine description', module: 'machine'},
     {index:PermissionIndex.machine_repository, name: 'Repository', description:'Set Machine repository', module: 'machine'},
     {index:PermissionIndex.machine_clone, name: 'Clone', description:'Clone Machine', module: 'machine'},
     {index:PermissionIndex.machine_node, name: 'Node', description:'Set Machine nodes', module: 'machine'},
-    {index:PermissionIndex.machine_set_endpoint, name: 'Endpoint', description:'Set Machine endpoint', module: 'machine'},
+    {index:PermissionIndex.machine_endpoint, name: 'Endpoint', description:'Set Machine endpoint', module: 'machine'},
     {index:PermissionIndex.machine_pause, name: 'Pause', description:'Pause/Unpause Machine', module: 'machine'},
     {index:PermissionIndex.machine_publish, name: 'Publish', description:'Publish Machine', module: 'machine'},
 
     {index:PermissionIndex.progress, name: 'Progress', description:'Launch new Progress', module: 'progress'},
-    {index:PermissionIndex.progress_set_namedOperator, name: 'Operator', description:'Set Progress operators', module: 'progress'},
+    {index:PermissionIndex.progress_namedOperator, name: 'Operator', description:'Set Progress operators', module: 'progress'},
     {index:PermissionIndex.progress_bind_task, name: 'Bind', description:'Set Progress task', module: 'progress'},
-    {index:PermissionIndex.progress_set_context_repository, name: 'Repository', description:'Set Progress repository', module: 'progress'},
+    {index:PermissionIndex.progress_context_repository, name: 'Repository', description:'Set Progress repository', module: 'progress'},
     {index:PermissionIndex.progress_unhold, name: 'Unhold', description:'Release Progress holdings', module: 'progress'},
 ]
 
@@ -338,7 +342,7 @@ export class  Permission {
         if (!IsValidAddress(entity_address)) {
             ERROR(Errors.IsValidAddress, 'entity_address')
         }
-        if(!Permission.IsValidPermissionIndex(index)) {
+        if(!Permission.IsValidPermissionIndex(index) && !Permission.IsValidUserDefinedIndex(index)) {
             ERROR(Errors.IsValidPermissionIndex, 'index')
         }
 
@@ -395,7 +399,9 @@ export class  Permission {
     }
 
     add_admin(admin:string[])  {
-        if (!admin || !IsValidArray(admin, IsValidAddress)) {
+        if (admin.length === 0) return ;
+
+        if (!IsValidArray(admin, IsValidAddress)) {
             ERROR(Errors.IsValidArray)
         }
 
@@ -406,7 +412,7 @@ export class  Permission {
     }
 
     remove_admin(admin:string[], removeall?:boolean)  {
-        if (!removeall &&  admin.length === 0)  return
+        if (!removeall &&  admin.length === 0)  return;
         if (!IsValidArray(admin, IsValidAddress)) {
             ERROR(Errors.IsValidArray, 'admin')
         }
@@ -485,14 +491,17 @@ export class  Permission {
             onPermissionAnswer({who:address_queried});
         })
     }
-    static HasPermission(answer:PermissionAnswer|undefined, index:PermissionIndexType) : {has:boolean, guard?:string, owner?:boolean} | undefined {
+    static HasPermission(answer:PermissionAnswer|undefined, index:PermissionIndexType, bStrict:boolean=false) : {has:boolean, guard?:string, owner?:boolean} | undefined {
         if (answer) {
             if (answer.admin) return {has:true, owner:answer.owner}; // admin
             let i = answer.items?.find((v)=>v.query === index);
             if (i) {
                 return {has:i.permission, guard:i.guard, owner:answer.owner};
-            }          
+            }    
         }
+        if (bStrict) {
+            return {has:false, guard:undefined, owner:answer?.owner}
+        } 
         return undefined
     }
 
