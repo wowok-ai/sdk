@@ -593,8 +593,8 @@ export class Service {
         }
         const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         discount_dispatch.forEach((discount) => {
-            let price_greater = this.txb.pure.option('u64', discount.discount?.price_greater);
-            let time_start = this.txb.pure.option('u64', discount.discount?.time_start);
+            let price_greater = this.txb.pure.option('u64', discount.discount?.price_greater ? discount.discount?.price_greater : undefined);
+            let time_start = this.txb.pure.option('u64', discount.discount?.time_start ? discount.discount?.time_start : undefined);
 
             if (passport) {
                 this.txb.moveCall({

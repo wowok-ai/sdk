@@ -221,7 +221,7 @@ export class Repository {
         }
 
         policies.forEach((policy) => {
-            let permission_index = this.txb.pure.option('u64', policy?.permission);
+            let permission_index = this.txb.pure.option('u64', policy?.permission ? policy?.permission : undefined);
             if (passport) {
                 this.txb.moveCall({
                     target:Protocol.Instance().RepositoryFn('policy_add_with_passport') as FnCallType,

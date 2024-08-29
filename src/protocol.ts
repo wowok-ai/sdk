@@ -191,9 +191,9 @@ export enum ENTRYPOINT {
 }
 
 const TESTNET = {
-    package: "0xec2a8b4cf657663a3b5c44c41841873b983f6f0ffbccbb7cc32a439296b76afa",
-    wowok_object: '0xbadeef2052cdd962587ab5778abc63901d97c74d93d5e452fea70b64f306f6f5',
-    entity_object: '0x5d98d759e719b5944a748313b17bee341c7596e33ff75c959a6115de58c40d08',
+    package: "0x8f547c4bd00eedc72307d67c8c1c7b22da88c29ac530cce57bbfe7b6add45a91",
+    wowok_object: '0x1ccee2dbac69f76db35d92869cc4840fb537020a927dd035cdac811803d9d191',
+    entity_object: '0xb75b6953254cf9a426fb06b1ceb711784031cf7817b66630ba00daf5660ab04e',
 }
 
 const MAINNET = {
@@ -320,7 +320,6 @@ export class Protocol {
             transaction: this.CurrentSession(), 
             signer: keypair,
             options,
-            
         });
         this.txb = undefined; // reset the txb to undefine
         return response;

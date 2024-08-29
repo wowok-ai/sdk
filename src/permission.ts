@@ -77,6 +77,7 @@ export enum PermissionIndex {
     progress_bind_task = 652,
     progress_context_repository = 653,
     progress_unhold = 654,
+    progress_parent = 655,
     user_defined_start = 10000,
 }
 
@@ -93,6 +94,7 @@ export interface PermissionAnswer {
     owner?: boolean;
     admin?: boolean;
     items?: PermissionAnswerItem[]; // items === undefined, while errors
+    object: string; // permission object
 }
 export interface PermissionAnswerItem {
     query: PermissionIndexType;
@@ -172,6 +174,7 @@ export const PermissionInfo : PermissionInfoType[] = [
     {index:PermissionIndex.progress_bind_task, name: 'Bind', description:'Set Progress task', module: 'progress'},
     {index:PermissionIndex.progress_context_repository, name: 'Repository', description:'Set Progress repository', module: 'progress'},
     {index:PermissionIndex.progress_unhold, name: 'Unhold', description:'Release Progress holdings', module: 'progress'},
+    {index:PermissionIndex.progress_parent, name: 'Parent', description:'Set Progress parent', module: 'progress'},
 ]
 
 export type PermissionIndexType = PermissionIndex | number;
@@ -452,27 +455,29 @@ export class  Permission {
 
         this.txb.moveCall({
             target:Protocol.Instance().PermissionFn('query_permissions') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address_queried), this.txb.pure.vector('u64', permissions)]
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address_queried), 
+                this.txb.pure.vector('u64', permissions)]
         })   
     }
 
-    QueryPermissions(txb:TransactionBlock, address_queried:string, permissions:PermissionIndexType[], onPermissionAnswer:OnPermissionAnswer, sender?:string) {
+    QueryPermissions(permission:string, address_queried:string, permissions:PermissionIndexType[], onPermissionAnswer:OnPermissionAnswer, sender?:string) {
+        //@ be the same txb
         this.query_permissions(address_queried, permissions);
-        Protocol.Client().devInspectTransactionBlock({sender:sender ?? address_queried, transactionBlock:txb}).then((res) => {
+        Protocol.Client().devInspectTransactionBlock({sender:sender ?? address_queried, transactionBlock:this.txb}).then((res) => {
             if (res.results && res.results[0].returnValues && res.results[0].returnValues.length !== 3 )  {
-                onPermissionAnswer({who:address_queried});
+                onPermissionAnswer({who:address_queried, object:permission});
                 return 
             }
 
             const perm = Bcs.getInstance().de(BCS.U8, Uint8Array.from((res.results as any)[0].returnValues[0][0]));
 
             if (perm === Permission.PERMISSION_ADMIN || perm === Permission.PERMISSION_OWNER_AND_ADMIN) {
-                onPermissionAnswer({who:address_queried, admin:true, owner:perm%2===1, items:[]})
+                onPermissionAnswer({who:address_queried, admin:true, owner:perm%2===1, items:[], object:permission})
             } else {
                 const perms = Bcs.getInstance().de('vector<u8>', Uint8Array.from((res.results as any)[0].returnValues[1][0]));
                 const guards = Bcs.getInstance().de('vector<address>', Uint8Array.from((res.results as any)[0].returnValues[2][0]));
                 if (perms.length !== permissions.length) {
-                    onPermissionAnswer({who:address_queried});
+                    onPermissionAnswer({who:address_queried, object:permission});
                     return
                 }
 
@@ -484,11 +489,11 @@ export class  Permission {
                     }
                     return {query:v, permission:p, guard:g} 
                 })
-                onPermissionAnswer({who:address_queried, admin:false, owner:perm%2===1, items:items});
+                onPermissionAnswer({who:address_queried, admin:false, owner:perm%2===1, items:items, object:permission});
             }
         }).catch((e) => {
             console.log(e);
-            onPermissionAnswer({who:address_queried});
+            onPermissionAnswer({who:address_queried, object:permission});
         })
     }
     static HasPermission(answer:PermissionAnswer|undefined, index:PermissionIndexType, bStrict:boolean=false) : {has:boolean, guard?:string, owner?:boolean} | undefined {

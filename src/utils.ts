@@ -314,7 +314,8 @@ export class Bcs {
         const dislike = reader.read32();
         return {avatar:avatar, resource:resource, like:like, dislike:dislike}*/
     }    
-    de_entInfo(data:Uint8Array) : any {
+    de_entInfo(data:Uint8Array | undefined) : any {
+        if (!data || data.length === 0) return ''
         let r = this.bcs.de('PersonalInfo', data);
         r.name = new TextDecoder().decode(Uint8Array.from(r.name));
         r.description = new TextDecoder().decode(Uint8Array.from(r.description));

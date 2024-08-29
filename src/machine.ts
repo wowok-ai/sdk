@@ -2,7 +2,8 @@ import { Transaction as TransactionBlock, TransactionObjectArgument, type Transa
 import { Protocol, FnCallType, PermissionObject, RepositoryObject,  PassportObject, MachineObject, MachineAddress,  GuardObject, TxbObject} from './protocol';
 import { IsValidInt, Bcs, array_unique, IsValidArray, IsValidAddress, IsValidName, IsValidName_AllowEmpty, 
     IsValidEndpoint, IsValidDesription,
-    IsValidUintLarge} from './utils'
+    IsValidUintLarge,
+    IsValidU64} from './utils'
 import { Permission, PermissionIndexType } from './permission';
 import { Errors, ERROR}  from './exception'
 import { ValueType } from './protocol';
@@ -25,6 +26,14 @@ export interface Machine_Node {
     pairs: Machine_Node_Pair[];
 }
 
+export interface QueryGuardParam {
+    node: string;
+    prior_node: string;
+    forward: string;
+    txb: TransactionBlock;
+    guard: string | null;
+}
+export type OnQueryGuard = (param: QueryGuardParam) => void;
 export class Machine {
     protected txb;
     protected object : TxbObject;
@@ -82,7 +91,7 @@ export class Machine {
                 if (!IsValidName_AllowEmpty(p.prior_node)) { bValid = false; }
                 if (p?.threshold && !IsValidInt(p.threshold)) { bValid = false; }
                 p.forwards.forEach((f) => {
-                    if (!Machine.isValidForward(f)) bValid = false;
+                    if (Machine.checkValidForward(f) !== '') bValid = false;
                 })
             })
         })
@@ -119,21 +128,30 @@ export class Machine {
 
     forward(forward:Machine_Forward) : TransactionResult {
         let weight = forward?.weight ? forward.weight : 1;
-        let perm = this.txb.pure.option('u64', forward?.permission); 
-        let namedOperator = forward?.namedOperator ?  this.txb.pure.string(forward.namedOperator) : this.txb.pure.string('');
         let f:any;
 
-        if (forward?.guard) {
+        // namedOperator first.
+        if (forward?.namedOperator && IsValidName(forward.namedOperator)) {
+            if (forward?.guard) {
+                f = this.txb.moveCall({ 
+                    target:Protocol.Instance().MachineFn('forward') as FnCallType,
+                        arguments:[this.txb.pure.string(forward.namedOperator), this.txb.pure.u16(weight), this.txb.object(Protocol.TXB_OBJECT(this.txb, forward.guard))]
+                });                        
+            } else {
+                f = this.txb.moveCall({ 
+                    target:Protocol.Instance().MachineFn('forward2') as FnCallType,
+                        arguments:[this.txb.pure.string(forward.namedOperator), this.txb.pure.u16(weight)]
+                });                
+            }            
+        } else if (forward?.permission !== undefined && IsValidU64(forward.permission)) {
             f = this.txb.moveCall({ 
-                target:Protocol.Instance().MachineFn('forward') as FnCallType,
-                    arguments:[namedOperator, this.txb.pure.u16(weight), this.txb.object(Protocol.TXB_OBJECT(this.txb, forward.guard)), perm]
-            });                        
+                target:Protocol.Instance().MachineFn('forward3') as FnCallType,
+                    arguments:[this.txb.pure.u64(forward.permission), this.txb.pure.u16(weight)]
+            });    
         } else {
-            f = this.txb.moveCall({ 
-                target:Protocol.Instance().MachineFn('forward2') as FnCallType,
-                    arguments:[namedOperator, this.txb.pure.u16(weight), perm]
-            });                
+            ERROR(Errors.InvalidParam, 'forward')
         }
+
         return f
     }
 
@@ -372,10 +390,10 @@ export class Machine {
         this.permission = new_permission;   
     }
 
-    add_forward(node_prior:string, node_name:string, foward: Machine_Forward, threshold?:number, passport?:PassportObject) {
+    add_forward(node_prior:string, node_name:string, foward: Machine_Forward, threshold?:number, old_forward_name?:string, passport?:PassportObject) {
         if (!IsValidName_AllowEmpty(node_prior)) ERROR(Errors.IsValidName_AllowEmpty, 'add_forward');
         if (!IsValidName(node_name)) ERROR(Errors.IsValidName, 'add_forward');
-        if (!Machine.isValidForward(foward)) ERROR(Errors.InvalidParam, 'add_forward');
+        const err = Machine.checkValidForward(foward); if (err) ERROR(Errors.InvalidParam, err);
 
         let n : any;
         if (passport) {
@@ -396,6 +414,14 @@ export class Machine {
             target:Protocol.Instance().MachineFn('forward_add') as FnCallType,
             arguments:[n, this.txb.pure.string(node_prior), this.txb.pure.string(foward.name), t, f],
         })
+        
+        if (old_forward_name && old_forward_name !== foward.name) {
+            this.txb.moveCall({
+                target:Protocol.Instance().MachineFn('forward_remove') as FnCallType,
+                arguments:[n, this.txb.pure.string(node_prior), this.txb.pure.string(old_forward_name)],
+            })
+        }
+        this.add_node2([n], passport);
     }
 
     remove_forward(node_prior:string, node_name:string, foward_name: string, passport?:PassportObject) {
@@ -419,6 +445,7 @@ export class Machine {
             target:Protocol.Instance().MachineFn('forward_remove') as FnCallType,
             arguments:[n, this.txb.pure.string(node_prior), this.txb.pure.string(foward_name)],
         })
+        this.add_node2([n], passport);
     }
 
     static rpc_de_nodes(fields: any) : Machine_Node[] {
@@ -457,15 +484,37 @@ export class Machine {
         return ret;
     }
 
-    static isValidForward(forward:Machine_Forward) {
-        if (!IsValidName(forward.name)) return false
-        if (forward?.namedOperator && !IsValidName_AllowEmpty(forward?.namedOperator)) return false;
-        if (forward?.permission && !Permission.IsValidPermissionIndex(forward?.permission)) return false;
-        if (!forward?.permission && !forward?.namedOperator) return false;
-        if (forward?.weight && !IsValidUintLarge(forward.weight)) return false;
-        return true
+    static checkValidForward(forward:Machine_Forward) : string {
+        if (!IsValidName(forward.name)) return 'Forward name invalid'
+        if (forward?.namedOperator && !IsValidName_AllowEmpty(forward?.namedOperator)) return 'Progress Operator invalid';
+        if (forward?.permission && !Permission.IsValidPermissionIndex(forward?.permission)) return 'Permission index invalid';
+        if (!forward?.permission && !forward?.namedOperator) return 'Both Permission index and Progress Operator empty';
+        if (forward?.weight && !IsValidUintLarge(forward.weight)) return 'Weight invalid';
+        return ''
     }
 
+
+    QueryForwardGuard(sender:string, node:string, prior_node:string, forward:string, onGuard:OnQueryGuard) {
+        if (!node || !forward) { // prior_node maybe ''
+            ERROR(Errors.InvalidParam, 'QueryForwardGuard');
+            return ;
+        }
+
+        this.txb.moveCall({
+            target:Protocol.Instance().MachineFn('query_guard') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(node), 
+                this.txb.pure.string(prior_node), this.txb.pure.string(forward)],
+        });
+
+        Protocol.Client().devInspectTransactionBlock({sender:sender, transactionBlock:this.txb}).then((res) => {
+            if (res.results?.length === 1 && res.results[0].returnValues?.length === 1) {
+                const guard = Bcs.getInstance().de('Option<address>', Uint8Array.from(res.results[0].returnValues[0][0]));
+                onGuard({node:node, prior_node:prior_node, forward:forward, guard:guard?.some?('0x'+guard?.some):'', txb:this.txb});
+            }
+        }).catch(e=>{
+            console.log(e);
+        })
+    }
     static INITIAL_NODE_NAME = '';
 /*    static NODE_NAME_RESERVED = 'origin';
     static IsNodeNameReserved = (name:string) => { 

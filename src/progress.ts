@@ -158,7 +158,6 @@ export class Progress {
             ERROR(Errors.IsValidObjects, 'repository')
         }
 
-        
         if (passport) {
             if (repository) {
                 this.txb.moveCall({
@@ -189,8 +188,9 @@ export class Progress {
         }
     }
     unhold(next:ProgressNext, passport?:PassportObject)  {
+        console.log(next)
         if (!Progress.IsValidProgressNext(next)) {
-            ERROR(Errors.InvalidParam, 'next')
+            ERROR(Errors.InvalidParam, 'unhold')
         }
         
         if (passport) {
@@ -210,7 +210,6 @@ export class Progress {
         }
     }
     parent_none(passport?:PassportObject) {
-        
         if (passport) {
             this.txb.moveCall({
                 target:Protocol.Instance().ProgressFn('parent_none_with_passport') as FnCallType,
@@ -234,7 +233,6 @@ export class Progress {
             ERROR(Errors.InvalidParam, 'parent')
         }
 
-        
         if (passport) {
             this.txb.moveCall({
                 target:Protocol.Instance().ProgressFn('parent_set_with_passport') as FnCallType,
@@ -259,6 +257,7 @@ export class Progress {
     }
 
     next(next:ProgressNext, deliverables_address?:string, sub_id?:string, passport?:PassportObject)  {
+        console.log(next)
         if (!Progress.IsValidProgressNext(next)) {
             ERROR(Errors.InvalidParam, 'next')
         }
@@ -268,12 +267,12 @@ export class Progress {
         if (sub_id && !IsValidAddress(sub_id)) {
             ERROR(Errors.IsValidAddress, 'sub_id');
         }
-
         
         let diliverable = this.txb.pure.option('address', deliverables_address ? deliverables_address  : undefined);
         let sub = this.txb.pure.option('address', sub_id ? sub_id : undefined);
         
         if (passport) {
+            console.log(11111)
             this.txb.moveCall({
                 target:Protocol.Instance().ProgressFn('next_with_passport') as FnCallType,
                 arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), 
@@ -292,9 +291,8 @@ export class Progress {
 
     hold(next:ProgressNext, hold:boolean)  {
         if (!Progress.IsValidProgressNext(next)) {
-            ERROR(Errors.InvalidParam, 'next')
+            ERROR(Errors.InvalidParam, 'hold')
         }
-
         
         this.txb.moveCall({
             target:Protocol.Instance().ProgressFn('hold') as FnCallType,
@@ -302,6 +300,7 @@ export class Progress {
                 this.txb.pure.string(next.forward), this.txb.pure.bool(hold), Protocol.TXB_OBJECT(this.txb, this.permission)],
         })  
     }
+
     static rpc_de_sessions = (session: any) : Session[] => {
         let sessions : Session[] = [];
         session?.fields?.contents?.forEach((v:any) => {

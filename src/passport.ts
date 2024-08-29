@@ -777,6 +777,8 @@ export class Passport {
         Protocol.Client().devInspectTransactionBlock({sender:sender, transactionBlock:this.txb}).then((res) => {
             const r = Passport.ResolveQueryRes(this.txb, res);
             if (r) handleResult(r);
+        }).catch(e=>{
+            console.log(e);
         })
     }
 
