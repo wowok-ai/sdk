@@ -173,6 +173,12 @@ export class Bcs {
             'discord': BCS.STRING,
             'homepage': BCS.STRING,
         })
+        this.bcs.registerStructType('OptionAddress', {
+            'address': 'Option<address>',
+        })
+        this.bcs.registerStructType('Guards', {
+            'guards':'vector<OptionAddress>',
+        })
     }
     static getInstance() : Bcs { 
         if (!Bcs._instance) {
@@ -297,7 +303,8 @@ export class Bcs {
         }
     }
 
-    de_ent(data:Uint8Array) : any {
+    de_ent(data:Uint8Array | undefined) : any {
+        if (!data || data.length < 2) return ''
         const struct_vec = this.bcs.de('vector<u8>', data);
         return this.bcs.de('EntStruct', Uint8Array.from(struct_vec));
 /*        const reader = new BcsReader(data);
@@ -321,6 +328,14 @@ export class Bcs {
         r.description = new TextDecoder().decode(Uint8Array.from(r.description));
         return r
     }        
+    de_guards(data:Uint8Array | undefined) : any {
+        if (!data || data.length  < 1) return ''
+        let r = this.bcs.de('Guards', data);
+        return r?.guards?.map((v:any) => {
+            if (v?.address?.none) return undefined;
+            return v?.address?.some;
+        })
+    }   
 }
 
 export function stringToUint8Array(str:string) : Uint8Array {
@@ -440,8 +455,8 @@ export const IsValidPercent = (value: number | string) : boolean => {
     }
     return Number.isSafeInteger(value) && value > 0 && value <= 100 
 }
-export const IsValidArray = (arr: any[], validFunc:any) : boolean => {
-    for (let i = 0; i < arr.length; ++i) {
+export const IsValidArray = (arr: any, validFunc:any) : boolean => {
+    for (let i = 0; i < arr.length; i++) {
         if (!validFunc(arr[i])) {
             return false
         }

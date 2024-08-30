@@ -478,11 +478,15 @@ export class GuardParser {
 
         let guard_list = array_unique(guards);
         const protocol = Protocol.Instance();
-        
+
         if (onGuardInfo) {
             protocol.Query_Raw(guard_list)
-                .then((res) => { onGuardInfo(GuardParser.Parse_Guard_Helper(guards, res)); })
-                .catch((e) => { onGuardInfo(undefined); })            
+                .then((res) => { 
+                    onGuardInfo(GuardParser.Parse_Guard_Helper(guards, res)); 
+                }).catch((e) => { 
+                    console.log(e);
+                    onGuardInfo(undefined); 
+                })            
         } else {
             const res = await protocol.Query_Raw(guard_list);
             return GuardParser.Parse_Guard_Helper(guards, res);
@@ -617,6 +621,7 @@ export class GuardParser {
 
     done = async (fill?:FutureFill[], onPassportQueryReady?:(passport:PassportQuery | undefined)=>void) : Promise<PassportQuery | undefined>=> {
         let objects: string[] = [];
+        console.log('d11')
         this.guard_list.forEach((g) => {
             // futures in constant table (all witness)
             g.constant.filter(v => v.type == ContextType.TYPE_WITNESS_ID /*&& v.cmd === undefined*/).forEach((q) => {
@@ -638,8 +643,9 @@ export class GuardParser {
                 objects.push(this.get_object(g.id, q, fill));
             })
         })
-
+        console.log('d22')
         if (onPassportQueryReady) {
+            console.log('232323')
             Protocol.Instance().Query_Raw(array_unique(objects), {showType:true}).then((res) => {
                 onPassportQueryReady(this.done_helper(res));
             }).catch(e => {
@@ -648,7 +654,9 @@ export class GuardParser {
             })
             return undefined;
         } else {
+            console.log('d33')
             const res = await Protocol.Instance().Query_Raw(array_unique(objects), {showType:true});
+            console.log(res)
             return this.done_helper(res);
         }
     }

@@ -3,15 +3,15 @@ import { IsValidDesription, IsValidAddress, IsValidName, IsValidArray,  } from '
 import { ERROR, Errors } from './exception';
 import { type TransactionResult, Transaction as TransactionBlock } from '@mysten/sui/transactions';
 
-export interface Tags {
-    address: string;
-    nick: string;
-    tags: string[];
+export interface Tags { // tag am address
+    address: string; // address to tag
+    nick: string; //  named address
+    tags: string[]; // tags for address
 }
 
-export interface ResourceData {
-    name: string;
-    address: string[];
+export interface ResourceData { // personal folder
+    name: string; // folder name
+    address: string[]; // objects in folder
 }
 
 export class Resource {

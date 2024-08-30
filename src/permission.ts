@@ -444,6 +444,8 @@ export class  Permission {
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(new_owner)]
         });        
     }
+
+    // query some permissions for address
     query_permissions(address_queried:string, permissions:PermissionIndexType[]) {
         if (!IsValidAddress(address_queried)) {
             ERROR(Errors.InvalidParam, 'query_permissions');
@@ -460,36 +462,61 @@ export class  Permission {
         })   
     }
 
-    QueryPermissions(permission:string, address_queried:string, permissions:PermissionIndexType[], onPermissionAnswer:OnPermissionAnswer, sender?:string) {
+    // query all permissions for address
+    query_permissions_all(address_queried:string) {
+        if (!IsValidAddress(address_queried)) {
+            ERROR(Errors.InvalidParam, 'query_permissions');
+        }
+
+        this.txb.moveCall({
+            target:Protocol.Instance().PermissionFn('query_permissions_all') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address_queried)]
+        })   
+    }
+
+    QueryPermissions(permission:string, address_queried:string, permissions:PermissionIndexType[]|'all', onPermissionAnswer:OnPermissionAnswer, sender?:string) {
         //@ be the same txb
-        this.query_permissions(address_queried, permissions);
+        if (permissions === 'all') {
+            this.query_permissions_all(address_queried);
+        } else {
+            this.query_permissions(address_queried, permissions);
+        }
+
         Protocol.Client().devInspectTransactionBlock({sender:sender ?? address_queried, transactionBlock:this.txb}).then((res) => {
             if (res.results && res.results[0].returnValues && res.results[0].returnValues.length !== 3 )  {
                 onPermissionAnswer({who:address_queried, object:permission});
                 return 
             }
-
             const perm = Bcs.getInstance().de(BCS.U8, Uint8Array.from((res.results as any)[0].returnValues[0][0]));
-
             if (perm === Permission.PERMISSION_ADMIN || perm === Permission.PERMISSION_OWNER_AND_ADMIN) {
                 onPermissionAnswer({who:address_queried, admin:true, owner:perm%2===1, items:[], object:permission})
             } else {
-                const perms = Bcs.getInstance().de('vector<u8>', Uint8Array.from((res.results as any)[0].returnValues[1][0]));
-                const guards = Bcs.getInstance().de('vector<address>', Uint8Array.from((res.results as any)[0].returnValues[2][0]));
-                if (perms.length !== permissions.length) {
-                    onPermissionAnswer({who:address_queried, object:permission});
-                    return
-                }
-
-                const items: PermissionAnswerItem[] = permissions.map((v, index) => {
-                    const p = perms[index] === Permission.PERMISSION_QUERY_NONE ? false : true;
-                    let g : any = undefined;
-                    if (p && perms[index] < guards.length) {
-                        g = '0x' + guards[perms[index] as number];
+                if (permissions === 'all') {
+                    const perms = Bcs.getInstance().de('vector<u64>', Uint8Array.from((res.results as any)[0].returnValues[1][0]));
+                    const guards = Bcs.getInstance().de_guards(Uint8Array.from((res.results as any)[0].returnValues[2][0]));
+                    const items: PermissionAnswerItem[] = [];
+                    for(let i = 0; i < perms.length; ++i) {
+                        items.push({query:perms[i], permission:true, guard:guards[i] ? ('0x'+guards[i]) : undefined})
                     }
-                    return {query:v, permission:p, guard:g} 
-                })
-                onPermissionAnswer({who:address_queried, admin:false, owner:perm%2===1, items:items, object:permission});
+                    onPermissionAnswer({who:address_queried, admin:false, owner:perm%2===1, items:items, object:permission});  
+                } else {
+                    const perms = Bcs.getInstance().de('vector<u8>', Uint8Array.from((res.results as any)[0].returnValues[1][0]));
+                    const guards = Bcs.getInstance().de('vector<address>', Uint8Array.from((res.results as any)[0].returnValues[2][0]));
+                    if (perms.length !== permissions.length) {
+                        onPermissionAnswer({who:address_queried, object:permission});
+                        return
+                    }
+
+                    const items: PermissionAnswerItem[] = (permissions as PermissionIndexType[]).map((v, index) => {
+                        const p = perms[index] === Permission.PERMISSION_QUERY_NONE ? false : true;
+                        let g : any = undefined;
+                        if (p && perms[index] < guards.length) {
+                            g = '0x' + guards[perms[index] as number];
+                        }
+                        return {query:v, permission:p, guard:g} 
+                    })
+                    onPermissionAnswer({who:address_queried, admin:false, owner:perm%2===1, items:items, object:permission});                    
+                }
             }
         }).catch((e) => {
             console.log(e);
@@ -499,7 +526,7 @@ export class  Permission {
     static HasPermission(answer:PermissionAnswer|undefined, index:PermissionIndexType, bStrict:boolean=false) : {has:boolean, guard?:string, owner?:boolean} | undefined {
         if (answer) {
             if (answer.admin) return {has:true, owner:answer.owner}; // admin
-            let i = answer.items?.find((v)=>v.query === index);
+            let i = answer.items?.find((v)=>v.query == index); // index maybe string, so ==
             if (i) {
                 return {has:i.permission, guard:i.guard, owner:answer.owner};
             }    
