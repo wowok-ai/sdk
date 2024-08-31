@@ -260,7 +260,6 @@ export class Bcs {
             case ValueType.TYPE_U64:
                 return this.bcs.de(BCS.U64, data);
             case ValueType.TYPE_U8:
-                console.log(data)
                 return this.bcs.de(BCS.U8, data);
             case ValueType.TYPE_VEC_U8:
                 return this.bcs.de('vector<u8>', data);
@@ -396,28 +395,31 @@ export const IsValidAddress = (addr:string | undefined) : boolean => {
     }
     return true
 }
-export const IsValidBigint = (value:string | number | undefined, max:bigint=MAX_U256) : boolean => {
+export const IsValidBigint = (value:string | number | undefined | bigint, max:bigint=MAX_U256, min?:bigint) : boolean => {
     if (value === '' || value === undefined) return false;
     try {
         const v = BigInt(value);
         if (v <= max) {
+            if (min !== undefined) {
+                return v >= min;
+            }
             return true   
         }
     } catch (e) {
     }; return false
 }
 
-export const IsValidUintLarge = (value:string | number | undefined) : boolean => {
-    return IsValidBigint(value)
+export const IsValidUintLarge = (value:string | number | undefined | bigint) : boolean => {
+    return IsValidBigint(value, MAX_U64, BigInt(0))
 }
-export const IsValidU8 = (value:string | number | undefined) : boolean => {
-    return IsValidBigint(value, MAX_U8)
+export const IsValidU8 = (value:string | number | undefined | bigint) : boolean => {
+    return IsValidBigint(value, MAX_U8, BigInt(0))
 }
-export const IsValidU64 = (value:string | number | undefined) : boolean => {
-    return IsValidBigint(value, MAX_U64)
+export const IsValidU64 = (value:string | number | undefined | bigint) : boolean => {
+    return IsValidBigint(value, MAX_U64, BigInt(0))
 }
-export const IsValidU128 = (value:string | number | undefined) : boolean => {
-    return IsValidBigint(value, MAX_U128)
+export const IsValidU128 = (value:string | number | undefined | bigint) : boolean => {
+    return IsValidBigint(value, MAX_U128, BigInt(0))
 }
 
 export const IsValidTokenType = (argType: string) : boolean => { 
@@ -449,12 +451,10 @@ export const IsValidInt = (value: number | string) : boolean => {
     }
     return Number.isSafeInteger(value) 
 }
-export const IsValidPercent = (value: number | string) : boolean => { 
-    if (typeof(value) === 'string') {
-        value = parseInt(value as string);
-    }
-    return Number.isSafeInteger(value) && value > 0 && value <= 100 
+export const IsValidPercent = (value: number | string | bigint) : boolean => { 
+    return IsValidBigint(value, BigInt(100), BigInt(0))
 }
+
 export const IsValidArray = (arr: any, validFunc:any) : boolean => {
     for (let i = 0; i < arr.length; i++) {
         if (!validFunc(arr[i])) {

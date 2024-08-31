@@ -9,6 +9,7 @@ export enum Errors {
     IsValidTokenType = 'invalid token type',
     IsValidUint = 'invalid uint',
     IsValidInt = 'invalid int', 
+    IsValidU64 = 'invalid u64',
     IsValidPercent = 'invalid percent',
     IsValidArray = 'invalid array',
     IsValidObjects = 'invalid objects',

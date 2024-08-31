@@ -206,6 +206,7 @@ export interface CoinTypeInfo {
     symbol: string;
     type: string;
     decimals: number;
+    alias ?: boolean;
 }
 export class Protocol {
     protected network = '';
@@ -334,9 +335,9 @@ export class Protocol {
     COINS_TYPE = () => { 
         switch(this.network) {
             case ENTRYPOINT.testnet:
-                return this.CoinTypes_Testnet;
+                return this.CoinTypes_Testnet.filter((v)=>v.alias !== true);
             case ENTRYPOINT.mainnet:
-                return this.CoinTypes_Mainnet;
+                return this.CoinTypes_Mainnet.filter((v)=>v.alias !== true);
         }; return [];
     }
     Update_CoinType = (token_type: string, decimals:number, symbol: string) => {
@@ -363,16 +364,19 @@ export class Protocol {
     }
 
     CoinTypes_Testnet:CoinTypeInfo[] = [
-        {symbol:'SUI', type:'0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI', decimals:9},
-        {symbol:'SUI', type:'0x2::sui::SUI', decimals:9},
+        {symbol:'SUI', type:'0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI', decimals:9, alias:true},
+        {symbol:'SUI', type:'0x2::sui::SUI', decimals:9, },
+        {symbol:'WOW', type:TESTNET.package + '::wowok::WOWOK', decimals:9},
+    ];
+
+    CoinTypes_Mainnet:CoinTypeInfo[] = [
+        {symbol:'SUI', type:'0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI', decimals:9, alias:true},
+        {symbol:'SUI', type:'0x2::sui::SUI', decimals:9, },
         {symbol:'WOW', type:TESTNET.package + '::wowok::WOWOK', decimals:9},
         {symbol:'USDT', type:'0xc060006111016b8a020ad5b33834984a437aaa7d3c74c18e09a95d48aceab08c::coin::COIN', decimals:6},
         {symbol:'USDC', type:'0x5d4b302506645c37ff133b98c4b50a5ae14841659738d6d733d59d0d217a93bf::coin::COIN', decimals:6},              
         {symbol:'WETH', type:'0xaf8cd5edc19c4512f4259f0bee101a40d41ebed738ade5874359610ef8eeced5::coin::COIN', decimals:8},
         {symbol:'WBNB', type:'0xb848cce11ef3a8f62eccea6eb5b35a12c4c2b1ee1af7755d02d7bd6218e8226f::coin::COIN', decimals:8},
-    ];
-
-    CoinTypes_Mainnet:CoinTypeInfo[] = [
     ];
 
     GetCoinTypeInfo = (token_type: string, handler:(info:CoinTypeInfo)=>void) : CoinTypeInfo | 'loading' => {

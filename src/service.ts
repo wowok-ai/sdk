@@ -1,5 +1,5 @@
 import { IsValidArray, IsValidPercent, IsValidName_AllowEmpty, Bcs, array_unique, IsValidTokenType, IsValidDesription, 
-    IsValidAddress, IsValidEndpoint, IsValidUintLarge, IsValidInt, IsValidName, } from './utils'
+    IsValidAddress, IsValidEndpoint, IsValidU64, IsValidName,} from './utils'
 import { FnCallType, GuardObject, PassportObject, PermissionObject, RepositoryObject, MachineObject, ServiceAddress, 
     ServiceObject, DiscountObject, OrderObject, OrderAddress, CoinObject, Protocol, ValueType,
     TxbObject} from './protocol';
@@ -12,8 +12,8 @@ export type Service_Guard_Percent = {
 }
 export type Service_Sale = {
     item:string;
-    price:number;
-    stock:number;
+    price:bigint;
+    stock:bigint;
     endpoint?:string;
 }
 export enum Service_Discount_Type {
@@ -26,7 +26,7 @@ export type Service_Discount = {
     off: number;
     duration_minutes: number;
     time_start?: number; // current time if undefined
-    price_greater?: number;
+    price_greater?: bigint;
 }
 
 export type Service_Buy_RequiredInfo = {
@@ -47,13 +47,13 @@ export enum BuyRequiredEnum {
 
 export type Service_Buy = {
     item: string;
-    max_price: number;
-    count: number;
+    max_price: bigint;
+    count: bigint;
 }
 
 export type DicountDispatch = {
     receiver: string;
-    count: number;
+    count: bigint;
     discount: Service_Discount;
 }
 
@@ -152,9 +152,9 @@ export class Service {
             })
         }
     }
-    set_price(item:string, price:number, bNotFoundAssert:boolean=true, passport?:PassportObject) {
-        if (!IsValidInt(price)) {
-            ERROR(Errors.IsValidInt, 'price')
+    set_price(item:string, price:bigint, bNotFoundAssert:boolean=true, passport?:PassportObject) {
+        if (!IsValidU64(price)) {
+            ERROR(Errors.IsValidU64, 'price')
         } 
         if (!IsValidName(item)) {
             ERROR(Errors.IsValidName, 'item')
@@ -178,12 +178,12 @@ export class Service {
             })
         }
     }
-    set_stock(item:string, stock:number, bNotFoundAssert:boolean=true, passport?:PassportObject)  {
+    set_stock(item:string, stock:bigint, bNotFoundAssert:boolean=true, passport?:PassportObject)  {
         if (!IsValidName(item)) {
             ERROR(Errors.IsValidName, 'item')
         }
-        if (!IsValidInt(stock)) {
-            ERROR(Errors.IsValidInt, 'stock')
+        if (!IsValidU64(stock)) {
+            ERROR(Errors.IsValidU64, 'stock')
         }
         
         if (passport) {
@@ -204,11 +204,11 @@ export class Service {
             })
         }
     }
-    add_stock(item:string, stock_add:number, bNotFoundAssert:boolean=true, passport?:PassportObject)  {
+    add_stock(item:string, stock_add:bigint, bNotFoundAssert:boolean=true, passport?:PassportObject)  {
         if (!IsValidName(item)) {
             ERROR(Errors.IsValidName, 'item')
         }
-        if (!IsValidUintLarge(stock_add)) {
+        if (!IsValidU64(stock_add)) {
             ERROR(Errors.IsValidUint, 'stock_add')
         }
         
@@ -230,11 +230,11 @@ export class Service {
             })        
         }
     }
-    reduce_stock(item:string, stock_reduce:number, bNotFoundAssert:boolean=true, passport?:PassportObject)  {
+    reduce_stock(item:string, stock_reduce:bigint, bNotFoundAssert:boolean=true, passport?:PassportObject)  {
         if (!IsValidName(item)) {
             ERROR(Errors.IsValidName, 'item')
         }
-        if (!IsValidUintLarge(stock_reduce)) {
+        if (!IsValidU64(stock_reduce)) {
             ERROR(Errors.IsValidUint, 'stock_reduce')
         }
 
@@ -505,8 +505,8 @@ export class Service {
         let bValid = true; let names:string[]  = [];
         sales.forEach((v) => {
             if (!IsValidName(v.item)) bValid = false;
-            if (!IsValidInt(v.price)) bValid = false;
-            if (!IsValidUintLarge(v.stock)) bValid = false;
+            if (!IsValidU64(v.price)) bValid = false;
+            if (!IsValidU64(v.stock)) bValid = false;
             if (names.includes(v.item)) bValid = false;
             names.push(v.item)
         })
@@ -520,7 +520,7 @@ export class Service {
             ERROR(Errors.InvalidParam, 'add_sales')
         }
         
-        let names: string[]  = []; let price: number[] = []; let stock: number[] = []; let endpoint: string[] = [];
+        let names: string[]  = []; let price: bigint[] = []; let stock: bigint[] = []; let endpoint: string[] = [];
         sales.forEach((s) => {
             if (s.endpoint && !IsValidEndpoint(s.endpoint)) {
                 ERROR(Errors.IsValidEndpoint, 'add_sales')
@@ -581,12 +581,12 @@ export class Service {
         let bValid = true;
         discount_dispatch.forEach((v) => {
             if (!IsValidAddress(v.receiver)) bValid = false;
-            if (!IsValidUintLarge(v.count) || v.count > Service.MAX_DISCOUNT_COUNT_ONCE) bValid = false;
+            if (!IsValidU64(v.count) || v.count > Service.MAX_DISCOUNT_COUNT_ONCE) bValid = false;
             if (!IsValidName_AllowEmpty(v.discount.name)) bValid = false;
             if (v.discount.type == Service_Discount_Type.ratio && !IsValidPercent(v.discount.off)) bValid = false;
-            if (!IsValidUintLarge(v.discount.duration_minutes)) bValid = false;
-            if (v.discount?.time_start && !IsValidUintLarge(v.discount.time_start)) bValid = false;
-            if (v.discount?.price_greater && !IsValidInt(v.discount.price_greater))  bValid = false;
+            if (!IsValidU64(v.discount.duration_minutes)) bValid = false;
+            if (v.discount?.time_start && !IsValidU64(v.discount.time_start)) bValid = false;
+            if (v.discount?.price_greater && !IsValidU64(v.discount.price_greater))  bValid = false;
         })
         if (!bValid) {
             ERROR(Errors.InvalidParam, 'discount_dispatch')
@@ -741,18 +741,18 @@ export class Service {
         }      
         
     }
-    clone(passport?:PassportObject) : ServiceObject  {
+    clone(new_token_type?:string, passport?:PassportObject) : ServiceObject  {
         if (passport) {
             return this.txb.moveCall({
                 target:Protocol.Instance().ServiceFn('clone_withpassport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
-                typeArguments:[this.pay_token_type]
+                typeArguments:[this.pay_token_type, new_token_type ? new_token_type : this.pay_token_type]
             })    
         } else {
             return this.txb.moveCall({
                 target:Protocol.Instance().ServiceFn('clone') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
-                typeArguments:[this.pay_token_type]
+                typeArguments:[this.pay_token_type, new_token_type ? new_token_type : this.pay_token_type]
             })    
         }  
     }
@@ -909,8 +909,8 @@ export class Service {
         let bValid = true; let names:string[]  = [];
         buy_items.forEach((v) => {
             if (!IsValidName(v.item)) bValid = false;
-            if (!IsValidInt(v.max_price)) bValid = false;
-            if (!IsValidUintLarge(v.count)) bValid = false;
+            if (!IsValidU64(v.max_price)) bValid = false;
+            if (!IsValidU64(v.count)) bValid = false;
             if (names.includes(v.item)) bValid = false;
             names.push(v.item)
         })
@@ -918,7 +918,7 @@ export class Service {
             ERROR(Errors.InvalidParam, 'buy_items 2')
         }
 
-        let name:string[] = []; let price:number[] = [];    let stock:number[] = []; let order;
+        let name:string[] = []; let price:bigint[] = [];    let stock:bigint[] = []; let order;
         buy_items.forEach((b) => { name.push(b.item); price.push(b.max_price); stock.push(b.count)})
         const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         if (passport) {

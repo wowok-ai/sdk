@@ -272,7 +272,6 @@ export class Progress {
         let sub = this.txb.pure.option('address', sub_id ? sub_id : undefined);
         
         if (passport) {
-            console.log(11111)
             this.txb.moveCall({
                 target:Protocol.Instance().ProgressFn('next_with_passport') as FnCallType,
                 arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), 
