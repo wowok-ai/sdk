@@ -254,14 +254,14 @@ export class Repository {
             this.txb.moveCall({
                 target:Protocol.Instance().RepositoryFn('policy_remove_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
-                    this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(policy_keys))), 
+                    this.txb.pure.vector('string', array_unique(policy_keys)), 
                     Protocol.TXB_OBJECT(this.txb, this.permission)]
             })                
         } else {
             this.txb.moveCall({
                 target:Protocol.Instance().RepositoryFn('policy_remove') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
-                    this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(policy_keys))), 
+                    this.txb.pure.vector('string', array_unique(policy_keys)), 
                     Protocol.TXB_OBJECT(this.txb, this.permission)]
             })                     
         }

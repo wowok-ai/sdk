@@ -229,7 +229,7 @@ export class Vote {
                 this.txb.moveCall({
                     target:Protocol.Instance().VoteFn('agrees_remove_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
-                        this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(options))), 
+                        this.txb.pure.vector('string', array_unique(options)), 
                         Protocol.TXB_OBJECT(this.txb, this.permission)]
                 })             
             }
@@ -243,7 +243,7 @@ export class Vote {
                 this.txb.moveCall({
                     target:Protocol.Instance().VoteFn('agrees_remove') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
-                        this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(options))), 
+                        this.txb.pure.vector('string', array_unique(options)),  
                         Protocol.TXB_OBJECT(this.txb, this.permission)]
                 })        
             }
@@ -341,13 +341,13 @@ export class Vote {
             this.txb.moveCall({
                 target:Protocol.Instance().VoteFn('with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
-                    this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(options)))]
+                    this.txb.pure.vector('string', array_unique(options))]
             })  
         } else {
             this.txb.moveCall({
                 target:Protocol.Instance().VoteFn('this.object') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
-                    this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, array_unique(options)))]
+                    this.txb.pure.vector('string', array_unique(options))]
             })           
         }
     }

@@ -375,7 +375,7 @@ export class  Permission {
         this.txb.moveCall({
             target:Protocol.Instance().PermissionFn('remove_index') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity_address), 
-                this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_U64, array_unique(index)))]
+                this.txb.pure.vector('u64', array_unique(index))]
         })            
     }
     remove_entity(entity_address:string[])  {

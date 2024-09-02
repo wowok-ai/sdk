@@ -223,13 +223,13 @@ export class Machine {
         if (passport) {
             this.txb.moveCall({
                 target:Protocol.Instance().MachineFn('node_remove_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(this.txb,  this.object), this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, nodes_name)), 
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb,  this.object), this.txb.pure.vector('string', nodes_name), 
                     this.txb.pure.bool(bTransferMyself), Protocol.TXB_OBJECT(this.txb, this.permission)],
             });  
         } else {
             this.txb.moveCall({
                 target:Protocol.Instance().MachineFn('node_remove') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(this.txb,  this.object), this.txb.pure(Bcs.getInstance().ser(ValueType.TYPE_VEC_STRING, nodes_name)), 
+                arguments:[Protocol.TXB_OBJECT(this.txb,  this.object), this.txb.pure.vector('string', nodes_name), 
                     this.txb.pure.bool(bTransferMyself), Protocol.TXB_OBJECT(this.txb, this.permission)],
             });
         } 
