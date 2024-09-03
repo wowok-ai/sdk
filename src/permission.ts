@@ -523,6 +523,7 @@ export class  Permission {
             onPermissionAnswer({who:address_queried, object:permission});
         })
     }
+    
     static HasPermission(answer:PermissionAnswer|undefined, index:PermissionIndexType, bStrict:boolean=false) : {has:boolean, guard?:string, owner?:boolean} | undefined {
         if (answer) {
             if (answer.admin) return {has:true, owner:answer.owner}; // admin

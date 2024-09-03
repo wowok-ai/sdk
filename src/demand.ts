@@ -24,7 +24,7 @@ export class Demand {
         this.txb = txb;
         this.object = '';
     }
-    static New(txb:TransactionBlock, bounty_type:string, permission:PermissionObject, description:string, 
+    static New(txb:TransactionBlock, bounty_type:string, ms_expand:boolean, time:number, permission:PermissionObject, description:string, 
         bounty:TransactionResult | string, passport?:PassportObject) : Demand {
         if (!Protocol.IsValidObjects([permission, bounty])) {
             ERROR(Errors.IsValidObjects, 'permission, bounty');
@@ -35,18 +35,24 @@ export class Demand {
         if (!IsValidArgType(bounty_type)) {
             ERROR(Errors.IsValidArgType, bounty_type);
         }
-
+        if (!IsValidUintLarge(time)) {
+            ERROR(Errors.IsValidUint, 'time')
+        }
+        
         let  d = new Demand(txb, bounty_type, permission);
+        const clock = txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         if (passport) {
             d.object = txb.moveCall({
                 target:Protocol.Instance().DemandFn('new_with_passport') as FnCallType,
-                arguments:[passport, txb.pure.string(description), txb.object(bounty), Protocol.TXB_OBJECT(txb, permission)],
+                arguments:[passport, txb.pure.string(description), txb.object(bounty), txb.pure.bool(ms_expand), txb.pure.u64(time), 
+                    txb.object(clock), Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments:[bounty_type],
             })        
         } else {
             d.object = txb.moveCall({
                 target:Protocol.Instance().DemandFn('new') as FnCallType,
-                arguments:[txb.pure.string(description), txb.object(bounty), Protocol.TXB_OBJECT(txb, permission)],
+                arguments:[txb.pure.string(description), txb.object(bounty), txb.pure.bool(ms_expand), txb.pure.u64(time), 
+                    txb.object(clock), Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments:[bounty_type],
             })        
         }

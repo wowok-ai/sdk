@@ -4,7 +4,8 @@ import { FnCallType, GuardObject, PassportObject, PermissionObject, RepositoryOb
     ServiceObject, DiscountObject, OrderObject, OrderAddress, CoinObject, Protocol, ValueType,
     TxbObject} from './protocol';
 import { ERROR, Errors } from './exception';
-import { type TransactionResult, Transaction as TransactionBlock } from '@mysten/sui/transactions';
+import { Transaction as TransactionBlock,  } from '@mysten/sui/transactions';
+import { SuiObjectData } from '@mysten/sui/client';
 
 export type Service_Guard_Percent = {
     guard:GuardObject;
@@ -57,6 +58,7 @@ export type DicountDispatch = {
     discount: Service_Discount;
 }
 
+export type handleDiscountObject = (owner:string, objects:(SuiObjectData|null|undefined)[]) => void;
 export class Service {
     protected pay_token_type;
     protected permission;
@@ -760,11 +762,8 @@ export class Service {
     }
 
     set_customer_required(pubkey:string, customer_required: BuyRequiredEnum[], passport?:PassportObject) {
-        if (!pubkey) {
+        if(customer_required.length > 0 && !pubkey) {
             ERROR(Errors.InvalidParam, 'pubkey')
-        } 
-        if(!customer_required) {
-            ERROR(Errors.InvalidParam, 'customer_required')
         }
 
         let req = array_unique(customer_required) as string[];
@@ -925,6 +924,7 @@ export class Service {
         const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         if (passport) {
             if (discount) {
+                console.log(1)
                 order = this.txb.moveCall({
                     target:Protocol.Instance().ServiceFn('dicount_buy_with_passport') as FnCallType,
                     arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('string', name), 
@@ -932,6 +932,7 @@ export class Service {
                         Protocol.TXB_OBJECT(this.txb, coin), Protocol.TXB_OBJECT(this.txb, discount), this.txb.object(clock)],                   
                     typeArguments:[this.pay_token_type]            
             })} else {
+                console.log(2)
                 order = this.txb.moveCall({
                     target:Protocol.Instance().ServiceFn('buy_with_passport') as FnCallType,
                     arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('string', name), 
@@ -940,6 +941,7 @@ export class Service {
                     typeArguments:[this.pay_token_type]            
             })}             
         } else {
+            console.log(3)
             if (discount) {
                 order = this.txb.moveCall({
                     target:Protocol.Instance().ServiceFn('disoucnt_buy') as FnCallType,
@@ -950,6 +952,7 @@ export class Service {
                         Protocol.TXB_OBJECT(this.txb, discount), this.txb.object(clock)],                
                     typeArguments:[this.pay_token_type]            
             })} else {
+                console.log(4)
                 order = this.txb.moveCall({
                     target:Protocol.Instance().ServiceFn('buy') as FnCallType,
                     arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('string', name), 
@@ -1026,5 +1029,13 @@ export class Service {
             return service_endpoint + '/sales/' + encodeURI(item_name);
         }
     }
-
+    static DiscountObjects = (owner:string, handleDiscountObject:handleDiscountObject) => {
+        Protocol.Client().getOwnedObjects({owner:owner, 
+            filter:{MoveModule:{module:'order', package:Protocol.Instance().Package()}}, 
+            options:{showContent:true, showType:true}}).then((res) => {
+            handleDiscountObject(owner, res.data.map((v)=>v.data));
+        }).catch((e) => {
+            console.log(e);
+        })       
+    }
 }

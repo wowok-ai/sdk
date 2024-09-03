@@ -191,9 +191,9 @@ export enum ENTRYPOINT {
 }
 
 const TESTNET = {
-    package: "0xdfead784f096e93d025e3e29c4fa48cf5585867e7bcc304c83d3f410f210e4c9",
-    wowok_object: '0xe386bb9e01b3528b75f3751ad8a1e418b207ad979fea364087deef5250a73d3f',
-    entity_object: '0xbc8be56e8924f7ddcce0ebbc8bd9a2bf1f00d1db9a12e36b9290f009ba305dd9',
+    package: "0xa5a2e79de613b6585a584dd9aee8f464a1a1f2826fefc656f44e95ee3c60d673",
+    wowok_object: '0x4723d6660029b1d1a70d6ebb7bfed4b3f06c7e811d6b9845b41d7451555fee02',
+    entity_object: '0xb91ae0f0e38f205c7d4f90639fa0bd6fc6448889f8de38547dd6fb29304fc89b',
 }
 
 const MAINNET = {
@@ -253,7 +253,7 @@ export class Protocol {
                 break;
         };
     }
-    Package(): string { return this.package }
+        Package(): string { return this.package }
     WowokObject(): string { return this.wowok_object }
     EntityObject(): string { return this.entity_object }
     GraphqlUrl() : string { return this.graphql }
@@ -380,6 +380,7 @@ export class Protocol {
     ];
 
     GetCoinTypeInfo = (token_type: string, handler:(info:CoinTypeInfo)=>void) : CoinTypeInfo | 'loading' => {
+        if (!token_type) return 'loading';
         let r = this.COINS_TYPE().find((v) => v?.type === token_type);
         if (!r) {
             Protocol.Client().getCoinMetadata({coinType:token_type}).then((res) => {
