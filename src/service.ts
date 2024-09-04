@@ -625,7 +625,7 @@ export class Service {
         });
     }
 
-    // 同时支持withdraw guard和permission guard
+    // support both withdraw guard and permission guard
     withdraw(order:OrderObject, passport?:PassportObject) {
         if (!Protocol.IsValidObjects([order]))  {
             ERROR(Errors.IsValidObjects, 'order')
@@ -644,8 +644,8 @@ export class Service {
                 typeArguments:[this.pay_token_type]
             })               
         }
-        
     }
+
     set_buy_guard(guard?:GuardObject, passport?:PassportObject) {
         if (passport) {
             if (guard) {
@@ -729,6 +729,7 @@ export class Service {
             })      
         }   
     }
+
     publish(passport?:PassportObject) {
         if (passport) {
             this.txb.moveCall({
@@ -745,6 +746,7 @@ export class Service {
         }      
         
     }
+
     clone(new_token_type?:string, passport?:PassportObject) : ServiceObject  {
         if (passport) {
             return this.txb.moveCall({
@@ -786,6 +788,7 @@ export class Service {
             })         
         }
     }
+
     remove_customer_required(passport?:PassportObject) {
         if (passport) {
             this.txb.moveCall({
@@ -801,6 +804,7 @@ export class Service {
             })  
         }       
     }
+
     change_required_pubkey(pubkey:string, passport?:PassportObject) {
         if (!pubkey) {
             ERROR(Errors.InvalidParam, 'pubkey')
@@ -822,6 +826,7 @@ export class Service {
             })    
         }     
     }
+
     change_order_required_pubkey(order:OrderObject, pubkey:string, passport?:PassportObject) {
         if (!Protocol.IsValidObjects([order])) {
             ERROR(Errors.IsValidObjects, 'order')
@@ -846,6 +851,7 @@ export class Service {
             })   
         }    
     }
+
     pause(pause:boolean, passport?:PassportObject) {
         if (passport) {
             this.txb.moveCall({
@@ -860,9 +866,9 @@ export class Service {
                 typeArguments:[this.pay_token_type]
             })     
         }    
-        
     }
-    customer_refund(order:OrderObject, passport?:PassportObject) {
+
+    refund(order:OrderObject, passport?:PassportObject) {
         if (!Protocol.IsValidObjects([order])) {
             ERROR(Errors.IsValidObjects, 'order')
         }
@@ -924,7 +930,6 @@ export class Service {
         const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         if (passport) {
             if (discount) {
-                console.log(1)
                 order = this.txb.moveCall({
                     target:Protocol.Instance().ServiceFn('dicount_buy_with_passport') as FnCallType,
                     arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('string', name), 
@@ -932,7 +937,6 @@ export class Service {
                         Protocol.TXB_OBJECT(this.txb, coin), Protocol.TXB_OBJECT(this.txb, discount), this.txb.object(clock)],                   
                     typeArguments:[this.pay_token_type]            
             })} else {
-                console.log(2)
                 order = this.txb.moveCall({
                     target:Protocol.Instance().ServiceFn('buy_with_passport') as FnCallType,
                     arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('string', name), 
@@ -941,7 +945,6 @@ export class Service {
                     typeArguments:[this.pay_token_type]            
             })}             
         } else {
-            console.log(3)
             if (discount) {
                 order = this.txb.moveCall({
                     target:Protocol.Instance().ServiceFn('disoucnt_buy') as FnCallType,
@@ -952,7 +955,6 @@ export class Service {
                         Protocol.TXB_OBJECT(this.txb, discount), this.txb.object(clock)],                
                     typeArguments:[this.pay_token_type]            
             })} else {
-                console.log(4)
                 order = this.txb.moveCall({
                     target:Protocol.Instance().ServiceFn('buy') as FnCallType,
                     arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('string', name), 
@@ -1022,6 +1024,18 @@ export class Service {
         }
         return '';
     }
+
+    static parseOrderObjectType = (chain_type:string | undefined | null) : string =>  {
+        if (chain_type) {
+            const s = 'order::Order<'
+            const i = chain_type.indexOf(s);
+            if (i > 0) {
+                return chain_type.slice(i + s.length, chain_type.length-1);
+            }
+        }
+        return '';
+    }
+
     static endpoint = (service_endpoint:string, item_endpoint:string, item_name:string) => {
         if (item_endpoint) {
             return item_endpoint
@@ -1029,6 +1043,7 @@ export class Service {
             return service_endpoint + '/sales/' + encodeURI(item_name);
         }
     }
+
     static DiscountObjects = (owner:string, handleDiscountObject:handleDiscountObject) => {
         Protocol.Client().getOwnedObjects({owner:owner, 
             filter:{MoveModule:{module:'order', package:Protocol.Instance().Package()}}, 

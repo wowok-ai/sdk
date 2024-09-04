@@ -558,7 +558,7 @@ export interface query_object_param {
 export const query_object = (param:query_object_param) => {
     if (param.id) {
       if(param?.onBegin) param.onBegin(param.id);
-      Protocol.Client().getObject({id:param.id, options:{showContent:true, showType:true}}).then((res) => {
+      Protocol.Client().getObject({id:param.id, options:{showContent:true, showType:true, showOwner:true}}).then((res) => {
         if (res.error) {
             if(param?.onObjectErr) param.onObjectErr(param.id, res.error);
         } else {
