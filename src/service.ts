@@ -35,7 +35,6 @@ export type Service_Buy_RequiredInfo = {
     customer_info: string[];
 }
 export type Customer_RequiredInfo = {
-    pubkey: string;
     customer_pubkey: string;
     customer_info_crypt: string[];
 }
@@ -826,7 +825,7 @@ export class Service {
             })    
         }     
     }
-
+/*
     change_order_required_pubkey(order:OrderObject, pubkey:string, passport?:PassportObject) {
         if (!Protocol.IsValidObjects([order])) {
             ERROR(Errors.IsValidObjects, 'order')
@@ -850,7 +849,7 @@ export class Service {
                 typeArguments:[this.pay_token_type]
             })   
         }    
-    }
+    } */
 
     pause(pause:boolean, passport?:PassportObject) {
         if (passport) {
@@ -889,22 +888,21 @@ export class Service {
     }
 
     update_order_required_info(order:OrderObject, customer_info_crypto: Customer_RequiredInfo) {
+        if (!customer_info_crypto.customer_pubkey || customer_info_crypto.customer_info_crypt.length === 0) {
+            return 
+        }
+
         if (!Protocol.IsValidObjects([order])) {
             ERROR(Errors.IsValidObjects, 'order')
-        }
-        if (!customer_info_crypto.pubkey || !customer_info_crypto.customer_info_crypt) {
-            ERROR(Errors.InvalidParam, 'customer_info_crypto')
         }
         
         this.txb.moveCall({
             target:Protocol.Instance().ServiceFn('order_required_info_update') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order), 
-                this.txb.pure.string(customer_info_crypto.pubkey), 
                 this.txb.pure.string(customer_info_crypto.customer_pubkey), 
-                this.txb.pure.vector('vector<u8>', array_unique(customer_info_crypto.customer_info_crypt))],
+                this.txb.pure.vector('string', customer_info_crypto.customer_info_crypt)],
             typeArguments:[this.pay_token_type]
         })    
-        
     }
     
     buy(buy_items:Service_Buy[], coin:CoinObject, discount?:DiscountObject, machine?:MachineObject, 

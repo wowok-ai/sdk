@@ -1,8 +1,7 @@
-import { bcs, BCS, toHEX, fromHEX, getSuiMoveConfig, TypeName, BcsReader } from '@mysten/bcs';
-import { Transaction as TransactionBlock, Inputs, TransactionResult, TransactionArgument } from '@mysten/sui/transactions';
+import { BCS, getSuiMoveConfig, } from '@mysten/bcs';
 import { SuiObjectResponse, DynamicFieldPage } from '@mysten/sui/client';
 import { ERROR, Errors } from './exception';
-import { isValidSuiAddress, isValidSuiObjectId } from '@mysten/sui/utils'
+import { isValidSuiAddress} from '@mysten/sui/utils'
 import { RepositoryValueType, ValueType, Protocol } from './protocol'
 
 export const MAX_U8 = BigInt('255');
@@ -162,6 +161,8 @@ export class Bcs {
         this.bcs.registerStructType('EntStruct', {
             'avatar': 'vector<u8>',
             'resource': "Option<address>",
+            "safer_name": "vector<string>",
+            "safer_value": "vector<string>",
             'like': BCS.U32,
             'dislike': BCS.U32,
         })
@@ -306,19 +307,6 @@ export class Bcs {
         if (!data || data.length < 2) return ''
         const struct_vec = this.bcs.de('vector<u8>', data);
         return this.bcs.de('EntStruct', Uint8Array.from(struct_vec));
-/*        const reader = new BcsReader(data);
-        const total_len = reader.readULEB();
-        console.log(avatar_len)
-        const avatar = reader.readBytes(avatar_len);
-        console.log(avatar)
-        const option_resource = reader.read8();
-        var resource = '';
-        if (option_resource != 0) {
-            resource = reader.read256();
-        }
-        const like = reader.read32();
-        const dislike = reader.read32();
-        return {avatar:avatar, resource:resource, like:like, dislike:dislike}*/
     }    
     de_entInfo(data:Uint8Array | undefined) : any {
         if (!data || data.length === 0) return ''

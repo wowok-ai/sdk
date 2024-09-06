@@ -1,9 +1,13 @@
 import { Protocol, FnCallType, TxbObject, ResourceAddress, PermissionObject, ResourceObject} from './protocol';
-import { IsValidDesription, IsValidAddress, IsValidName, isValidHttpUrl, Bcs,  } from './utils';
+import { IsValidDesription, IsValidAddress, IsValidName, isValidHttpUrl, Bcs, IsValidArray,  } from './utils';
 import { ERROR, Errors } from './exception';
 import { Resource } from './resource';
 import { type TransactionResult, Transaction as TransactionBlock } from '@mysten/sui/transactions';
 
+export interface Safer {
+    name: string;
+    value: string;
+}
 export interface Entity_Info {
     name: string;
     description?: string;
@@ -39,7 +43,42 @@ export class Entity {
                 this.txb.pure.address(address)]
         })
     }
- 
+    
+    add_safer(safer: Safer[], bExistModify:boolean=true) {
+        if (safer.length === 0) return ;
+        if (!IsValidArray(safer, (v:Safer) => {
+            if (!IsValidName(v.name) || !IsValidDesription(v.value)) {
+                return false
+            }
+        })) {
+            ERROR(Errors.InvalidParam, 'add_safer');
+        }
+
+        const name = safer.map((v)=>v.name);
+        const value = safer.map((v)=>v.value);
+        this.txb.moveCall({
+            target:Protocol.Instance().EntityFn('safer_add') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('string', name), 
+                this.txb.pure.vector('string', value),  this.txb.pure.bool(bExistModify)]
+        })
+    }
+
+    remove_safer(name:string[], removeall?:boolean) {
+        if (name.length === 0 && !removeall) return;
+
+        if (removeall) {
+            this.txb.moveCall({
+                target:Protocol.Instance().EntityFn('safer_remove_all') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object)]
+            })
+        } else {
+            this.txb.moveCall({
+                target:Protocol.Instance().EntityFn('safer_remove') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('string', name)]
+            })
+        }
+    }
+
     update(info: Entity_Info) {
         if (!IsValidName(info.name)) ERROR(Errors.IsValidName, 'update');
         if (info?.description && !IsValidDesription(info.description)) ERROR(Errors.IsValidDesription, 'update');
@@ -63,7 +102,6 @@ export class Entity {
     }
 
     create_resource() : ResourceAddress {
-        
         return this.txb.moveCall({
             target:Protocol.Instance().EntityFn('resource_create') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object)]
@@ -71,7 +109,6 @@ export class Entity {
     }
 
     create_resource2(): ResourceObject {
-        
         return this.txb.moveCall({
             target:Protocol.Instance().EntityFn('resource_create2') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object)]
@@ -79,7 +116,6 @@ export class Entity {
     }
     
     destroy_resource(resource:Resource) {
-        
         return this.txb.moveCall({
             target:Protocol.Instance().EntityFn('resource_destroy') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, resource.get_object())]
@@ -98,7 +134,7 @@ export class Entity {
 
     query_ent(address_queried:string) {
         if (!IsValidAddress(address_queried)) {
-            ERROR(Errors.InvalidParam, 'query_ent');
+            ERROR(Errors.InvalidParam, 'query_ent');    
         }
 
         this.txb.moveCall({

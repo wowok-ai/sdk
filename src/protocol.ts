@@ -191,9 +191,9 @@ export enum ENTRYPOINT {
 }
 
 const TESTNET = {
-    package: "0x5124ea10815202478019aec806af8ce4ffe280c7b838a9cdaa1ddedc1ce00930",
-    wowok_object: '0x990562869b8300a854b6ce6e0b69ed461a3f106b5013a951845b5271b5a1e3bb',
-    entity_object: '0x078873a4bda8330b229471e290a21718f05ec06be441aa55d7d16774a42aa521',
+    package: "0x366cbf58452fca91d1028af0bc9709c1826c2d89dce258ddf1d4fe9a95ffa6d7",
+    wowok_object: '0xadd1755c84aa7e99ecd84a71eed6b7150f097a88f3a60f4770be72a93f03fca4',
+    entity_object: '0x41b5e7defd512bb098c367c04f2731c81e468365f824b2ab354fb9dbf5a42549',
 }
 
 const MAINNET = {

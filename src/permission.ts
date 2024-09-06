@@ -44,7 +44,7 @@ export enum PermissionIndex {
     service_publish = 220,
     service_clone = 221,
     service_customer_required = 222,
-    service_change_order_required_pubkey = 224,
+    //service_change_order_required_pubkey = 224,
     service_pause = 225,
 
     reward = 240,
@@ -141,7 +141,7 @@ export const PermissionInfo : PermissionInfoType[] = [
     {index:PermissionIndex.service_publish, name:'Publish', description:'Publish Service', module: 'service'},
     {index:PermissionIndex.service_clone, name:'Clone', description:'Clone Service', module: 'service'},
     {index:PermissionIndex.service_customer_required, name:'Buyer info', description:'Set Service buyer info required', module: 'service'},
-    {index:PermissionIndex.service_change_order_required_pubkey, name:'Order pubkey', description:'Update Serivce order pubkey', module: 'service'},
+    //{index:PermissionIndex.service_change_order_required_pubkey, name:'Order pubkey', description:'Update Serivce order pubkey', module: 'service'},
     {index:PermissionIndex.service_pause, name:'Pause', description:'Pause/Unpause Service', module: 'service'},
 
     {index:PermissionIndex.reward, name:'Reward', description:'Launch new Reward', module: 'reward'},
