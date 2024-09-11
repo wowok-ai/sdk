@@ -1,5 +1,5 @@
 import { Protocol, FnCallType, TxbObject, ResourceAddress, PermissionObject} from './protocol';
-import { IsValidDesription, IsValidAddress, IsValidName, IsValidArray,  } from './utils';
+import { IsValidDesription, IsValidAddress, IsValidName, IsValidArray, IsValidU64,  } from './utils';
 import { ERROR, Errors } from './exception';
 import { Transaction as TransactionBlock} from '@mysten/sui/transactions';
 
@@ -45,6 +45,16 @@ export class Wowok {
         this.txb.moveCall({
             target:Protocol.Instance().WowokFn('grantor_time_expand_1year') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(new_name)]
+        })
+    }
+
+    mint(amount: string, recipient: string) {
+        if (!IsValidAddress(recipient)) ERROR(Errors.IsValidAddress, 'mint');
+        if (!IsValidU64(amount)) ERROR(Errors.IsValidU64, 'mint');
+        this.txb.moveCall({
+            target:Protocol.Instance().WowokFn('mint') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, Protocol.Instance().TreasuryCap()), this.txb.pure.u64(amount), 
+                this.txb.pure.address(recipient)]
         })
     }
 }

@@ -424,9 +424,32 @@ export class Machine {
         this.add_node2([n], passport);
     }
 
+    remove_pair(node_prior:string, node_name:string, passport?:PassportObject) {
+        if (!IsValidName_AllowEmpty(node_prior)) ERROR(Errors.IsValidName_AllowEmpty, 'remove_pair');
+        if (!IsValidName(node_name)) ERROR(Errors.IsValidName, 'remove_pair');
+        let n : any;
+        if (passport) {
+            n = this.txb.moveCall({
+                target:Protocol.Instance().MachineFn('node_fetch_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(node_name), Protocol.TXB_OBJECT(this.txb, this.permission)],
+            })
+
+        } else {
+            n = this.txb.moveCall({
+                target:Protocol.Instance().MachineFn('node_fetch') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb,  this.object), this.txb.pure.string(node_name), Protocol.TXB_OBJECT(this.txb, this.permission)],
+            })
+        }
+        this.txb.moveCall({
+            target:Protocol.Instance().MachineFn('pair_remove') as FnCallType,
+            arguments:[n, this.txb.pure.string(node_prior)],
+        })
+        this.add_node2([n], passport);
+    }
+
     remove_forward(node_prior:string, node_name:string, foward_name: string, passport?:PassportObject) {
-        if (!IsValidName_AllowEmpty(node_prior)) ERROR(Errors.IsValidName_AllowEmpty, 'add_forward');
-        if (!IsValidName(node_name)) ERROR(Errors.IsValidName, 'add_forward');
+        if (!IsValidName_AllowEmpty(node_prior)) ERROR(Errors.IsValidName_AllowEmpty, 'remove_forward');
+        if (!IsValidName(node_name)) ERROR(Errors.IsValidName, 'remove_forward');
 
         let n : any;
         if (passport) {

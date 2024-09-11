@@ -156,8 +156,8 @@ export const SER_VALUE: ValueTypeString[] = [
     {type: ValueType.TYPE_BOOL, name: 'bool', description:'boolean. eg:true or false', validator:(value:any) => { return (value === true || value === false)}},
     {type: ValueType.TYPE_ADDRESS, name: 'address', description:'address or object-id. eg:0x6789af', validator:IsValidAddress},
     {type: ContextType.TYPE_WITNESS_ID, name: 'future address', description:"eg: machine's future progress, service's future order",  validator:IsValidAddress},
-    {type: ContextType.TYPE_SIGNER, name: 'txn signer', description:"signer address of the transaction, ", validator:IsValidAddress},
-    {type: ContextType.TYPE_CLOCK, name: 'txn time', description:"unsigned-64 number for the transaction time", validator:IsValidU64},
+    {type: ContextType.TYPE_SIGNER, name: 'txn signer', description:"signer address of the transaction, "},
+    {type: ContextType.TYPE_CLOCK, name: 'txn time', description:"unsigned-64 number for the transaction time"},
     {type: ValueType.TYPE_U64, name: 'number', description:'unsigned-64 number. eg:23870233', validator:IsValidU64},
     {type: ValueType.TYPE_U8, name: 'number', description:'unsigned-8 number. eg:255', validator:IsValidU8},
     {type: ValueType.TYPE_VEC_U8, name: 'string', description:'string or unsigned-8 number array. eg:"[1,2,3]"'},
@@ -191,15 +191,17 @@ export enum ENTRYPOINT {
 }
 
 const TESTNET = {
-    package: "0x366cbf58452fca91d1028af0bc9709c1826c2d89dce258ddf1d4fe9a95ffa6d7",
-    wowok_object: '0xadd1755c84aa7e99ecd84a71eed6b7150f097a88f3a60f4770be72a93f03fca4',
-    entity_object: '0x41b5e7defd512bb098c367c04f2731c81e468365f824b2ab354fb9dbf5a42549',
+    package: "0x98e5209cf5cf31a38ebde562681441d7544f38ee6a879266dc7273160635f6ba",
+    wowok_object: '0x676243951ed0d32341680b10d888887dfb39603b1af747036164e90fdfed1274',
+    entity_object: '0xe32334d663d0e7d058682b5170632672a11df1cdaa3f522859e75b451bdc67d5',
+    treasury_cap:'0x10bec6d987cf7fc16fc62246f3c382d84ee285d9ec9f038bc03845fe620bf2d3',
 }
 
 const MAINNET = {
     package: "",
     wowok_object: '',
     entity_object: '',
+    treasury_cap:'',
 }
 
 export interface CoinTypeInfo {
@@ -214,6 +216,7 @@ export class Protocol {
     protected signer = '';
     protected wowok_object = '';
     protected entity_object = '';
+    protected treasury_cap = '';
     protected graphql = '';
     protected txb: TransactionBlock | undefined;
     static _instance: any;
@@ -243,19 +246,22 @@ export class Protocol {
                 this.package = TESTNET.package;
                 this.wowok_object = TESTNET.wowok_object;
                 this.entity_object= TESTNET.entity_object;
+                this.treasury_cap = TESTNET.treasury_cap;
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
             case ENTRYPOINT.mainnet:
                 this.package = MAINNET.package;
                 this.wowok_object = MAINNET.wowok_object;
                 this.entity_object= MAINNET.entity_object;
+                this.treasury_cap = MAINNET.treasury_cap;
                 this.graphql = 'https://sui-mainnet.mystenlabs.com/graphql';
                 break;
         };
     }
-        Package(): string { return this.package }
+    Package(): string { return this.package }
     WowokObject(): string { return this.wowok_object }
     EntityObject(): string { return this.entity_object }
+    TreasuryCap() : string { return this.treasury_cap }
     GraphqlUrl() : string { return this.graphql }
     
     NetworkUrl() : string { 
