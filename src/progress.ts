@@ -268,22 +268,23 @@ export class Progress {
             ERROR(Errors.IsValidAddress, 'sub_id');
         }
         
-        let diliverable = this.txb.pure.option('address', deliverables_address ? deliverables_address  : undefined);
-        let sub = this.txb.pure.option('address', sub_id ? sub_id : undefined);
-        
+        const diliverable = this.txb.pure.option('address', deliverables_address ? deliverables_address  : undefined);
+        const sub = this.txb.pure.option('address', sub_id ? sub_id : undefined);
+        const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
+
         if (passport) {
             this.txb.moveCall({
                 target:Protocol.Instance().ProgressFn('next_with_passport') as FnCallType,
                 arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), 
                     this.txb.pure.string(next.next_node_name), 
                     this.txb.pure.string(next.forward), diliverable, sub, 
-                    Protocol.TXB_OBJECT(this.txb, this.permission)],
+                    Protocol.TXB_OBJECT(this.txb, this.permission), this.txb.object(clock)],
             })    
         } else {
             this.txb.moveCall({
                 target:Protocol.Instance().ProgressFn('next') as FnCallType,
                 arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), this.txb.pure.string(next.next_node_name), 
-                    this.txb.pure.string(next.forward), diliverable, sub, Protocol.TXB_OBJECT(this.txb, this.permission)],
+                    this.txb.pure.string(next.forward), diliverable, sub, Protocol.TXB_OBJECT(this.txb, this.permission), this.txb.object(clock)],
             })               
         }
     }

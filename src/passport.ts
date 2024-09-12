@@ -126,6 +126,11 @@ export class GuardParser {
                 case OperatorType.TYPE_LOGIC_NOT:
                 case OperatorType.TYPE_LOGIC_AND:
                 case OperatorType.TYPE_LOGIC_OR:
+                case OperatorType.TYPE_NUMBER_ADD:
+                case OperatorType.TYPE_NUMBER_DEVIDE:
+                case OperatorType.TYPE_NUMBER_MOD:
+                case OperatorType.TYPE_NUMBER_MULTIPLY:
+                case OperatorType.TYPE_NUMBER_SUBTRACT:
                     break;    
                 case ContextType.TYPE_CONSTANT:
                     identifier = arr.shift()! as number;  // identifier
@@ -305,7 +310,19 @@ export class GuardParser {
             case OperatorType.TYPE_LOGIC_AS_U256_LESSER:
             case OperatorType.TYPE_LOGIC_AS_U256_LESSER_EQUAL:
             case OperatorType.TYPE_LOGIC_AS_U256_EQUAL:
-                current.ret_type = ValueType.TYPE_BOOL;
+            case OperatorType.TYPE_NUMBER_ADD:
+            case OperatorType.TYPE_NUMBER_DEVIDE:
+            case OperatorType.TYPE_NUMBER_MOD:
+            case OperatorType.TYPE_NUMBER_MULTIPLY:
+            case OperatorType.TYPE_NUMBER_SUBTRACT:
+                if (current.type === OperatorType.TYPE_LOGIC_AS_U256_GREATER || current.type === OperatorType.TYPE_LOGIC_AS_U256_GREATER_EQUAL ||
+                    current.type === OperatorType.TYPE_LOGIC_AS_U256_LESSER || current.type === OperatorType.TYPE_LOGIC_AS_U256_LESSER_EQUAL ||
+                    current.type === OperatorType.TYPE_LOGIC_AS_U256_EQUAL) {
+                        current.ret_type = ValueType.TYPE_BOOL;
+                } else {
+                    current.ret_type = ValueType.TYPE_U256;
+                }
+                
                 if (stack.length < 2) ERROR(Errors.Fail, 'ResolveData: ' + current.type);
                 for (let i = 0; i < 2; ++i) {
                     let p = stack.pop() as DeGuardData;
@@ -322,6 +339,7 @@ export class GuardParser {
                 current.ret_type = ValueType.TYPE_BOOL;
                 if (stack.length < 2) ERROR(Errors.Fail, 'ResolveData: ' + current.type);
                 var p1 = stack.pop() as DeGuardData; var p2 = stack.pop() as DeGuardData;
+                console.log(p1); console.log(p2)
                 if (!p1.ret_type || !p2.ret_type) ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' INVALID param type');
                 if (p1.ret_type != p2.ret_type) ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' param type not match');
 
@@ -392,6 +410,7 @@ export class GuardParser {
             case ValueType.TYPE_OPTION_U256:
             case ValueType.TYPE_OPTION_U64:
             case ValueType.TYPE_OPTION_U8:
+            case ValueType.TYPE_STRING:
                 current.ret_type = current.type;
                 stack.push(current);
                 return;
@@ -542,6 +561,11 @@ export class GuardParser {
                 case OperatorType.TYPE_LOGIC_NOT:
                 case OperatorType.TYPE_LOGIC_AND:
                 case OperatorType.TYPE_LOGIC_OR:
+                case OperatorType.TYPE_NUMBER_ADD:
+                case OperatorType.TYPE_NUMBER_DEVIDE:
+                case OperatorType.TYPE_NUMBER_MOD:
+                case OperatorType.TYPE_NUMBER_MULTIPLY:
+                case OperatorType.TYPE_NUMBER_SUBTRACT:
                 break;    
             case ContextType.TYPE_CONSTANT:
                 arr.splice(0, 1); // identifier of constant

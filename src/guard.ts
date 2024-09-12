@@ -109,14 +109,14 @@ export class Guard {
         [MODULES.permission, 'Admin Count', 9, [], ValueType.TYPE_U64],
     
         [MODULES.repository, 'Permission', 11, [], ValueType.TYPE_ADDRESS],
-        [MODULES.repository, 'Contains Policy', 12, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
-        [MODULES.repository, 'Has Permission of Policy', 13, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
-        [MODULES.repository, 'Permission of Policy', 14, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64],
-        [MODULES.repository, 'Value Type of Policy',  15, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U8],
+        [MODULES.repository, 'Contains Policy', 12, [ValueType.TYPE_STRING], ValueType.TYPE_BOOL],
+        [MODULES.repository, 'Has Permission of Policy', 13, [ValueType.TYPE_STRING], ValueType.TYPE_BOOL],
+        [MODULES.repository, 'Permission of Policy', 14, [ValueType.TYPE_STRING], ValueType.TYPE_U64],
+        [MODULES.repository, 'Value Type of Policy',  15, [ValueType.TYPE_STRING], ValueType.TYPE_U8],
         [MODULES.repository, 'Contains Id', 16, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],   
-        [MODULES.repository, 'Contains Value', 17, [ValueType.TYPE_ADDRESS, ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
-        [MODULES.repository, 'Value without Type', 18, [ValueType.TYPE_ADDRESS, ValueType.TYPE_VEC_U8], ValueType.TYPE_VEC_U8],       
-        [MODULES.repository, 'Value', 19, [ValueType.TYPE_ADDRESS, ValueType.TYPE_VEC_U8], ValueType.TYPE_VEC_U8],
+        [MODULES.repository, 'Contains Value', 17, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_BOOL],
+        [MODULES.repository, 'Value without Type', 18, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_U8],       
+        [MODULES.repository, 'Value', 19, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_U8],
         [MODULES.repository, 'Type', 20, [], ValueType.TYPE_U8],   
         [MODULES.repository, 'Policy Mode', 21, [], ValueType.TYPE_U8],   
         [MODULES.repository, 'Reference Count', 22, [], ValueType.TYPE_U64],   
@@ -127,19 +127,21 @@ export class Guard {
         [MODULES.machine, 'Published', 33, [], ValueType.TYPE_BOOL],
         [MODULES.machine, 'Is Consensus Repository', 34, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
         [MODULES.machine, 'Has Endpoint', 35, [], ValueType.TYPE_BOOL],   
-        [MODULES.machine, 'Endpoint', 36, [], ValueType.TYPE_VEC_U8],
+        [MODULES.machine, 'Endpoint', 36, [], ValueType.TYPE_STRING],
     
         [MODULES.progress, 'Machine', 51, [], ValueType.TYPE_ADDRESS],       
-        [MODULES.progress, 'Current Node', 52, [], ValueType.TYPE_VEC_U8],
+        [MODULES.progress, 'Current Node', 52, [], ValueType.TYPE_STRING],
         [MODULES.progress, 'Has Parent', 53, [], ValueType.TYPE_BOOL],   
         [MODULES.progress, 'Parent', 54, [], ValueType.TYPE_ADDRESS],   
         [MODULES.progress, 'Has Task', 55, [], ValueType.TYPE_BOOL],       
         [MODULES.progress, 'Task', 56, [], ValueType.TYPE_ADDRESS],
-        [MODULES.progress, 'Has Operator', 57, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],   
-        [MODULES.progress, 'Is Operator for Address', 58, [ValueType.TYPE_VEC_U8, ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
+        [MODULES.progress, 'Has Operator', 57, [ValueType.TYPE_STRING], ValueType.TYPE_BOOL],   
+        [MODULES.progress, 'Is Operator for Address', 58, [ValueType.TYPE_STRING, ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
         [MODULES.progress, 'Has Context Repository', 59, [], ValueType.TYPE_BOOL],
         [MODULES.progress, 'Context Repository', 60, [], ValueType.TYPE_ADDRESS],   
-    
+        [MODULES.progress, 'Last session time', 61, [], ValueType.TYPE_U64],
+        [MODULES.progress, 'Session time', 62, [ValueType.TYPE_STRING], ValueType.TYPE_U64],  
+
         [MODULES.demand, 'Permission', 71, [], ValueType.TYPE_ADDRESS],       
         [MODULES.demand, 'Has Deadline', 72, [], ValueType.TYPE_BOOL],
         [MODULES.demand, 'Deadline', 73, [], ValueType.TYPE_U64],   
@@ -173,16 +175,16 @@ export class Guard {
         [MODULES.service, 'Withdraw-Guard Percent', 117, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],   
         [MODULES.service, 'Has Refund-Guard', 118, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
         [MODULES.service, 'Refund-Guard Percent', 119, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
-        [MODULES.service, 'Has Sale Item', 120, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],   
-        [MODULES.service, 'Sale Item Price', 121, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64], 
-        [MODULES.service, 'Sale Item Inventory', 122, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64], 
+        [MODULES.service, 'Has Sale Item', 120, [ValueType.TYPE_STRING], ValueType.TYPE_BOOL],   
+        [MODULES.service, 'Sale Item Price', 121, [ValueType.TYPE_STRING], ValueType.TYPE_U64], 
+        [MODULES.service, 'Sale Item Inventory', 122, [ValueType.TYPE_STRING], ValueType.TYPE_U64], 
         [MODULES.service, 'Has Machine', 123, [], ValueType.TYPE_BOOL],
         [MODULES.service, 'Machine', 124, [], ValueType.TYPE_ADDRESS],   
         [MODULES.service, 'Paused', 125, [], ValueType.TYPE_BOOL], 
         [MODULES.service, 'Published', 126, [], ValueType.TYPE_BOOL], 
         [MODULES.service, 'Has Required Info', 127, [], ValueType.TYPE_BOOL],
-        [MODULES.service, 'Required Info of Service-Pubkey', 128, [], ValueType.TYPE_VEC_U8],   
-        [MODULES.service, 'Required Info', 129, [], ValueType.TYPE_VEC_VEC_U8],  
+        [MODULES.service, 'Required Info of Service-Pubkey', 128, [], ValueType.TYPE_STRING],   
+        [MODULES.service, 'Required Info', 129, [], ValueType.TYPE_STRING],  
     
         [MODULES.reward, 'Permission', 151, [], ValueType.TYPE_ADDRESS],       
         [MODULES.reward, 'Reward Count Left', 152, [], ValueType.TYPE_U64],
@@ -212,15 +214,15 @@ export class Guard {
         [MODULES.vote, 'Vote-Guard', 180, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],   
         [MODULES.vote, 'Has Voted by Address', 181, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
         [MODULES.vote, 'Voted Weight by Address', 182, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
-        [MODULES.vote, 'Has Option', 183, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],
-        [MODULES.vote, 'Has Object of Option', 184, [ValueType.TYPE_VEC_U8], ValueType.TYPE_BOOL],   
-        [MODULES.vote, 'Option Object', 185, [ValueType.TYPE_VEC_U8], ValueType.TYPE_ADDRESS], 
-        [MODULES.vote, 'Option Count', 186, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64], 
-        [MODULES.vote, 'Option Votes', 187, [ValueType.TYPE_VEC_U8], ValueType.TYPE_U64],
+        [MODULES.vote, 'Has Option', 183, [ValueType.TYPE_STRING], ValueType.TYPE_BOOL],
+        [MODULES.vote, 'Has Object of Option', 184, [ValueType.TYPE_STRING], ValueType.TYPE_BOOL],   
+        [MODULES.vote, 'Option Object', 185, [ValueType.TYPE_STRING], ValueType.TYPE_ADDRESS], 
+        [MODULES.vote, 'Option Count', 186, [ValueType.TYPE_STRING], ValueType.TYPE_U64], 
+        [MODULES.vote, 'Option Votes', 187, [ValueType.TYPE_STRING], ValueType.TYPE_U64],
         [MODULES.vote, 'Address Count Voted', 188, [], ValueType.TYPE_U64],   
-        [MODULES.vote, 'Top1 Option by Addresses', 189, [], ValueType.TYPE_VEC_U8], 
+        [MODULES.vote, 'Top1 Option by Addresses', 189, [], ValueType.TYPE_STRING], 
         [MODULES.vote, 'Top1 Count by Addresses', 190, [], ValueType.TYPE_U64], 
-        [MODULES.vote, 'Top1 Option by Votes', 191, [], ValueType.TYPE_VEC_U8], 
+        [MODULES.vote, 'Top1 Option by Votes', 191, [], ValueType.TYPE_STRING], 
         [MODULES.vote, 'Top1 Count by Votes', 192, [], ValueType.TYPE_U64], 
 
         [MODULES.wowok, 'Builder', 210, [], ValueType.TYPE_ADDRESS], 
@@ -228,7 +230,7 @@ export class Guard {
         [MODULES.wowok, 'Object of Entities', 212, [], ValueType.TYPE_ADDRESS],
         [MODULES.wowok, 'Grantor Count', 213, [], ValueType.TYPE_U64],   
         [MODULES.wowok, 'Has Grantor', 214, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
-        [MODULES.wowok, 'Grantor Name', 215, [ValueType.TYPE_ADDRESS], ValueType.TYPE_VEC_U8], 
+        [MODULES.wowok, 'Grantor Name', 215, [ValueType.TYPE_ADDRESS], ValueType.TYPE_STRING], 
         [MODULES.wowok, 'Grantor Registration Time', 216, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
         [MODULES.wowok, 'Grantor Expired Time', 217, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
         [MODULES.wowok, 'Grantee Object for Grantor', 218, [ValueType.TYPE_ADDRESS], ValueType.TYPE_ADDRESS], 
@@ -266,10 +268,17 @@ export class Guard {
     }
     static NumberOptions = () : Guard_Options[] => {
         const r: Guard_Options[] = [...Guard.CmdFilter(ValueType.TYPE_U8), ...Guard.CmdFilter(ValueType.TYPE_U64), 
-            ...Guard.CmdFilter(ValueType.TYPE_U128), ...Guard.CmdFilter(ValueType.TYPE_U256)].map((v)=> { return {from:'query', name:v[1], value:v[2], group:FirstLetterUppercase(v[0])}});
+            ...Guard.CmdFilter(ValueType.TYPE_U128), ...Guard.CmdFilter(ValueType.TYPE_U256)].map((v)=> { 
+                return {from:'query', name:v[1], value:v[2], group:FirstLetterUppercase(v[0])}});
         r.push({from:'type', name:'Txn Time', value:ContextType.TYPE_CLOCK, group:'Txn Functions'});
+        r.push({from:'type', name:'PositiveNumber Add (+)', value:OperatorType.TYPE_NUMBER_ADD, group:'Number Crunching'});
+        r.push({from:'type', name:'PositiveNumber Subtract (-)', value:OperatorType.TYPE_NUMBER_SUBTRACT, group:'Number Crunching'});
+        r.push({from:'type', name:'PositiveNumber Multiply (*)', value:OperatorType.TYPE_NUMBER_MULTIPLY, group:'Number Crunching'});
+        r.push({from:'type', name:'PositiveNumber Devide (/)', value:OperatorType.TYPE_NUMBER_DEVIDE, group:'Number Crunching'});
+        r.push({from:'type', name:'PositiveNumber Mod (%)', value:OperatorType.TYPE_NUMBER_MOD, group:'Number Crunching'});
         return r;
     }
+
     static CommonOptions = (retType:ValueType) : Guard_Options[] => {
         return Guard.CmdFilter(retType).map((v)=> {return {from:'query', name:v[1], value:v[2], group:FirstLetterUppercase(v[0])}});
     }
@@ -443,9 +452,10 @@ export class GuardMaker {
         case ValueType.TYPE_VEC_U256:
             this.serValueParam(type, param);
             break;
+        case ValueType.TYPE_STRING:
         case ValueType.TYPE_VEC_U8:
             if (!param) ERROR(Errors.InvalidParam, 'param');
-            this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type));
+            this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type)); //@ USE VEC-U8
             if (typeof(param) == 'string') {
                 this.data.push(Bcs.getInstance().ser(ValueType.TYPE_STRING, param));
             } else {
@@ -538,6 +548,7 @@ export class GuardMaker {
 
     add_logic(type:OperatorType) : GuardMaker {
         let splice_len = 2;
+        let ret = ValueType.TYPE_BOOL;
         switch (type) {
             case OperatorType.TYPE_LOGIC_AS_U256_GREATER:
             case OperatorType.TYPE_LOGIC_AS_U256_GREATER_EQUAL:
@@ -567,13 +578,27 @@ export class GuardMaker {
                 break;
             case OperatorType.TYPE_LOGIC_ALWAYS_TRUE:
                 break;
+            case OperatorType.TYPE_NUMBER_ADD:
+            case OperatorType.TYPE_NUMBER_DEVIDE:
+            case OperatorType.TYPE_NUMBER_MULTIPLY:
+            case OperatorType.TYPE_NUMBER_SUBTRACT:
+            case OperatorType.TYPE_NUMBER_MOD:
+                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length') }
+                if (!GuardMaker.IsNumberType(this.type_validator[this.type_validator.length -1])) { ERROR(Errors.Fail, 'type_validator check')  }
+                if (!GuardMaker.IsNumberType(this.type_validator[this.type_validator.length -2])) { ERROR(Errors.Fail, 'type_validator check')  }
+                ret = ValueType.TYPE_U256;
+                break;
             default:
                 ERROR(Errors.InvalidParam, 'add_logic type invalid' + type) 
         }
         this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type)); // TYPE     
         this.type_validator.splice(this.type_validator.length - splice_len); // delete type stack   
-        this.type_validator.push(ValueType.TYPE_BOOL); // add bool to type stack
+        this.type_validator.push(ret); // add bool to type stack
         return this;
+    }
+
+    static IsNumberType(type:Data_Type) : boolean {
+        return (type === ValueType.TYPE_U8 || type === ValueType.TYPE_U64 || type === ValueType.TYPE_U128 || type === ValueType.TYPE_U256)
     }
 
     build(bNot = false) : GuardMaker {

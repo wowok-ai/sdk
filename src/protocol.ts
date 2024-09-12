@@ -62,6 +62,11 @@ export type FnCallType = `${string}::${string}::${string}`;
 
 export enum OperatorType {
     TYPE_QUERY = 1, // query wowok object
+    TYPE_NUMBER_ADD = 2,
+    TYPE_NUMBER_SUBTRACT = 3, 
+    TYPE_NUMBER_MULTIPLY = 4, 
+    TYPE_NUMBER_DEVIDE = 5, 
+    TYPE_NUMBER_MOD = 6,
 
     TYPE_LOGIC_AS_U256_GREATER = 11,
     TYPE_LOGIC_AS_U256_GREATER_EQUAL = 12,
@@ -191,10 +196,10 @@ export enum ENTRYPOINT {
 }
 
 const TESTNET = {
-    package: "0x98e5209cf5cf31a38ebde562681441d7544f38ee6a879266dc7273160635f6ba",
-    wowok_object: '0x676243951ed0d32341680b10d888887dfb39603b1af747036164e90fdfed1274',
-    entity_object: '0xe32334d663d0e7d058682b5170632672a11df1cdaa3f522859e75b451bdc67d5',
-    treasury_cap:'0x10bec6d987cf7fc16fc62246f3c382d84ee285d9ec9f038bc03845fe620bf2d3',
+    package: "0xbd3d0929072f7647e521bf72851ccdc7e2169052b22bfdc5b49439c48cfb119a",
+    wowok_object: '0xb0a521a287e9d5e08932b3984dbe6ce159e836179c41bd08c556ef77ecdb7439',
+    entity_object: '0x16aab98920e7341d1dc19631031253234b2b71fc2ab8c32d65ee3ded8072acef',
+    treasury_cap:'0xb75a2ca2f651755c134ad521175f33f9e3f9008ad44340f76b3229e1f30cfdff',
 }
 
 const MAINNET = {
