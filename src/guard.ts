@@ -105,8 +105,8 @@ export class Guard {
         [MODULES.permission, 'Contains Permission?', 5, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_BOOL, 'Whether a certain permission for a certain address is defined in the personnel permission table?'],
         [MODULES.permission, 'Contains Permission Guard?', 6, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_BOOL, 'Whether a permission guard for a certain address is defined in the personnel permission table?'],
         [MODULES.permission, 'Permission Guard', 7, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_ADDRESS, 'Permission guard for a certain address.'],
-        [MODULES.permission, 'Entity Count', 8, [], ValueType.TYPE_U64, 'Number of entities in the personnel permission table.'],
-        [MODULES.permission, 'Admin Count', 9, [], ValueType.TYPE_U64, 'Number of administrators.'],
+        [MODULES.permission, 'Number of Entities', 8, [], ValueType.TYPE_U64, 'Number of entities in the personnel permission table.'],
+        [MODULES.permission, 'Number of Admin', 9, [], ValueType.TYPE_U64, 'Number of administrators.'],
     
         [MODULES.repository, 'Permission', 11, [], ValueType.TYPE_ADDRESS, 'Permission object address.'],
         [MODULES.repository, 'Contains Policy?', 12, [ValueType.TYPE_STRING], ValueType.TYPE_BOOL, 'Is a consensus policy included?'],
