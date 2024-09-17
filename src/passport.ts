@@ -50,6 +50,7 @@ export interface FutureFill {
     future?: string;
     cmd?: number;
     type?: string;
+    identifier?: number;
 }
 export interface PassportQuery {
     guard: (string | TransactionObjectInput)[];
@@ -95,13 +96,17 @@ export class GuardParser {
                 case ValueType.TYPE_OPTION_U64:
                 case ValueType.TYPE_OPTION_U256:
                 case ValueType.TYPE_VEC_U256:
+                case ValueType.TYPE_STRING:
+                case ValueType.TYPE_OPTION_STRING:
+                case ValueType.TYPE_OPTION_VEC_U8:
+                case ValueType.TYPE_VEC_STRING:
                     let de  = SER_VALUE.find(s=>s.type==v.type);
                     if (!de) ERROR(Errors.Fail, 'GuardObject de error')
                     value = Bcs.getInstance().de(de!.type as number, Uint8Array.from(v.value));
                     break;
 
                 default:
-                    ERROR(Errors.Fail, 'GuardObject constant type invalid')
+                    ERROR(Errors.Fail, 'GuardObject constant type invalid:' + v.type)
             }
             constants.push({identifier:v.identifier, type:v.type,  value:value});
         });
@@ -517,15 +522,15 @@ export class GuardParser {
         this.guard_list.forEach((g) => {
             g.query_list.forEach((v) => {
                 if (typeof(v) !== 'string') {
-                    ret.push({guard:g.id, index:v.index, witness:v.value_or_witness, cmd:v.cmd});
+                    ret.push({guard:g.id, index:v.index, witness:v.value_or_witness, cmd:v.cmd, identifier:v?.identifier});
                 }
             })
             // cmd already in query_list, so filter it out.
             g.constant.filter((v)=>v.type === ContextType.TYPE_WITNESS_ID && v.cmd === undefined).forEach((v) => {
-                ret.push({guard:g.id, index:v.index, witness:v.value_or_witness});
+                ret.push({guard:g.id, index:v.index, witness:v.value_or_witness, identifier:v?.identifier});
             })
             g.input_witness.forEach((v) => {
-                ret.push({guard:g.id, index:v.index, witness:v.value_or_witness});
+                ret.push({guard:g.id, index:v.index, witness:v.value_or_witness, identifier:v?.identifier});
             })
         }); return ret;
     }

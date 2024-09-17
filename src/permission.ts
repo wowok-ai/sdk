@@ -78,7 +78,7 @@ export enum PermissionIndex {
     progress_context_repository = 653,
     progress_unhold = 654,
     progress_parent = 655,
-    user_defined_start = 10000,
+    user_defined_start = 1000,
 }
 
 export interface PermissionInfoType {
@@ -549,9 +549,10 @@ export class  Permission {
     static PERMISSION_OWNER = 1;
     static PERMISSION_ADMIN = 2;
     static PERMISSION_OWNER_AND_ADMIN = 3;
+    static BUSINESS_PERMISSIONS_START = PermissionIndex.user_defined_start;
 
     static IsValidUserDefinedIndex = (index:number)  => { 
-        return index >= PermissionIndex.user_defined_start && IsValidUintLarge(index)
+        return index >= Permission.BUSINESS_PERMISSIONS_START && IsValidUintLarge(index)
     }
     
     static IsValidPermissionIndex = (index:PermissionIndexType) : boolean  => {

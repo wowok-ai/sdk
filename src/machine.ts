@@ -144,10 +144,17 @@ export class Machine {
                 });                
             }            
         } else if (forward?.permission !== undefined && IsValidU64(forward.permission)) {
-            f = this.txb.moveCall({ 
-                target:Protocol.Instance().MachineFn('forward3') as FnCallType,
-                    arguments:[this.txb.pure.u64(forward.permission), this.txb.pure.u16(weight)]
-            });    
+            if (forward?.guard) {
+                f = this.txb.moveCall({ 
+                    target:Protocol.Instance().MachineFn('forward3') as FnCallType,
+                        arguments:[this.txb.pure.u64(forward.permission), this.txb.pure.u16(weight), this.txb.object(Protocol.TXB_OBJECT(this.txb, forward.guard))]
+                });    
+            } else {
+                f = this.txb.moveCall({ 
+                    target:Protocol.Instance().MachineFn('forward4') as FnCallType,
+                        arguments:[this.txb.pure.u64(forward.permission), this.txb.pure.u16(weight)]
+                });  
+            }
         } else {
             ERROR(Errors.InvalidParam, 'forward')
         }
@@ -511,8 +518,8 @@ export class Machine {
         if (!IsValidName(forward.name)) return 'Forward name invalid'
         if (forward?.namedOperator && !IsValidName_AllowEmpty(forward?.namedOperator)) return 'Progress Operator invalid';
         if (forward?.permission && !Permission.IsValidPermissionIndex(forward?.permission)) return 'Permission index invalid';
-        if (!forward?.permission && !forward?.namedOperator) return 'Both Permission index and Progress Operator empty';
-        if (forward?.weight && !IsValidUintLarge(forward.weight)) return 'Weight invalid';
+        if (!forward?.permission && !forward?.namedOperator) return 'Business-Permissions invalid';
+        if (forward?.weight && !IsValidU64(forward.weight)) return 'Weight invalid';
         return ''
     }
 

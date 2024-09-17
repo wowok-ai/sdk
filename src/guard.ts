@@ -6,9 +6,9 @@ import { IsValidDesription, Bcs, IsValidInt, IsValidAddress, FirstLetterUppercas
 import { ERROR, Errors } from './exception';
 import { Transaction as TransactionBlock } from '@mysten/sui/transactions';
 
-export type GuardConstant = Map<number, Guard_Vriable>;
+export type GuardConstant = Map<number, Guard_Variable>;
 
-export interface Guard_Vriable {
+export interface Guard_Variable {
     type: ConstantType ,
     value?: Uint8Array,
     witness?: Uint8Array,
@@ -22,7 +22,7 @@ export  interface Guard_Options {
 }
 
 export class Guard {
-    static MAX_INPUT_LENGTH = 2048;
+    static MAX_INPUT_LENGTH = 10240;
     static launch(txb:TransactionBlock, description:string, maker:GuardMaker) : GuardAddress  {
         if (!maker.IsReady()) {
             ERROR(Errors.InvalidParam, 'launch maker');
@@ -98,109 +98,108 @@ export class Guard {
 
     static QUERIES:any[] = [ 
         // module, 'name', 'id', [input], output
-        [MODULES.permission, 'Builder', 1, [], ValueType.TYPE_ADDRESS],
-        [MODULES.permission, 'Has Admin', 2, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
-        [MODULES.permission, 'Has Rights', 3, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_BOOL],
-        [MODULES.permission, 'Contains Address', 4, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
-        [MODULES.permission, 'Contains Index of Address', 5, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_BOOL],
-        [MODULES.permission, 'Contains Guard of Address', 6, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_BOOL],
-        [MODULES.permission, 'Guard of Address', 7, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_ADDRESS],
-        [MODULES.permission, 'Entity Count', 8, [], ValueType.TYPE_U64],
-        [MODULES.permission, 'Admin Count', 9, [], ValueType.TYPE_U64],
+        [MODULES.permission, 'Owner', 1, [], ValueType.TYPE_ADDRESS, "Owner's address."],
+        [MODULES.permission, 'Is Admin?', 2, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Is a certain address an administrator?'],
+        [MODULES.permission, 'Has Rights?', 3, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_BOOL, 'Does an address have a certain permission?'],
+        [MODULES.permission, 'Contains Address?', 4, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Whether an address is included in the personnel permission table?'],
+        [MODULES.permission, 'Contains Permission?', 5, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_BOOL, 'Whether a certain permission for a certain address is defined in the personnel permission table?'],
+        [MODULES.permission, 'Contains Permission Guard?', 6, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_BOOL, 'Whether a permission guard for a certain address is defined in the personnel permission table?'],
+        [MODULES.permission, 'Permission Guard', 7, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U64], ValueType.TYPE_ADDRESS, 'Permission guard for a certain address.'],
+        [MODULES.permission, 'Entity Count', 8, [], ValueType.TYPE_U64, 'Number of entities in the personnel permission table.'],
+        [MODULES.permission, 'Admin Count', 9, [], ValueType.TYPE_U64, 'Number of administrators.'],
     
-        [MODULES.repository, 'Permission', 11, [], ValueType.TYPE_ADDRESS],
-        [MODULES.repository, 'Contains Policy', 12, [ValueType.TYPE_STRING], ValueType.TYPE_BOOL],
-        [MODULES.repository, 'Has Permission of Policy', 13, [ValueType.TYPE_STRING], ValueType.TYPE_BOOL],
-        [MODULES.repository, 'Permission of Policy', 14, [ValueType.TYPE_STRING], ValueType.TYPE_U64],
-        [MODULES.repository, 'Value Type of Policy',  15, [ValueType.TYPE_STRING], ValueType.TYPE_U8],
-        [MODULES.repository, 'Contains Id', 16, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],   
-        [MODULES.repository, 'Contains Value', 17, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_BOOL],
-        [MODULES.repository, 'Value without Type', 18, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_U8],       
-        [MODULES.repository, 'Value', 19, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_U8],
-        [MODULES.repository, 'Type', 20, [], ValueType.TYPE_U8],   
-        [MODULES.repository, 'Policy Mode', 21, [], ValueType.TYPE_U8],   
-        [MODULES.repository, 'Reference Count', 22, [], ValueType.TYPE_U64],   
-        [MODULES.repository, 'Has Reference', 23, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],   
+        [MODULES.repository, 'Permission', 11, [], ValueType.TYPE_ADDRESS, 'Permission object address.'],
+        [MODULES.repository, 'Contains Policy?', 12, [ValueType.TYPE_STRING], ValueType.TYPE_BOOL, 'Is a consensus policy included?'],
+        [MODULES.repository, 'Is Permission set?', 13, [ValueType.TYPE_STRING], ValueType.TYPE_BOOL, 'Does a certain consensus policy set data operation permissions?'],
+        [MODULES.repository, 'Permission of Policy', 14, [ValueType.TYPE_STRING], ValueType.TYPE_U64, 'The permission index of a certain consensus policy in the Permission object.'],
+        [MODULES.repository, 'Value Type of Policy',  15, [ValueType.TYPE_STRING], ValueType.TYPE_U8, 'Data types defined by consensus policy.'],
+        [MODULES.repository, 'Contains data for an address?', 16, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Whether data exists at a certain address?'],   
+        [MODULES.repository, 'Contains data?', 17, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_BOOL, 'Does it contain data for a certain field of an address?'],
+        [MODULES.repository, 'Data without Type', 18, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_U8, 'Data for a field at an address and does not contain data type information.'],       
+        [MODULES.repository, 'Value', 19, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_U8, 'Data for a field at an address, and the first byte contains data type information.'],
+        [MODULES.repository, 'Type', 20, [], ValueType.TYPE_U8, 'The repository Type. 0: Normal; 1: Wowok greenee.'],   
+        [MODULES.repository, 'Policy Mode', 21, [], ValueType.TYPE_U8, 'Policy Mode. 0: Free mode, means that data fields and data outside the consensus policy definition are allowed to be written;  1: Strict mode, means that only data fields and data defined by the consensus policy are allowed to be written.'],   
+        [MODULES.repository, 'Reference Count', 22, [], ValueType.TYPE_U64, 'The number of times it is referenced by other objects.'],   
+        [MODULES.repository, 'Referenced by an object?', 23, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Is it referenced by an object?'],   
 
-        [MODULES.machine, 'Permission', 31, [], ValueType.TYPE_ADDRESS],
-        [MODULES.machine, 'Paused', 32, [], ValueType.TYPE_BOOL],
-        [MODULES.machine, 'Published', 33, [], ValueType.TYPE_BOOL],
-        [MODULES.machine, 'Is Consensus Repository', 34, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
-        [MODULES.machine, 'Has Endpoint', 35, [], ValueType.TYPE_BOOL],   
-        [MODULES.machine, 'Endpoint', 36, [], ValueType.TYPE_STRING],
+        [MODULES.machine, 'Permission', 31, [], ValueType.TYPE_ADDRESS, 'Permission object address.'],
+        [MODULES.machine, 'Paused?', 32, [], ValueType.TYPE_BOOL, 'Pause the creation of new Progress?'],
+        [MODULES.machine, 'Published?', 33, [], ValueType.TYPE_BOOL, 'Is it allowed to create Progress?'],
+        [MODULES.machine, 'Is Consensus Repository?', 34, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Whether an address is a consensus repository?'],
+        [MODULES.machine, 'Has Endpoint?', 35, [], ValueType.TYPE_BOOL, 'Is the endpoint set?'],   
+        [MODULES.machine, 'Endpoint', 36, [], ValueType.TYPE_STRING, 'Endpoint url/ipfs.'],
     
-        [MODULES.progress, 'Machine', 51, [], ValueType.TYPE_ADDRESS],       
-        [MODULES.progress, 'Current Node', 52, [], ValueType.TYPE_STRING],
-        [MODULES.progress, 'Has Parent', 53, [], ValueType.TYPE_BOOL],   
-        [MODULES.progress, 'Parent', 54, [], ValueType.TYPE_ADDRESS],   
-        [MODULES.progress, 'Has Task', 55, [], ValueType.TYPE_BOOL],       
-        [MODULES.progress, 'Task', 56, [], ValueType.TYPE_ADDRESS],
-        [MODULES.progress, 'Has Operator', 57, [ValueType.TYPE_STRING], ValueType.TYPE_BOOL],   
-        [MODULES.progress, 'Is Operator for Address', 58, [ValueType.TYPE_STRING, ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
-        [MODULES.progress, 'Has Context Repository', 59, [], ValueType.TYPE_BOOL],
-        [MODULES.progress, 'Context Repository', 60, [], ValueType.TYPE_ADDRESS],   
-        [MODULES.progress, 'Last session time', 61, [], ValueType.TYPE_U64],
-        [MODULES.progress, 'Session time', 62, [ValueType.TYPE_STRING], ValueType.TYPE_U64],  
+        [MODULES.progress, 'Machine', 51, [], ValueType.TYPE_ADDRESS, 'The Machine object that created this Progress.'],       
+        [MODULES.progress, 'Current Node', 52, [], ValueType.TYPE_STRING, 'The name of the currently running node.'],
+        [MODULES.progress, 'Has Parent?', 53, [], ValueType.TYPE_BOOL, 'Is the parent Progress defined?'],   
+        [MODULES.progress, 'Parent', 54, [], ValueType.TYPE_ADDRESS, 'The parent Progress, that contains some child Progress.'],   
+        [MODULES.progress, 'Has Task?', 55, [], ValueType.TYPE_BOOL, 'Does it contain clear task(eg. an Order)?'],       
+        [MODULES.progress, 'Task', 56, [], ValueType.TYPE_ADDRESS, 'Task object address.'],
+        [MODULES.progress, 'Has Unique Permission?', 57, [ValueType.TYPE_STRING], ValueType.TYPE_BOOL, 'Does Progress define a unique operation permission?'],   
+        [MODULES.progress, 'Is Operator for Unique Permission?', 58, [ValueType.TYPE_STRING, ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Is an address an operator with unique permissions?'], 
+        [MODULES.progress, 'Has Context Repository', 59, [], ValueType.TYPE_BOOL, 'Whether the repository reference for Progress is set?'],
+        [MODULES.progress, 'Context Repository', 60, [], ValueType.TYPE_ADDRESS, 'Repository reference for Progress.'],   
+        [MODULES.progress, 'Last session time', 61, [], ValueType.TYPE_U64, 'Time when the previous session was completed.'],
+        [MODULES.progress, 'Session time', 62, [ValueType.TYPE_STRING], ValueType.TYPE_U64, 'Time a node completes its session.'],  
 
-        [MODULES.demand, 'Permission', 71, [], ValueType.TYPE_ADDRESS],       
-        [MODULES.demand, 'Has Deadline', 72, [], ValueType.TYPE_BOOL],
-        [MODULES.demand, 'Deadline', 73, [], ValueType.TYPE_U64],   
-        [MODULES.demand, 'Bounty Count', 74, [], ValueType.TYPE_U64],   
-        [MODULES.demand, 'Has Guard', 75, [], ValueType.TYPE_BOOL],       
-        [MODULES.demand, 'Guard', 76, [], ValueType.TYPE_ADDRESS],
-        [MODULES.demand, 'Has Service Picked', 77, [], ValueType.TYPE_BOOL],   
-        [MODULES.demand, 'Service Picked', 78, [], ValueType.TYPE_ADDRESS], 
-        [MODULES.demand, 'Presenter Count', 79, [], ValueType.TYPE_U64],
-        [MODULES.demand, 'Is Presenter', 80, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],   
-        [MODULES.demand, 'Who Got Bounty', 81, [ValueType.TYPE_ADDRESS], ValueType.TYPE_ADDRESS], 
+        [MODULES.demand, 'Permission', 71, [], ValueType.TYPE_ADDRESS, 'Permission object address.'],       
+        [MODULES.demand, 'Has Deadline', 72, [], ValueType.TYPE_BOOL, 'Whether to set the expiration time of presenting?'],
+        [MODULES.demand, 'Deadline', 73, [], ValueType.TYPE_U64, 'The expiration time of presenting.'],   
+        [MODULES.demand, 'Bounty Count', 74, [], ValueType.TYPE_U64, 'Number of Bounties.'],   
+        [MODULES.demand, 'Has Guard', 75, [], ValueType.TYPE_BOOL, 'Whether the present guard is set?'],       
+        [MODULES.demand, 'Guard', 76, [], ValueType.TYPE_ADDRESS, 'The present guard address.'],
+        [MODULES.demand, 'Has Service Picked', 77, [], ValueType.TYPE_BOOL, 'Whether a service has been picked and bounties given?'],   
+        [MODULES.demand, 'Service Picked', 78, [], ValueType.TYPE_ADDRESS, 'Service address that has been picked.'], 
+        [MODULES.demand, 'Presenter Count', 79, [], ValueType.TYPE_U64, 'Number of presenters.'],
+        [MODULES.demand, 'Has Presenter?', 80, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Is a certain address a presenter?'],   
+        [MODULES.demand, 'Who Got Bounty', 81, [ValueType.TYPE_ADDRESS], ValueType.TYPE_ADDRESS, 'The address that bounties given.'], 
     
-        [MODULES.order, 'Amount', 91, [], ValueType.TYPE_U64],       
-        [MODULES.order, 'Payer', 92, [], ValueType.TYPE_ADDRESS],
-        [MODULES.order, 'Service', 93, [], ValueType.TYPE_ADDRESS],   
-        [MODULES.order, 'Has Progress', 94, [], ValueType.TYPE_BOOL],   
-        [MODULES.order, 'Progress', 95, [], ValueType.TYPE_ADDRESS],       
-        [MODULES.order, 'Required Info Counts', 96, [], ValueType.TYPE_U64],
-        [MODULES.order, 'Discount Used', 97, [], ValueType.TYPE_BOOL],   
-        [MODULES.order, 'Discount', 98, [], ValueType.TYPE_ADDRESS], 
-        [MODULES.order, 'Balance', 99, [], ValueType.TYPE_U64], 
-        [MODULES.order, 'Be Refunded', 100, [], ValueType.TYPE_BOOL],
-        [MODULES.order, 'Be Withdrawed', 101, [], ValueType.TYPE_BOOL],   
+        [MODULES.order, 'Amount', 91, [], ValueType.TYPE_U64, 'Order amount.'],       
+        [MODULES.order, 'Payer', 92, [], ValueType.TYPE_ADDRESS, 'Order payer.'],
+        [MODULES.order, 'Service', 93, [], ValueType.TYPE_ADDRESS, 'Service for creating orders.'],   
+        [MODULES.order, 'Has Progress?', 94, [], ValueType.TYPE_BOOL, 'Is there a Progress for executing the order process?'],   
+        [MODULES.order, 'Progress', 95, [], ValueType.TYPE_ADDRESS, 'Progress address for executing the order process.'],       
+        [MODULES.order, 'Required Info Counts', 96, [], ValueType.TYPE_U64, 'How much customer information is required for this order?'],
+        [MODULES.order, 'Discount Used?', 97, [], ValueType.TYPE_BOOL, 'Discount coupon used for this order?'],   
+        [MODULES.order, 'Discount', 98, [], ValueType.TYPE_ADDRESS, 'Discount address that already used.'], 
+        [MODULES.order, 'Balance', 99, [], ValueType.TYPE_U64, 'The amount currently in the order.'], 
+        [MODULES.order, 'Refunded?', 100, [], ValueType.TYPE_BOOL, 'Whether a refund has occurred?'],
+        [MODULES.order, 'Withdrawed?', 101, [], ValueType.TYPE_BOOL, 'Whether a service provider withdrawal has occurred?'],   
     
-        [MODULES.service, 'Permission', 111, [], ValueType.TYPE_ADDRESS],       
-        [MODULES.service, 'Payee', 112, [], ValueType.TYPE_ADDRESS],
-        [MODULES.service, 'Has Buy-Guard', 113, [], ValueType.TYPE_BOOL],   
-        [MODULES.service, 'Buy-Guard', 114, [], ValueType.TYPE_ADDRESS],   
-        [MODULES.service, 'Contains Repository', 115, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],       
-        [MODULES.service, 'Has Withdraw-Guard', 116, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],
-        [MODULES.service, 'Withdraw-Guard Percent', 117, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],   
-        [MODULES.service, 'Has Refund-Guard', 118, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
-        [MODULES.service, 'Refund-Guard Percent', 119, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
-        [MODULES.service, 'Has Sale Item', 120, [ValueType.TYPE_STRING], ValueType.TYPE_BOOL],   
-        [MODULES.service, 'Sale Item Price', 121, [ValueType.TYPE_STRING], ValueType.TYPE_U64], 
-        [MODULES.service, 'Sale Item Inventory', 122, [ValueType.TYPE_STRING], ValueType.TYPE_U64], 
-        [MODULES.service, 'Has Machine', 123, [], ValueType.TYPE_BOOL],
-        [MODULES.service, 'Machine', 124, [], ValueType.TYPE_ADDRESS],   
-        [MODULES.service, 'Paused', 125, [], ValueType.TYPE_BOOL], 
-        [MODULES.service, 'Published', 126, [], ValueType.TYPE_BOOL], 
-        [MODULES.service, 'Has Required Info', 127, [], ValueType.TYPE_BOOL],
-        [MODULES.service, 'Required Info of Service-Pubkey', 128, [], ValueType.TYPE_STRING],   
-        [MODULES.service, 'Required Info', 129, [], ValueType.TYPE_STRING],  
+        [MODULES.service, 'Permission', 111, [], ValueType.TYPE_ADDRESS, 'Permission object address.'],       
+        [MODULES.service, 'Payee', 112, [], ValueType.TYPE_ADDRESS, 'Payee address, that all order withdrawals will be collected to this address.'],
+        [MODULES.service, 'Has Buying Guard?', 113, [], ValueType.TYPE_BOOL, 'Is the guard condition of buying set?'],   
+        [MODULES.service, 'Buying Guard', 114, [], ValueType.TYPE_ADDRESS, 'Buying guard, that Purchase only if you meet the conditions of the guard.'],   
+        [MODULES.service, 'Contains Repository?', 115, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, "Is a certain repository one of the service's consensus repositories?"],       
+        [MODULES.service, 'Has Withdrawing Guard?', 116, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Whether a certain guard is set when withdrawing money?'],
+        [MODULES.service, 'Withdrawing Guard Percent', 117, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'The percentage of withdrawals allowed by a certain withdrawal guard.'],   
+        [MODULES.service, 'Has Refunding Guard?', 118, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Whether a certain guard is set when refunding money?'], 
+        [MODULES.service, 'Refunding Guard Percent', 119, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'The percentage of refund allowed by a certain refund guard.'],
+        [MODULES.service, 'Has Sales Item?', 120, [ValueType.TYPE_STRING], ValueType.TYPE_BOOL, 'Is there a sales item for the service?'],   
+        [MODULES.service, 'Sale Item Price', 121, [ValueType.TYPE_STRING], ValueType.TYPE_U64, 'What is the price of a certain sale item?'], 
+        [MODULES.service, 'Sale Item Inventory', 122, [ValueType.TYPE_STRING], ValueType.TYPE_U64, 'How much inventory is there for a certain sales item?'], 
+        [MODULES.service, 'Has Machine', 123, [], ValueType.TYPE_BOOL, "Has the machine(progress generator) that serves the order been set up?"],
+        [MODULES.service, 'Machine', 124, [], ValueType.TYPE_ADDRESS, 'Machine address, that generate progresses serving the execution process of order.'],  
+        [MODULES.service, 'Paused', 125, [], ValueType.TYPE_BOOL, 'Pause the creation of new order?'], 
+        [MODULES.service, 'Published', 126, [], ValueType.TYPE_BOOL, 'Is it allowed to create orders?'], 
+        [MODULES.service, 'Has Required Info?', 127, [], ValueType.TYPE_BOOL, 'Whether the necessary information that needs to be provided by the customer is set?'],
+        [MODULES.service, 'Required Info of Service-Pubkey', 128, [], ValueType.TYPE_STRING, 'The public key used to encrypt customer information, and only the service provider can decrypt and view customer information.'],   
+        [MODULES.service, 'Required Info', 129, [], ValueType.TYPE_VEC_STRING, 'Names of the required information item that needs to be provided by the customer.'],  
     
-        [MODULES.reward, 'Permission', 151, [], ValueType.TYPE_ADDRESS],       
-        [MODULES.reward, 'Reward Count Left', 152, [], ValueType.TYPE_U64],
-        [MODULES.reward, 'Reward Count Supplied', 153, [], ValueType.TYPE_U64],   
-        [MODULES.reward, 'Guard Count', 154, [], ValueType.TYPE_U64],   
-        [MODULES.reward, 'Has Guard', 155, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL],       
-        [MODULES.reward, 'Guard Portion', 156, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
-        [MODULES.reward, 'Deadline', 157, [], ValueType.TYPE_U64],   
-        [MODULES.reward, 'Has Claimed by Address', 158, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
-        [MODULES.reward, 'Claimed by Address', 159, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],
-        [MODULES.reward, 'Address Count Claimed', 160, [], ValueType.TYPE_U64],   
-        [MODULES.reward, 'Is Sponsor', 161, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
-        [MODULES.reward, 'Portion by Sponsor', 162, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
-        [MODULES.reward, 'Sponsor Count', 163, [], ValueType.TYPE_U64],
-        [MODULES.reward, 'Allow Repeat Claim', 164, [], ValueType.TYPE_BOOL],  
-        [MODULES.reward, 'Claimed Portion by Address', 165, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64],  
+        [MODULES.reward, 'Permission', 151, [], ValueType.TYPE_ADDRESS, 'Permission object address.'],       
+        [MODULES.reward, 'Rewards Remaining', 152, [], ValueType.TYPE_U64, 'Number of rewards to be claimed.'],
+        [MODULES.reward, 'Reward Count Supplied', 153, [], ValueType.TYPE_U64, 'Total rewards supplied.'],   
+        [MODULES.reward, 'Guard Count', 154, [], ValueType.TYPE_U64, 'The number of claiming guards.'],   
+        [MODULES.reward, 'Has Guard?', 155, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Whether a claiming guard is set up?'],       
+        [MODULES.reward, 'Guard Portion', 156, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'The portions of rewards, that can be claimed if a certain guard condition is met.'],
+        [MODULES.reward, 'Deadline', 157, [], ValueType.TYPE_U64, 'The expiration time of claiming.'],   
+        [MODULES.reward, 'Has Claimed by an address?', 158, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Whether a certain address has claimed rewards?'], 
+        [MODULES.reward, 'Portions claimed by an address', 159, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'The portions of rewards that have been claimed by a certain address.'],
+        [MODULES.reward, 'Number of addresses Claimed', 160, [], ValueType.TYPE_U64, 'Number of addresses that have claimed rewards.'],   
+        [MODULES.reward, 'Is Sponsor?', 161, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Whether an address is a sponsor of the reward pool?'], 
+        [MODULES.reward, 'Portions by A Sponsor', 162, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'The portions of sponsorship reward pools for a certain address.'], 
+        [MODULES.reward, 'Number of Sponsors', 163, [], ValueType.TYPE_U64, 'Number of sponsors in the sponsorship reward pool.'],
+        [MODULES.reward, 'Allow Repeated Claims?', 164, [], ValueType.TYPE_BOOL, 'Whether to allow repeated claims?'],  
     
         [MODULES.vote, 'Permission', 171, [], ValueType.TYPE_ADDRESS],       
         [MODULES.vote, 'Options Locked', 172, [], ValueType.TYPE_BOOL],
@@ -225,22 +224,22 @@ export class Guard {
         [MODULES.vote, 'Top1 Option by Votes', 191, [], ValueType.TYPE_STRING], 
         [MODULES.vote, 'Top1 Count by Votes', 192, [], ValueType.TYPE_U64], 
 
-        [MODULES.wowok, 'Builder', 210, [], ValueType.TYPE_ADDRESS], 
-        [MODULES.wowok, 'Everyone-Guard', 211, [], ValueType.TYPE_ADDRESS], 
-        [MODULES.wowok, 'Object of Entities', 212, [], ValueType.TYPE_ADDRESS],
-        [MODULES.wowok, 'Grantor Count', 213, [], ValueType.TYPE_U64],   
-        [MODULES.wowok, 'Has Grantor', 214, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
-        [MODULES.wowok, 'Grantor Name', 215, [ValueType.TYPE_ADDRESS], ValueType.TYPE_STRING], 
-        [MODULES.wowok, 'Grantor Registration Time', 216, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
-        [MODULES.wowok, 'Grantor Expired Time', 217, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
-        [MODULES.wowok, 'Grantee Object for Grantor', 218, [ValueType.TYPE_ADDRESS], ValueType.TYPE_ADDRESS], 
+        [MODULES.wowok, 'Builder', 210, [], ValueType.TYPE_ADDRESS, 'Builder address of Wowok.'], 
+        [MODULES.wowok, 'Everyone-Guard', 211, [], ValueType.TYPE_ADDRESS, 'A guard that all addresses can pass through.'], 
+        [MODULES.wowok, 'Object of Entities', 212, [], ValueType.TYPE_ADDRESS, 'The address of entity information object.'],
+        [MODULES.wowok, 'Grantor Count', 213, [], ValueType.TYPE_U64, 'Number of registered grantors.'],   
+        [MODULES.wowok, 'Has Grantor?', 214, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Whether an address has been registered as a grantor?'], 
+        [MODULES.wowok, 'Grantor Name', 215, [ValueType.TYPE_ADDRESS], ValueType.TYPE_STRING, "Name of a grantor."], 
+        [MODULES.wowok, 'Grantor Registration Time', 216, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'Registration time of a grantor.'], 
+        [MODULES.wowok, 'Grantor Expired Time', 217, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'The expiration time of a grantor.'], 
+        [MODULES.wowok, 'Grantee Object for Grantor', 218, [ValueType.TYPE_ADDRESS], ValueType.TYPE_ADDRESS, 'Grantee repository address of a grantor.'], 
 
-        [MODULES.entity, 'Has Entity', 230, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
-        [MODULES.entity, 'Likes', 231, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
-        [MODULES.entity, 'Dislikes', 232, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64], 
-        [MODULES.entity, 'Entity Info', 233, [ValueType.TYPE_ADDRESS], ValueType.TYPE_VEC_U8], 
-        [MODULES.entity, 'Has Resource by Entity', 234, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL], 
-        [MODULES.entity, 'Entity Resource', 235, [ValueType.TYPE_ADDRESS], ValueType.TYPE_ADDRESS], 
+        [MODULES.entity, 'Contains Entity?', 230, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Is an entity already registered?'], 
+        [MODULES.entity, 'Likes', 231, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'The number of likes for an address by other addresses.'], 
+        [MODULES.entity, 'Dislikes', 232, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'The number of dislikes for an address by other addresses.'], 
+        [MODULES.entity, 'Entity Info', 233, [ValueType.TYPE_ADDRESS], ValueType.TYPE_VEC_U8, 'Public information about an entity.'], 
+        [MODULES.entity, 'Has Resource by Entity?', 234, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Whether an entity created a resource?'], 
+        [MODULES.entity, 'Entity Resource', 235, [ValueType.TYPE_ADDRESS], ValueType.TYPE_ADDRESS, 'The address of a resource object created by an entity.'], 
     ];
 
     static BoolCmd = Guard.QUERIES.filter(q => q[4] === ValueType.TYPE_BOOL);
@@ -270,21 +269,30 @@ export class Guard {
         const r: Guard_Options[] = [...Guard.CmdFilter(ValueType.TYPE_U8), ...Guard.CmdFilter(ValueType.TYPE_U64), 
             ...Guard.CmdFilter(ValueType.TYPE_U128), ...Guard.CmdFilter(ValueType.TYPE_U256)].map((v)=> { 
                 return {from:'query', name:v[1], value:v[2], group:FirstLetterUppercase(v[0])}});
-        r.push({from:'type', name:'Txn Time', value:ContextType.TYPE_CLOCK, group:'Txn Functions'});
-        r.push({from:'type', name:'PositiveNumber Add (+)', value:OperatorType.TYPE_NUMBER_ADD, group:'Number Crunching'});
-        r.push({from:'type', name:'PositiveNumber Subtract (-)', value:OperatorType.TYPE_NUMBER_SUBTRACT, group:'Number Crunching'});
-        r.push({from:'type', name:'PositiveNumber Multiply (*)', value:OperatorType.TYPE_NUMBER_MULTIPLY, group:'Number Crunching'});
-        r.push({from:'type', name:'PositiveNumber Devide (/)', value:OperatorType.TYPE_NUMBER_DEVIDE, group:'Number Crunching'});
-        r.push({from:'type', name:'PositiveNumber Mod (%)', value:OperatorType.TYPE_NUMBER_MOD, group:'Number Crunching'});
-        return r;
+        return r.concat(Guard.Crunchings);
     }
+
+    static Signer:Guard_Options = {from:'type', name:'Txn Signer', value:ContextType.TYPE_SIGNER, group:'Txn Functions'};
+    static Time:Guard_Options = {from:'type', name:'Txn Time', value:ContextType.TYPE_CLOCK, group:'Txn Functions'};
+    static Logics = () :Guard_Options[] => LogicsInfo.map((v) => { return {from:'type', name:v[1] as string, value:v[0] as number, group:'Compare or Logic'}});
+    static Crunchings: Guard_Options[] = [
+        {from:'type', name:'Txn Time', value:ContextType.TYPE_CLOCK, group:'Txn Functions'},
+        {from:'type', name:'PositiveNumber Add (+)', value:OperatorType.TYPE_NUMBER_ADD, group:'Number Crunching'},
+        {from:'type', name:'PositiveNumber Subtract (-)', value:OperatorType.TYPE_NUMBER_SUBTRACT, group:'Number Crunching'},
+        {from:'type', name:'PositiveNumber Multiply (*)', value:OperatorType.TYPE_NUMBER_MULTIPLY, group:'Number Crunching'},
+        {from:'type', name:'PositiveNumber Devide (/)', value:OperatorType.TYPE_NUMBER_DEVIDE, group:'Number Crunching'},
+        {from:'type', name:'PositiveNumber Mod (%)', value:OperatorType.TYPE_NUMBER_MOD, group:'Number Crunching'},
+    ]
 
     static CommonOptions = (retType:ValueType) : Guard_Options[] => {
         return Guard.CmdFilter(retType).map((v)=> {return {from:'query', name:v[1], value:v[2], group:FirstLetterUppercase(v[0])}});
     }
+
     static AllOptions = () :  Guard_Options[] => {
-        return Guard.QUERIES.map((v)=>{return {from:'query', name:v[1], value:v[2], group:FirstLetterUppercase(v[0])}});
+        var r:Guard_Options[] =  Guard.QUERIES.map((v)=>{return {from:'query', name:v[1], value:v[2], group:FirstLetterUppercase(v[0])}});
+        return [...r, ...Guard.Crunchings, ...Guard.Logics(), Guard.Signer, Guard.Time]
     }
+
     static StringOptions = () : Guard_Options[] => {
         return [...Guard.CmdFilter(ValueType.TYPE_VEC_U8), ...Guard.CmdFilter(ValueType.TYPE_STRING)].map((v) => {
             return {from:'query', name:v[1], value:v[2], group:FirstLetterUppercase(v[0])};
@@ -292,12 +300,11 @@ export class Guard {
     }
     static BoolOptions = () : Guard_Options[] => {
         const n1:Guard_Options[] = Guard.BoolCmd.map((v)=> { return {from:'query', name:v[1], value:v[2], group:FirstLetterUppercase(v[0])}});
-        const n2:Guard_Options[] = LogicsInfo.map((v) => { return {from:'type', name:v[1] as string, value:v[0] as number, group:'Compare or Logic'}});
-        return [...n1, ...n2]
+        return [...n1, ...Guard.Logics()];
     }
     static AddressOptions = () : Guard_Options[] => {
         const n1:Guard_Options[] = Guard.QUERIES.filter(q => q[4] === ValueType.TYPE_ADDRESS).map((v)=> { return {from:'query', name:v[1], value:v[2], group:FirstLetterUppercase(v[0])}});
-        n1.push({from:'type', name:'Txn Signer', value:ContextType.TYPE_SIGNER, group:'Txn Functions'});
+        n1.push(Guard.Signer);
         return [...n1]
     }
 
@@ -354,9 +361,13 @@ export class GuardConstantHelper {
         } 
     }
     
-    static add_constant(constants:GuardConstant, identifier:number, type:ValueType, value:any, bNeedSerialize=true) {
-        if (!GuardConstantHelper.IsValidIndentifier(identifier)) return false;
-        if (!value) return false;
+    static add_constant(constants:GuardConstant, identifier:number, type:ValueType|ContextType, value:any, bNeedSerialize=true) {
+        if (!GuardConstantHelper.IsValidIndentifier(identifier)) {
+            ERROR(Errors.InvalidParam, 'add_constant identifier')
+        }
+        if (!value) {
+            ERROR(Errors.InvalidParam, 'add_constant value')
+        }
     
         switch (type) {
             case ValueType.TYPE_BOOL:
@@ -377,18 +388,16 @@ export class GuardConstantHelper {
             case ValueType.TYPE_VEC_BOOL:
             case ValueType.TYPE_VEC_U128:
             case ValueType.TYPE_VEC_U256:
+            case ValueType.TYPE_STRING:  
+            case ValueType.TYPE_VEC_U8: 
                 let ser = SER_VALUE.find(s=>s.type==type);
                 if (!ser) ERROR(Errors.Fail, 'add_constant: invalid type');
-                bNeedSerialize ? constants.set(identifier, {type:type, value:Bcs.getInstance().ser(ser!.type as number, value)}) :
-                constants.set(identifier,  {type:type, value:value})    
-                return         
-            case ValueType.TYPE_VEC_U8:
-                if (typeof(value) === 'string') {
-                    constants.set(identifier, {type:type, value:Bcs.getInstance().ser(ValueType.TYPE_STRING, value)})                 
+                if (bNeedSerialize) {
+                    constants.set(identifier, {type:type, value:Bcs.getInstance().ser(ser!.type as number, value)}) 
                 } else {
-                    constants.set(identifier,  {type:type, value:value})      
+                    constants.set(identifier, {type:type, value:value}) 
                 }
-                return;  
+                return    
             default:
                 ERROR(Errors.Fail, 'add_constant  serialize not impl yet')
         }
@@ -397,7 +406,7 @@ export class GuardConstantHelper {
 export class GuardMaker {
     protected data : Uint8Array[] = [];
     protected type_validator : Data_Type[] = [];
-    protected constant : GuardConstant = new Map();
+    protected constant : GuardConstant = new Map<number, Guard_Variable>();
 
     private static index: number = 0;
     private static get_index() { 
@@ -409,8 +418,8 @@ export class GuardMaker {
 
     constructor() { }
 
-    add_constant(type:ConstantType, value:any, bNeedSerialize=true) : number {
-        let identifier = GuardMaker.get_index();
+    add_constant(type:ConstantType, value:any, identifier?:number, bNeedSerialize=true) : number {
+        if (identifier === undefined) identifier = GuardMaker.get_index();
         if (type == ContextType.TYPE_WITNESS_ID) {
             // add witness to constant
             GuardConstantHelper.add_future_constant(this.constant, identifier, value, undefined, bNeedSerialize);
@@ -599,6 +608,10 @@ export class GuardMaker {
 
     static IsNumberType(type:Data_Type) : boolean {
         return (type === ValueType.TYPE_U8 || type === ValueType.TYPE_U64 || type === ValueType.TYPE_U128 || type === ValueType.TYPE_U256)
+    }
+
+    hasIdentifier(id:number) : boolean {
+        return this.constant.has(id)
     }
 
     build(bNot = false) : GuardMaker {

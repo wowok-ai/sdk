@@ -22,7 +22,7 @@ export type Repository_Policy = {
     key:string;
     description: string;
     data_type: RepositoryValueType;
-    permission?: PermissionIndexType; // PermissionIndex like, must be geater than 10000
+    permission?: PermissionIndexType; // PermissionIndex like, must be geater than 1000
 }
 export type Repository_Policy_Data = {
     key: string;

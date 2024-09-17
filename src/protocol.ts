@@ -82,12 +82,12 @@ export enum OperatorType {
 }       
 
 export const LogicsInfo = [
-    [OperatorType.TYPE_LOGIC_AS_U256_GREATER, 'PositiveNumber >'],
-    [OperatorType.TYPE_LOGIC_AS_U256_GREATER_EQUAL, 'PositiveNumber >='],
-    [OperatorType.TYPE_LOGIC_AS_U256_LESSER, 'PositiveNumber <'],
-    [OperatorType.TYPE_LOGIC_AS_U256_LESSER_EQUAL, 'PositiveNumber <='],
-    [OperatorType.TYPE_LOGIC_AS_U256_EQUAL, 'PositiveNumber ='],
-    [OperatorType.TYPE_LOGIC_EQUAL, 'Strict ='],
+    [OperatorType.TYPE_LOGIC_AS_U256_GREATER, 'Unsigned Integer >'],
+    [OperatorType.TYPE_LOGIC_AS_U256_GREATER_EQUAL, 'Unsigned Integer >='],
+    [OperatorType.TYPE_LOGIC_AS_U256_LESSER, 'Unsigned Integer <'],
+    [OperatorType.TYPE_LOGIC_AS_U256_LESSER_EQUAL, 'Unsigned Integer <='],
+    [OperatorType.TYPE_LOGIC_AS_U256_EQUAL, 'Unsigned Integer ='],
+    [OperatorType.TYPE_LOGIC_EQUAL, 'Equals ='],
     [OperatorType.TYPE_LOGIC_HAS_SUBSTRING, 'Sub String'],
     [OperatorType.TYPE_LOGIC_ALWAYS_TRUE, 'Always True'], 
     [OperatorType.TYPE_LOGIC_NOT, 'Not'],
@@ -133,16 +133,19 @@ export enum RepositoryValueType {
 export const RepositoryValueTypeInfo = [
     {type: RepositoryValueType.String, name:'String', description:'String.'},
     {type: RepositoryValueType.Address, name:'Address', description:'Object id or Personal address.'},
-    {type: RepositoryValueType.PositiveNumber, name:'Positive number or Zero', description:'Positive number or 0. including u8, u16 ,..., u256'},
+    {type: RepositoryValueType.PositiveNumber, name:'Unsigned integer', description:'Including u8, u16 ,..., u256'},
     {type: RepositoryValueType.String_Vec, name:'String vector',  description:'Vector of string.'},
     {type: RepositoryValueType.Address_Vec, name:'Address vector', description:'Vector of address.'},
-    {type: RepositoryValueType.PositiveNumber_Vec, name:'Positive number or Zero vector', description:'Vector of positive number or 0'},
+    {type: RepositoryValueType.PositiveNumber_Vec, name:'Unsigned integer vector', description:'Vector of unsigned integer'},
 ]
 
 export const OperatorTypeArray = (Object.values(OperatorType) as []).filter((v)=>typeof(v) === 'number') as number[];
 export const ValueTypeArray = (Object.values(ValueType) as []).filter((v)=>typeof(v) === 'number') as number[];
 export const IsValidOperatorType = (type:number) : boolean => { return OperatorTypeArray.includes(type)}
 export const IsValidValueType = (type:number) : boolean => { return ValueTypeArray.includes(type)}
+export const IsNumberType = (type:ValueType | any) : boolean => { return type===ValueType.TYPE_U128 || type===ValueType.TYPE_U256 ||
+    type===ValueType.TYPE_U64 || type===ValueType.TYPE_U8 
+}
 
 export enum ContextType {
     TYPE_SIGNER  = 60,
@@ -160,7 +163,7 @@ interface ValueTypeString {
 export const SER_VALUE: ValueTypeString[] = [
     {type: ValueType.TYPE_BOOL, name: 'bool', description:'boolean. eg:true or false', validator:(value:any) => { return (value === true || value === false)}},
     {type: ValueType.TYPE_ADDRESS, name: 'address', description:'address or object-id. eg:0x6789af', validator:IsValidAddress},
-    {type: ContextType.TYPE_WITNESS_ID, name: 'future address', description:"eg: machine's future progress, service's future order",  validator:IsValidAddress},
+    {type: ContextType.TYPE_WITNESS_ID, name: 'future address', description:"eg: address of the Machine that will generate future Progress, address of the Service that will generate future Order",  validator:IsValidAddress},
     {type: ContextType.TYPE_SIGNER, name: 'txn signer', description:"signer address of the transaction, "},
     {type: ContextType.TYPE_CLOCK, name: 'txn time', description:"unsigned-64 number for the transaction time"},
     {type: ValueType.TYPE_U64, name: 'number', description:'unsigned-64 number. eg:23870233', validator:IsValidU64},
@@ -180,7 +183,7 @@ export const SER_VALUE: ValueTypeString[] = [
     {type: ValueType.TYPE_OPTION_U256, name: 'option', description:'option of u256. eg:none or u256 value'},
     {type: ValueType.TYPE_VEC_U256, name: '[number]', description:'unsigned-256 number array. eg:[123, 778888, 42312]'},
     {type: ValueType.TYPE_VEC_STRING, name: '[string]', description:'ascii string array. eg:["abc", "hi"]'},
-    {type: ValueType.TYPE_STRING, name: 'string', description:'ascii string. eg:"wowok"', },
+    {type: ValueType.TYPE_STRING, name: 'string', description:'eg:"wowok"', },
     {type: ValueType.TYPE_OPTION_STRING, name: 'option', description:'option of string. eg:none or string value'},
     {type: ValueType.TYPE_U256, name: 'number', description:'unsigned-256 number. eg:12345678901233', validator:IsValidUintLarge},
 ]
@@ -194,14 +197,20 @@ export enum ENTRYPOINT {
     devnet = 'devnet',
     localnet = 'localnet'
 }
-
+/*
 const TESTNET = {
     package: "0xbd3d0929072f7647e521bf72851ccdc7e2169052b22bfdc5b49439c48cfb119a",
     wowok_object: '0xb0a521a287e9d5e08932b3984dbe6ce159e836179c41bd08c556ef77ecdb7439',
     entity_object: '0x16aab98920e7341d1dc19631031253234b2b71fc2ab8c32d65ee3ded8072acef',
     treasury_cap:'0xb75a2ca2f651755c134ad521175f33f9e3f9008ad44340f76b3229e1f30cfdff',
 }
-
+*/
+const TESTNET = {
+    package: "0xbe01fa666d957dae511ba1938675c7250b023252291ded04e9ce7e7af438e5af",
+    wowok_object: '0xdd999518dd4cedc5464604d942064a9a5e18390a5745ea2bf6dfc37ac3ad8d81',
+    entity_object: '0x67fe3bfdcaeff8438e290e320fd674ad2e7b03204b2aea428775966add4acc8f',
+    treasury_cap:'0x12205eedef28981d5d46d2f7a131fd83fc997bed09f743cd4aac909418877592',
+}
 const MAINNET = {
     package: "",
     wowok_object: '',

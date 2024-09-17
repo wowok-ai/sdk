@@ -2,7 +2,7 @@ import { BCS, getSuiMoveConfig, } from '@mysten/bcs';
 import { SuiObjectResponse, DynamicFieldPage } from '@mysten/sui/client';
 import { ERROR, Errors } from './exception';
 import { isValidSuiAddress} from '@mysten/sui/utils'
-import { RepositoryValueType, ValueType, Protocol } from './protocol'
+import { RepositoryValueType, ValueType, Protocol, ContextType, OperatorType } from './protocol'
 
 export const MAX_U8 = BigInt('255');
 export const MAX_U64 = BigInt('18446744073709551615');
@@ -192,7 +192,7 @@ export class Bcs {
         return this.bcs.ser('Option<u32>', {'some': data}).toBytes();
     }
 
-    ser(type:ValueType | string, data:Uint8Array | any) : Uint8Array {
+    ser(type:ValueType | ContextType | string, data:Uint8Array | any) : Uint8Array {
         if (typeof(type) === 'string') {
             return this.bcs.ser(type, data).toBytes();
         }
@@ -242,6 +242,8 @@ export class Bcs {
                 return this.bcs.ser(BCS.STRING, data).toBytes();
             case ValueType.TYPE_VEC_STRING:
                 return this.bcs.ser('vector<string>', data).toBytes();
+            case ContextType.TYPE_WITNESS_ID:
+                return this.bcs.ser(BCS.ADDRESS, data).toBytes();
             default:
                 ERROR(Errors.bcsTypeInvalid, 'ser');
         }
@@ -410,6 +412,9 @@ export const IsValidU64 = (value:string | number | undefined | bigint) : boolean
 }
 export const IsValidU128 = (value:string | number | undefined | bigint) : boolean => {
     return IsValidBigint(value, MAX_U128, BigInt(0))
+}
+export const IsValidU256 = (value:string | number | undefined | bigint) : boolean => {
+    return IsValidBigint(value, MAX_U256, BigInt(0))
 }
 
 export const IsValidTokenType = (argType: string) : boolean => { 
