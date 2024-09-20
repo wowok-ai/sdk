@@ -216,10 +216,10 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    package: "0x349a7e37904161be4a2a25625c029629fa3628816bee4b5a8d11d181ed79ae30",
-    wowok_object: '0xd5e2c75d8552af3eb9c84cf07f7b56289e870f3a0e38bb3df050d1f9c783e9d0',
-    entity_object: '0x5e169bc86e85694f6e5ac03637c9c4d0be83d0e8d07198efe7358735f6550c76',
-    treasury_cap:'0xa0300bea67ff87da9933a15a865ced67f8532fc0d240dbe74b016638b5e2dba0',
+    package: "0x72a2ee21e11ee0c0d8fd9212127b12be0cdf7722b1e91c85a15a79cff3f7d9b0",
+    wowok_object: '0x3e69e10a8ab426c5e6d4392841bb6f6b9b45b7fa5feb9fcf23d7616a2effba0c',
+    entity_object: '0x53606d845cdedf0b256d27b3c0b0764265b2c272f3ad743a018ea4e8e59f3c74',
+    treasury_cap:'0xbbbc1fcab63e3373d53669507d7a6042282edef398273dcc04fe24db47c4881d',
 }
 const MAINNET = {
     package: "",
