@@ -26,12 +26,12 @@ export type Repository_Policy = {
 }
 export type Repository_Policy_Data = {
     key: string;
-    data: Repository_Value[];
-    value_type?: ValueType;
+    data: Repository_Value[];  
+    value_type?: ValueType; // 
 }
 export type Repository_Value = {
     address: string; // UID: address or objectid
-    bcsBytes: Uint8Array;
+    bcsBytes: Uint8Array; // BCS contents. Notice that: First Byte be the Type by caller, or specify type with 'Repository_Policy_Data.value_type' field.
 }
 
 export class Repository {
@@ -425,6 +425,8 @@ export class Repository {
                     d = '0x' + d;
                 } else if (type === ValueType.TYPE_VEC_ADDRESS) {
                     d = d.map((v:string) => { return ('0x' + v) } );
+                } else if (type === ValueType.TYPE_BOOL) {
+                    d = d ? 'True' : 'False'
                 }
             };
             return {object:v?.data?.content?.fields?.id?.id, id:(v?.data?.content?.fields as any)?.name?.fields?.id, 
@@ -454,7 +456,7 @@ export class Repository {
         } return undefined
     }
 
-    static ResolveRepositoryData = (dataType:RepositoryValueType, data:string | string[]) : {type:ValueType, data: Uint8Array} | undefined =>  {
+    static ResolveRepositoryData = (dataType:RepositoryValueType, data:string | boolean | string[]) : {type:ValueType, data: Uint8Array} | undefined =>  {
         if (dataType === RepositoryValueType.String) { 
             return {type: ValueType.TYPE_STRING, data: Bcs.getInstance().ser(ValueType.TYPE_VEC_U8, new TextEncoder().encode(data.toString()))}
        } else if (dataType === RepositoryValueType.PositiveNumber) {
@@ -491,6 +493,9 @@ export class Repository {
                 return new TextEncoder().encode(v);
             })
             return {type: ValueType.TYPE_VEC_STRING, data: Bcs.getInstance().ser(ValueType.TYPE_VEC_VEC_U8, r)}
+       } else if (dataType === RepositoryValueType.Bool) {
+            if (typeof(data) !== 'boolean') return undefined;
+            return {type:ValueType.TYPE_BOOL, data:Bcs.getInstance().ser(ValueType.TYPE_BOOL, data)}       
        }
        return undefined
     }

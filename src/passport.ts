@@ -131,6 +131,10 @@ export class GuardParser {
                 case OperatorType.TYPE_LOGIC_NOT:
                 case OperatorType.TYPE_LOGIC_AND:
                 case OperatorType.TYPE_LOGIC_OR:
+                case OperatorType.TYPE_LOGIC_AND3:
+                case OperatorType.TYPE_LOGIC_OR3:
+                case OperatorType.TYPE_LOGIC_AND4:
+                case OperatorType.TYPE_LOGIC_OR4:
                 case OperatorType.TYPE_NUMBER_ADD:
                 case OperatorType.TYPE_NUMBER_DEVIDE:
                 case OperatorType.TYPE_NUMBER_MOD:

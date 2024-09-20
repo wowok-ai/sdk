@@ -79,6 +79,10 @@ export enum OperatorType {
     TYPE_LOGIC_NOT = 19, // NOT
     TYPE_LOGIC_AND = 20, // AND
     TYPE_LOGIC_OR = 21, // OR
+    TYPE_LOGIC_AND3 = 22, // and
+    TYPE_LOGIC_AND4 = 23, // and
+    TYPE_LOGIC_OR3 = 24, // or
+    TYPE_LOGIC_OR4 = 25, // or
 }       
 
 export const LogicsInfo = [
@@ -93,6 +97,10 @@ export const LogicsInfo = [
     [OperatorType.TYPE_LOGIC_NOT, 'Not'],
     [OperatorType.TYPE_LOGIC_AND, 'And'],
     [OperatorType.TYPE_LOGIC_OR, 'Or'], 
+    [OperatorType.TYPE_LOGIC_AND3, 'And 3'],
+    [OperatorType.TYPE_LOGIC_OR3, 'Or 3'], 
+    [OperatorType.TYPE_LOGIC_AND4, 'And 4'],
+    [OperatorType.TYPE_LOGIC_OR4, 'Or 4'], 
 ];
 
 export enum ValueType {
@@ -128,15 +136,17 @@ export enum RepositoryValueType {
     PositiveNumber_Vec = 203,
     String = 204,
     String_Vec = 205,
+    Bool = 206,
 }
 
 export const RepositoryValueTypeInfo = [
-    {type: RepositoryValueType.String, name:'String', description:'String.'},
-    {type: RepositoryValueType.Address, name:'Address', description:'Object id or Personal address.'},
-    {type: RepositoryValueType.PositiveNumber, name:'Unsigned integer', description:'Including u8, u16 ,..., u256'},
-    {type: RepositoryValueType.String_Vec, name:'String vector',  description:'Vector of string.'},
-    {type: RepositoryValueType.Address_Vec, name:'Address vector', description:'Vector of address.'},
-    {type: RepositoryValueType.PositiveNumber_Vec, name:'Unsigned integer vector', description:'Vector of unsigned integer'},
+    {type: RepositoryValueType.String, name:'string', description:'String.'},
+    {type: RepositoryValueType.Address, name:'address', description:'Object id or Personal address.'},
+    {type: RepositoryValueType.PositiveNumber, name:'unsigned integer', description:'Including u8, u16 ,..., u256'},
+    {type: RepositoryValueType.String_Vec, name:'string vector',  description:'Vector of string.'},
+    {type: RepositoryValueType.Address_Vec, name:'address vector', description:'Vector of address.'},
+    {type: RepositoryValueType.PositiveNumber_Vec, name:'unsigned integer vector', description:'Vector of unsigned integer'},
+    {type: RepositoryValueType.Bool, name:'bool', description:'True or False.'},
 ]
 
 export const OperatorTypeArray = (Object.values(OperatorType) as []).filter((v)=>typeof(v) === 'number') as number[];
@@ -206,10 +216,10 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    package: "0x2543e85310fd0364251f8f18bc6c63db077f8517ee98ad17ce8908de62fb2917",
-    wowok_object: '0xb256d136c5ef1d5f6fab2818cb1393939c234deab7d3032259b7222bfe192a4f',
-    entity_object: '0xfd99f8149f3870398b054b629c8d27d5532aa7d73b23f17fd364524e5c1a1fc4',
-    treasury_cap:'0x73786f7dd9ca0071278edb6dc117f3f7150711168fea94ca7e6b691b78d27882',
+    package: "0x349a7e37904161be4a2a25625c029629fa3628816bee4b5a8d11d181ed79ae30",
+    wowok_object: '0xd5e2c75d8552af3eb9c84cf07f7b56289e870f3a0e38bb3df050d1f9c783e9d0',
+    entity_object: '0x5e169bc86e85694f6e5ac03637c9c4d0be83d0e8d07198efe7358735f6550c76',
+    treasury_cap:'0xa0300bea67ff87da9933a15a865ced67f8532fc0d240dbe74b016638b5e2dba0',
 }
 const MAINNET = {
     package: "",

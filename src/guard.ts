@@ -586,6 +586,23 @@ export class GuardMaker {
                 if (this.type_validator[this.type_validator.length -1] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
                 if (this.type_validator[this.type_validator.length -2] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
                 break;
+            case OperatorType.TYPE_LOGIC_AND3:
+            case OperatorType.TYPE_LOGIC_OR3:
+                splice_len =  3;
+                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length') }
+                if (this.type_validator[this.type_validator.length -1] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
+                if (this.type_validator[this.type_validator.length -2] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
+                if (this.type_validator[this.type_validator.length -3] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
+                break;
+            case OperatorType.TYPE_LOGIC_AND4:
+            case OperatorType.TYPE_LOGIC_OR4:
+                splice_len =  4;
+                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length') }
+                if (this.type_validator[this.type_validator.length -1] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
+                if (this.type_validator[this.type_validator.length -2] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
+                if (this.type_validator[this.type_validator.length -3] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
+                if (this.type_validator[this.type_validator.length -4] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
+                break;
             case OperatorType.TYPE_LOGIC_ALWAYS_TRUE:
                 break;
             case OperatorType.TYPE_NUMBER_ADD:

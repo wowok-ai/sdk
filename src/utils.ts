@@ -13,7 +13,7 @@ export const OPTION_NONE = 0;
 
 export const ValueTypeConvert = (type:ValueType | null | undefined) : RepositoryValueType | number => {
     if (type === ValueType.TYPE_U8 || type === ValueType.TYPE_U64 || type === ValueType.TYPE_U128 || 
-        type === ValueType.TYPE_U256 || type === ValueType.TYPE_BOOL) {
+        type === ValueType.TYPE_U256) {
             return RepositoryValueType.PositiveNumber
     } else if (type === ValueType.TYPE_VEC_U8 || type === ValueType.TYPE_VEC_U64 || type === ValueType.TYPE_VEC_U128 || 
         type === ValueType.TYPE_VEC_U256|| type === ValueType.TYPE_VEC_BOOL) {
@@ -26,7 +26,9 @@ export const ValueTypeConvert = (type:ValueType | null | undefined) : Repository
         return RepositoryValueType.String
     } else if (type === ValueType.TYPE_VEC_STRING) {
         return RepositoryValueType.String_Vec
-    } 
+    } else if (type === ValueType.TYPE_BOOL) {
+        return RepositoryValueType.Bool
+    }
     return -1;
 }
 
