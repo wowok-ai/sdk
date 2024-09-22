@@ -115,20 +115,29 @@ export class Guard {
         [MODULES.repository, 'Value Type of Policy',  15, [ValueType.TYPE_STRING], ValueType.TYPE_U8, 'Data types defined by consensus policy.', 'Input:the policy name'],
         [MODULES.repository, 'Contains Data for An Address', 16, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Whether data exists at a certain address?', 'Input:address'],   
         [MODULES.repository, 'Contains Data', 17, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_BOOL, 'Does it contain data for a certain field of an address?', 'Input 1:address, Input 2:the field name'],
-        [MODULES.repository, 'Data without Type', 18, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_U8, 'Data for a field at an address and does not contain data type information.', 'Input 1:address, Input 2:the field name'],       
-        [MODULES.repository, 'Value', 19, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_U8, 'Data for a field at an address, and the first byte contains data type information.', 'Input 1:address, Input 2:the field name'],
+        [MODULES.repository, 'Raw data without Type', 18, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_U8, 'Data for a field at an address and does not contain data type information.', 'Input 1:address, Input 2:the field name'],       
+        [MODULES.repository, 'Raw data', 19, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_U8, 'Data for a field at an address, and the first byte contains data type information.', 'Input 1:address, Input 2:the field name'],
         [MODULES.repository, 'Type', 20, [], ValueType.TYPE_U8, 'The repository Type. 0: Normal; 1: Wowok greenee.'],   
         [MODULES.repository, 'Policy Mode', 21, [], ValueType.TYPE_U8, 'Policy Mode. 0: Free mode;  1: Strict mode.'],   
         [MODULES.repository, 'Reference Count', 22, [], ValueType.TYPE_U64, 'The number of times it is referenced by other objects.'],   
         [MODULES.repository, 'Is Referenced by An Object', 23, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Is it referenced by an object?', 'Input:address'],   
+        [MODULES.repository, 'Data Number', 24, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_U256, 'Data for a field at an address and get unsigned integer type data.', 'Input 1:address, Input 2:the field name'],       
+        [MODULES.repository, 'Data String', 25, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_STRING, 'Data for a field at an address and get string type data.', 'Input 1:address, Input 2:the field name'],       
+        [MODULES.repository, 'Data Address', 26, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_ADDRESS, 'Data for a field at an address and get address type data.', 'Input 1:address, Input 2:the field name'],       
+        [MODULES.repository, 'Data Bool', 27, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_BOOL, 'Data for a field at an address and get bool type data.', 'Input 1:address, Input 2:the field name'],       
+        [MODULES.repository, 'Data Number Vector', 28, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_U256, 'Data for a field at an address and get unsigned integer vector type data.', 'Input 1:address, Input 2:the field name'],       
+        [MODULES.repository, 'Data String Vector', 29, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_STRING, 'Data for a field at an address and get string vector type data.', 'Input 1:address, Input 2:the field name'],  
+        [MODULES.repository, 'Data Address Vector', 30, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_ADDRESS, 'Data for a field at an address and get address vector type data.', 'Input 1:address, Input 2:the field name'],       
+        [MODULES.repository, 'Data Bool Vector', 31, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_BOOL, 'Data for a field at an address and get bool vector type data.', 'Input 1:address, Input 2:the field name'],            
+
         // , means that data fields and data outside the consensus policy definition are allowed to be written
         // , means that only data fields and data defined by the consensus policy are allowed to be written.
-        [MODULES.machine, 'Permission', 31, [], ValueType.TYPE_ADDRESS, 'Permission object address.'],
-        [MODULES.machine, 'Paused', 32, [], ValueType.TYPE_BOOL, 'Pause the creation of new Progress?'],
-        [MODULES.machine, 'Published', 33, [], ValueType.TYPE_BOOL, 'Is it allowed to create Progress?'],
-        [MODULES.machine, 'Is Consensus Repository', 34, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Whether an address is a consensus repository?', 'Input:adddress'],
-        [MODULES.machine, 'Has Endpoint', 35, [], ValueType.TYPE_BOOL, 'Is the endpoint set?'],   
-        [MODULES.machine, 'Endpoint', 36, [], ValueType.TYPE_STRING, 'Endpoint url/ipfs.'],
+        [MODULES.machine, 'Permission', 41, [], ValueType.TYPE_ADDRESS, 'Permission object address.'],
+        [MODULES.machine, 'Paused', 42, [], ValueType.TYPE_BOOL, 'Pause the creation of new Progress?'],
+        [MODULES.machine, 'Published', 43, [], ValueType.TYPE_BOOL, 'Is it allowed to create Progress?'],
+        [MODULES.machine, 'Is Consensus Repository', 44, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Whether an address is a consensus repository?', 'Input:adddress'],
+        [MODULES.machine, 'Has Endpoint', 45, [], ValueType.TYPE_BOOL, 'Is the endpoint set?'],   
+        [MODULES.machine, 'Endpoint', 46, [], ValueType.TYPE_STRING, 'Endpoint url/ipfs.'],
     
         [MODULES.progress, 'Machine', 51, [], ValueType.TYPE_ADDRESS, 'The Machine object that created this Progress.'],       
         [MODULES.progress, 'Current Node', 52, [], ValueType.TYPE_STRING, 'The name of the currently running node.'],
@@ -366,7 +375,7 @@ export class GuardConstantHelper {
         if (!GuardConstantHelper.IsValidIndentifier(identifier)) {
             ERROR(Errors.InvalidParam, 'add_constant identifier')
         }
-        if (!value) {
+        if (value === undefined) {
             ERROR(Errors.InvalidParam, 'add_constant value')
         }
     
@@ -431,7 +440,7 @@ export class GuardMaker {
     }
 
     private  serValueParam(type:ValueType, param?:any) {
-        if (!param) ERROR(Errors.InvalidParam, 'param');
+        if (param === undefined) ERROR(Errors.InvalidParam, 'param');
         this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type));
         let ser = SER_VALUE.find(s=>s.type==type);
         if (!ser) ERROR(Errors.Fail, 'serValueParam: invalid type');
@@ -556,7 +565,7 @@ export class GuardMaker {
         return this;
     }
 
-    add_logic(type:OperatorType) : GuardMaker {
+    add_logic(type:OperatorType, param:number=2) : GuardMaker {
         let splice_len = 2;
         let ret = ValueType.TYPE_BOOL;
         switch (type) {
@@ -581,27 +590,13 @@ export class GuardMaker {
                 if (this.type_validator[this.type_validator.length -1] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
                 break;
             case OperatorType.TYPE_LOGIC_AND:
-            case OperatorType.TYPE_LOGIC_OR:
+            case OperatorType.TYPE_LOGIC_OR: //@ logics count
+                if (!param || param < 2) ERROR(Errors.Fail, 'logic param invalid');
+                splice_len = param!;
                 if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length') }
-                if (this.type_validator[this.type_validator.length -1] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
-                if (this.type_validator[this.type_validator.length -2] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
-                break;
-            case OperatorType.TYPE_LOGIC_AND3:
-            case OperatorType.TYPE_LOGIC_OR3:
-                splice_len =  3;
-                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length') }
-                if (this.type_validator[this.type_validator.length -1] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
-                if (this.type_validator[this.type_validator.length -2] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
-                if (this.type_validator[this.type_validator.length -3] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
-                break;
-            case OperatorType.TYPE_LOGIC_AND4:
-            case OperatorType.TYPE_LOGIC_OR4:
-                splice_len =  4;
-                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length') }
-                if (this.type_validator[this.type_validator.length -1] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
-                if (this.type_validator[this.type_validator.length -2] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
-                if (this.type_validator[this.type_validator.length -3] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
-                if (this.type_validator[this.type_validator.length -4] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
+                for (let i = 1; i <= splice_len; ++i) {
+                    if (this.type_validator[this.type_validator.length -i] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
+                }
                 break;
             case OperatorType.TYPE_LOGIC_ALWAYS_TRUE:
                 break;
@@ -618,7 +613,10 @@ export class GuardMaker {
             default:
                 ERROR(Errors.InvalidParam, 'add_logic type invalid' + type) 
         }
-        this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type)); // TYPE     
+        this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type)); // TYPE 
+        if (type === OperatorType.TYPE_LOGIC_AND || type === OperatorType.TYPE_LOGIC_OR) {
+            this.data.push((Bcs.getInstance().ser(ValueType.TYPE_U8, param))); //@ logics
+        }    
         this.type_validator.splice(this.type_validator.length - splice_len); // delete type stack   
         this.type_validator.push(ret); // add bool to type stack
         return this;
@@ -663,7 +661,7 @@ export class GuardMaker {
             maker.constant.set(k, {type:v.type, value:v.value, witness:v.witness});
         })
         let op = bAnd ? OperatorType.TYPE_LOGIC_AND :  OperatorType.TYPE_LOGIC_OR;
-        maker.data.push(concatenate(Uint8Array, ...this.data, ...otherBuilt.data, Bcs.getInstance().ser(ValueType.TYPE_U8, op)));
+        maker.data.push(concatenate(Uint8Array, ...this.data, ...otherBuilt.data, Bcs.getInstance().ser(ValueType.TYPE_U8, 2), Bcs.getInstance().ser(ValueType.TYPE_U8, op)));
         this.data.splice(0, this.data.length-1);
         maker.type_validator = this.type_validator;
         return maker
@@ -672,9 +670,10 @@ export class GuardMaker {
     get_constant() { return this.constant  }
     get_input() { return this.data }
 
+    // and/or + logics count
     static input_combine(input1:Uint8Array, input2:Uint8Array, bAnd:boolean = true) : Uint8Array {
         let op = bAnd ? OperatorType.TYPE_LOGIC_AND :  OperatorType.TYPE_LOGIC_OR;
-        return concatenate(Uint8Array, input1, input2, Bcs.getInstance().ser(ValueType.TYPE_U8, op)) as  Uint8Array;
+        return concatenate(Uint8Array, input1, input2, Bcs.getInstance().ser(ValueType.TYPE_U8, 2), Bcs.getInstance().ser(ValueType.TYPE_U8, op)) as  Uint8Array;
     }
     static input_not(input:Uint8Array) : Uint8Array {
         return concatenate(Uint8Array, input, Bcs.getInstance().ser(ValueType.TYPE_U8, OperatorType.TYPE_LOGIC_NOT)) as Uint8Array;

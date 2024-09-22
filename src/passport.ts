@@ -116,7 +116,7 @@ export class GuardParser {
         let data : DeGuardData[] = [];
         while (arr.length > 0) {
             let type : unknown = arr.shift() ;
-            let value:any; let cmd:any; let identifier:any;
+            let value:any; let cmd:any; let identifier:any; 
             switch (type as Data_Type) { 
                 case ContextType.TYPE_SIGNER:
                 case ContextType.TYPE_CLOCK:
@@ -129,18 +129,16 @@ export class GuardParser {
                 case OperatorType.TYPE_LOGIC_HAS_SUBSTRING:
                 case OperatorType.TYPE_LOGIC_ALWAYS_TRUE:
                 case OperatorType.TYPE_LOGIC_NOT:
-                case OperatorType.TYPE_LOGIC_AND:
-                case OperatorType.TYPE_LOGIC_OR:
-                case OperatorType.TYPE_LOGIC_AND3:
-                case OperatorType.TYPE_LOGIC_OR3:
-                case OperatorType.TYPE_LOGIC_AND4:
-                case OperatorType.TYPE_LOGIC_OR4:
                 case OperatorType.TYPE_NUMBER_ADD:
                 case OperatorType.TYPE_NUMBER_DEVIDE:
                 case OperatorType.TYPE_NUMBER_MOD:
                 case OperatorType.TYPE_NUMBER_MULTIPLY:
                 case OperatorType.TYPE_NUMBER_SUBTRACT:
                     break;    
+                case OperatorType.TYPE_LOGIC_AND: //@ with logics count
+                case OperatorType.TYPE_LOGIC_OR:
+                    value = arr.shift()! as number; 
+                    break;
                 case ContextType.TYPE_CONSTANT:
                     identifier = arr.shift()! as number;  // identifier
                     break;
@@ -348,7 +346,7 @@ export class GuardParser {
                 current.ret_type = ValueType.TYPE_BOOL;
                 if (stack.length < 2) ERROR(Errors.Fail, 'ResolveData: ' + current.type);
                 var p1 = stack.pop() as DeGuardData; var p2 = stack.pop() as DeGuardData;
-                console.log(p1); console.log(p2)
+                //console.log(p1); console.log(p2)
                 if (!p1.ret_type || !p2.ret_type) ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' INVALID param type');
                 if (p1.ret_type != p2.ret_type) ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' param type not match');
 
@@ -372,15 +370,12 @@ export class GuardParser {
             case OperatorType.TYPE_LOGIC_AND:
             case OperatorType.TYPE_LOGIC_OR:
                 current.ret_type = ValueType.TYPE_BOOL;
-                if (stack.length < 2) ERROR(Errors.Fail, 'ResolveData: ' + current.type);
-                var p1 = stack.pop() as DeGuardData; var p2 = stack.pop() as DeGuardData;
-                if (!p1.ret_type || !p2.ret_type) ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' INVALID param type');
-                if (p1.ret_type != ValueType.TYPE_BOOL || p2.ret_type != ValueType.TYPE_BOOL) {
-                    ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' param type not match');
+                if (stack.length < current.value || current.value < 2) ERROR(Errors.Fail, 'ResolveData: ' + current.type);
+                for (let i = 0; i < current.value; ++i) {
+                    var p = stack.pop() as DeGuardData;
+                    if (!p.ret_type || (p.ret_type != ValueType.TYPE_BOOL))  ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' INVALID param type');
+                    current.child.push(p);
                 }
-
-                current.child.push(p1);
-                current.child.push(p2);
                 stack.push(current);
                 return
             case OperatorType.TYPE_QUERY:
@@ -568,14 +563,16 @@ export class GuardParser {
                 case OperatorType.TYPE_LOGIC_HAS_SUBSTRING:
                 case OperatorType.TYPE_LOGIC_ALWAYS_TRUE:
                 case OperatorType.TYPE_LOGIC_NOT:
-                case OperatorType.TYPE_LOGIC_AND:
-                case OperatorType.TYPE_LOGIC_OR:
                 case OperatorType.TYPE_NUMBER_ADD:
                 case OperatorType.TYPE_NUMBER_DEVIDE:
                 case OperatorType.TYPE_NUMBER_MOD:
                 case OperatorType.TYPE_NUMBER_MULTIPLY:
                 case OperatorType.TYPE_NUMBER_SUBTRACT:
                 break;    
+            case OperatorType.TYPE_LOGIC_AND: //@ logics count
+            case OperatorType.TYPE_LOGIC_OR:
+                arr.splice(0, 1); // identifier of constant
+                break;      
             case ContextType.TYPE_CONSTANT:
                 arr.splice(0, 1); // identifier of constant
                 break;

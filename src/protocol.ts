@@ -79,10 +79,6 @@ export enum OperatorType {
     TYPE_LOGIC_NOT = 19, // NOT
     TYPE_LOGIC_AND = 20, // AND
     TYPE_LOGIC_OR = 21, // OR
-    TYPE_LOGIC_AND3 = 22, // and
-    TYPE_LOGIC_AND4 = 23, // and
-    TYPE_LOGIC_OR3 = 24, // or
-    TYPE_LOGIC_OR4 = 25, // or
 }       
 
 export const LogicsInfo = [
@@ -97,10 +93,6 @@ export const LogicsInfo = [
     [OperatorType.TYPE_LOGIC_NOT, 'Not'],
     [OperatorType.TYPE_LOGIC_AND, 'And'],
     [OperatorType.TYPE_LOGIC_OR, 'Or'], 
-    [OperatorType.TYPE_LOGIC_AND3, 'And 3'],
-    [OperatorType.TYPE_LOGIC_OR3, 'Or 3'], 
-    [OperatorType.TYPE_LOGIC_AND4, 'And 4'],
-    [OperatorType.TYPE_LOGIC_OR4, 'Or 4'], 
 ];
 
 export enum ValueType {
@@ -216,10 +208,10 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    package: "0x72a2ee21e11ee0c0d8fd9212127b12be0cdf7722b1e91c85a15a79cff3f7d9b0",
-    wowok_object: '0x3e69e10a8ab426c5e6d4392841bb6f6b9b45b7fa5feb9fcf23d7616a2effba0c',
-    entity_object: '0x53606d845cdedf0b256d27b3c0b0764265b2c272f3ad743a018ea4e8e59f3c74',
-    treasury_cap:'0xbbbc1fcab63e3373d53669507d7a6042282edef398273dcc04fe24db47c4881d',
+    package: "0x6c706185ee3eccde4223d1509c0e0ab24f70f025b728ee29b8b1736c54d4a31a",
+    wowok_object: '0xfde92b609df794a54db295e9f3ac1533d24c9160cdcd7d31f32c495adf929c7a',
+    entity_object: '0x61e73f5ea27d384103a26a359d81192b94e3dda594c69caa8c385b2d47e8ffae',
+    treasury_cap:'0x711478cafc9517ac608a6153fa5f130c33118b19af668596a8468ed9d6fb2ed3',
 }
 const MAINNET = {
     package: "",
