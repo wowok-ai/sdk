@@ -304,7 +304,7 @@ export class Guard {
     }
 
     static StringOptions = () : Guard_Options[] => {
-        return [...Guard.CmdFilter(ValueType.TYPE_VEC_U8), ...Guard.CmdFilter(ValueType.TYPE_STRING)].map((v) => {
+        return [...Guard.CmdFilter(ValueType.TYPE_STRING)].map((v) => {
             return {from:'query', name:v[1], value:v[2], group:FirstLetterUppercase(v[0])};
         });
     }

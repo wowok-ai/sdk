@@ -361,7 +361,7 @@ export class GuardParser {
                 if (stack.length < 2) ERROR(Errors.Fail, 'ResolveData: ' + current.type);
                 var p1 = stack.pop() as DeGuardData; var p2 = stack.pop() as DeGuardData;
                 if (!p1.ret_type || !p2.ret_type) ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' INVALID param type');
-                if (p1.ret_type != ValueType.TYPE_VEC_U8 || p2.ret_type != ValueType.TYPE_VEC_U8) {
+                if (p1.ret_type != ValueType.TYPE_STRING || p2.ret_type != ValueType.TYPE_STRING) {
                     ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' param type not match');
                 }
 
@@ -549,7 +549,7 @@ export class GuardParser {
                 }
             }
         });
-        console.log(info.constant)
+        //console.log(info.constant)
     }
 
     parse_bcs = (info:GuardInfo, chain_bytes: Uint8Array) => {
@@ -828,7 +828,6 @@ export class Passport {
         });  
 
         const res = await Protocol.Client().devInspectTransactionBlock({sender:sender, transactionBlock:this.txb});
-        console.log(res)
         return Passport.ResolveQueryRes(this.txb, res);
     }
 
