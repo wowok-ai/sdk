@@ -241,9 +241,10 @@ export class Bcs {
             case ValueType.TYPE_U256:
                 return this.bcs.ser(BCS.U256, data).toBytes();
             case ValueType.TYPE_STRING:
-                return this.bcs.ser(BCS.STRING, data).toBytes();
+                const d = new TextEncoder().encode(data);
+                return this.bcs.ser('vector<u8>', d).toBytes();
             case ValueType.TYPE_VEC_STRING:
-                return this.bcs.ser('vector<string>', data).toBytes();
+                return this.bcs.ser('vector<vector<u8>>', data.map((v:string)=>{return new TextEncoder().encode(v)})).toBytes();
             case ContextType.TYPE_WITNESS_ID:
                 return this.bcs.ser(BCS.ADDRESS, data).toBytes();
             default:
@@ -297,7 +298,8 @@ export class Bcs {
             case ValueType.TYPE_VEC_U256:
                 return this.bcs.de('vector<u256>', data);
             case ValueType.TYPE_STRING:
-                return this.bcs.de(BCS.STRING, data);
+                const r = new TextDecoder().decode(Uint8Array.from(this.bcs.de('vector<u8>', data)));
+                return r
             case ValueType.TYPE_VEC_STRING:
                 return this.bcs.de('vector<string>', data);
             case ValueType.TYPE_U256:
@@ -329,13 +331,10 @@ export class Bcs {
     }   
 }
 
-export function stringToUint8Array(str:string) : Uint8Array {
-    var arr = [];
-    for (var i = 0, j = str.length; i < j; ++i) {
-      arr.push(str.charCodeAt(i));
-    }
-    var tmpUint8Array = new Uint8Array(arr);
-    return tmpUint8Array
+export function stringToUint8Array(str:string) {
+    const encoder = new TextEncoder();
+    const view = encoder.encode(str);
+    return new Uint8Array(view.buffer);
 }
 
 export function numToUint8Array(num:number) : Uint8Array {
@@ -507,6 +506,15 @@ export const ParseType = (type:string) : ArgType => {
         }
     }
     return  {isCoin:false, coin:'', token:''}
+}
+
+
+export function insertAtHead(array:Uint8Array, value:number) {
+    const newLength = array.length + 1;
+    const newArray = new Uint8Array(newLength);
+    newArray.set([value], 0); 
+    newArray.set(array, 1);
+    return newArray;
 }
 
 export function toFixed(x:number) {

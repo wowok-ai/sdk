@@ -71,12 +71,14 @@ export class GuardParser {
     static DeGuardObject_FromData = (guard_constants:any, guard_input_bytes:any) : {object:DeGuardData, constant:DeGuardConstant[]} => {
         let  constants : DeGuardConstant[] = [];
         guard_constants.forEach((c:any) => {
-            let value : any; 
             let v = c?.fields ?? c; // graphql dosnot 'fields', but rpcall has.
-            switch (v.type) {
+            const data:Uint8Array = Uint8Array.from(v.value);
+            const type = data.slice(0, 1)[0];
+            var value : any = data.slice(1);
+            switch (type) {
                 case ContextType.TYPE_WITNESS_ID:
                 case ValueType.TYPE_ADDRESS:
-                    value = '0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(v.value)).toString();
+                    value = '0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(value)).toString();
                     break;
                 case ValueType.TYPE_BOOL:
                 case ValueType.TYPE_U8:
@@ -100,15 +102,15 @@ export class GuardParser {
                 case ValueType.TYPE_OPTION_STRING:
                 case ValueType.TYPE_OPTION_VEC_U8:
                 case ValueType.TYPE_VEC_STRING:
-                    let de  = SER_VALUE.find(s=>s.type==v.type);
+                    let de  = SER_VALUE.find(s=>s.type==type);
                     if (!de) ERROR(Errors.Fail, 'GuardObject de error')
-                    value = Bcs.getInstance().de(de!.type as number, Uint8Array.from(v.value));
+                    value = Bcs.getInstance().de(type as number, Uint8Array.from(value));
                     break;
 
                 default:
-                    ERROR(Errors.Fail, 'GuardObject constant type invalid:' + v.type)
+                    ERROR(Errors.Fail, 'GuardObject constant type invalid:' +type)
             }
-            constants.push({identifier:v.identifier, type:v.type,  value:value});
+            constants.push({identifier:v.identifier, type:type,  value:value});
         });
         // console.log(constants)
         let bytes = Uint8Array.from(guard_input_bytes);
@@ -538,12 +540,16 @@ export class GuardParser {
         constants.forEach((v:any) => {
             if (v.type == (Protocol.Instance().Package() + '::guard::Constant')) {
                 // ValueType.TYPE_ADDRESS: Query_Cmd maybe used the address, so save it for querying
-                if (v.fields.type == ContextType.TYPE_WITNESS_ID || v.fields.type == ValueType.TYPE_ADDRESS) {
-                    info.constant.push({identifier:v.fields.identifier,  index:this.get_index(), type:v.fields.type,
-                        value_or_witness:'0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(v.fields.value))});
+                const data = Uint8Array.from(v.fields.value);
+                const type = data.slice(0, 1)[0];
+                const value = data.slice(1);
+                if (type == ContextType.TYPE_WITNESS_ID || type == ValueType.TYPE_ADDRESS) {
+                    info.constant.push({identifier:v.fields.identifier,  index:this.get_index(), type:type,
+                        value_or_witness:'0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(value))});
                 }
             }
         });
+        console.log(info.constant)
     }
 
     parse_bcs = (info:GuardInfo, chain_bytes: Uint8Array) => {
@@ -771,13 +777,13 @@ export class Passport {
         const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         // rules: 'verify' & 'query' in turns; 'verify' at final end.
         query?.query.forEach((q) => {
-            let address = this.txb.moveCall({
+            this.txb.moveCall({
                 target: Protocol.Instance().PassportFn('passport_verify') as FnCallType,
                 arguments: [ this.passport, this.txb.object(clock)]
             }); 
             this.txb.moveCall({
                 target: q.target as FnCallType,
-                arguments: [ bObject ? this.txb.object(q.object) : this.txb.object(q.id), this.passport, address ],
+                arguments: [ bObject ? this.txb.object(q.object) : this.txb.object(q.id), this.passport],
                 typeArguments: q.types,
             })
         })
@@ -822,6 +828,7 @@ export class Passport {
         });  
 
         const res = await Protocol.Client().devInspectTransactionBlock({sender:sender, transactionBlock:this.txb});
+        console.log(res)
         return Passport.ResolveQueryRes(this.txb, res);
     }
 

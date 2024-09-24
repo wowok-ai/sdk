@@ -2,7 +2,7 @@
 
 import { Protocol, LogicsInfo, GuardAddress, FnCallType, Data_Type, MODULES, ContextType, ValueType,  OperatorType, ConstantType, SER_VALUE} from './protocol';
 import { concatenate, array_equal } from './utils';
-import { IsValidDesription, Bcs, IsValidInt, IsValidAddress, FirstLetterUppercase } from './utils';
+import { IsValidDesription, Bcs, IsValidInt, IsValidAddress, FirstLetterUppercase, insertAtHead } from './utils';
 import { ERROR, Errors } from './exception';
 import { Transaction as TransactionBlock } from '@mysten/sui/transactions';
 
@@ -59,19 +59,19 @@ export class Guard {
                 if (!v.witness) {
                     ERROR(Errors.InvalidParam, 'constants type')
                 }
-
+                const n = insertAtHead(v.witness!, v.type);
                 txb.moveCall({
                     target:Protocol.Instance().GuardFn("constant_add") as FnCallType,
-                    arguments:[guard, txb.pure.u8(k), txb.pure.u8(v.type), txb.pure.vector('u8', [].slice.call(v.witness)), txb.pure.bool(true)]
+                    arguments:[guard, txb.pure.u8(k), txb.pure.vector('u8', [].slice.call(n)), txb.pure.bool(true)]
                 })            
             } else {
                 if (!v.value)   {
                     ERROR(Errors.InvalidParam, 'constants type')
                 }
-    
+                const n = insertAtHead(v.value!, v.type);
                 txb.moveCall({
                     target:Protocol.Instance().GuardFn("constant_add") as FnCallType,
-                    arguments:[guard, txb.pure.u8(k), txb.pure.u8(v.type), txb.pure.vector('u8', [].slice.call(v.value)), txb.pure.bool(true)]
+                    arguments:[guard, txb.pure.u8(k), txb.pure.vector('u8', [].slice.call(n)), txb.pure.bool(true)]
                 }) 
             }
         });
@@ -371,7 +371,8 @@ export class GuardConstantHelper {
         } 
     }
     
-    static add_constant(constants:GuardConstant, identifier:number, type:ValueType|ContextType, value:any, bNeedSerialize=true) {
+    static add_constant(constants:GuardConstant, identifier:number, type:ValueType, value:any, bNeedSerialize=true) {
+        const e = SER_VALUE.find((v:any)=>v.type===type)?.name ?? '' + ' invalid';
         if (!GuardConstantHelper.IsValidIndentifier(identifier)) {
             ERROR(Errors.InvalidParam, 'add_constant identifier')
         }
@@ -399,17 +400,20 @@ export class GuardConstantHelper {
             case ValueType.TYPE_VEC_U128:
             case ValueType.TYPE_VEC_U256:
             case ValueType.TYPE_STRING:  
-            case ValueType.TYPE_VEC_U8: 
+            case ValueType.TYPE_VEC_U8:
+            case ValueType.TYPE_OPTION_STRING:
+            case ValueType.TYPE_OPTION_VEC_U8:
+            case ValueType.TYPE_VEC_STRING:
                 let ser = SER_VALUE.find(s=>s.type==type);
-                if (!ser) ERROR(Errors.Fail, 'add_constant: invalid type');
+                if (!ser) ERROR(Errors.Fail, 'add_constant: invalid type:'+e);
                 if (bNeedSerialize) {
-                    constants.set(identifier, {type:type, value:Bcs.getInstance().ser(ser!.type as number, value)}) 
+                    constants.set(identifier, {type:type, value:Bcs.getInstance().ser(type, value)}) 
                 } else {
                     constants.set(identifier, {type:type, value:value}) 
                 }
                 return    
             default:
-                ERROR(Errors.Fail, 'add_constant  serialize not impl yet')
+                ERROR(Errors.Fail, 'add_constant  serialize not impl yet:'+e)
         }
     }
 }
@@ -430,7 +434,7 @@ export class GuardMaker {
 
     add_constant(type:ConstantType, value:any, identifier?:number, bNeedSerialize=true) : number {
         if (identifier === undefined) identifier = GuardMaker.get_index();
-        if (type == ContextType.TYPE_WITNESS_ID) {
+        if (type === ContextType.TYPE_WITNESS_ID) {
             // add witness to constant
             GuardConstantHelper.add_future_constant(this.constant, identifier, value, undefined, bNeedSerialize);
         } else {
@@ -450,6 +454,8 @@ export class GuardMaker {
 
     // serialize const & data
     add_param(type:ValueType | ContextType, param?:any) : GuardMaker {
+        const e = SER_VALUE.find((v:any)=>v.type===type)?.name ?? '' + ' invalid';
+
         switch(type)  {
         case ValueType.TYPE_ADDRESS: 
         case ValueType.TYPE_BOOL:
@@ -473,7 +479,7 @@ export class GuardMaker {
             break;
         case ValueType.TYPE_STRING:
         case ValueType.TYPE_VEC_U8:
-            if (!param) ERROR(Errors.InvalidParam, 'param');
+            if (!param) ERROR(Errors.InvalidParam, 'param:'+e);
             this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type)); //@ USE VEC-U8
             if (typeof(param) == 'string') {
                 this.data.push(Bcs.getInstance().ser(ValueType.TYPE_STRING, param));
@@ -491,56 +497,56 @@ export class GuardMaker {
             this.type_validator.push(ValueType.TYPE_U64);
             break;
         case ContextType.TYPE_WITNESS_ID:
-            if (!param) ERROR(Errors.InvalidParam, 'param');
+            if (!param) ERROR(Errors.InvalidParam, 'param:'+e);
             this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type));
             this.data.push(Bcs.getInstance().ser(ValueType.TYPE_ADDRESS, param));
             this.type_validator.push(ValueType.TYPE_ADDRESS);
             break;   
         case ContextType.TYPE_CONSTANT:
             if (!param) {
-                ERROR(Errors.InvalidParam, 'param invalid');
+                ERROR(Errors.InvalidParam, 'param invalid:'+e);
             }
             if (typeof(param) != 'number' || !IsValidInt(param) || param > 255) {
-                ERROR(Errors.InvalidParam, 'add_param param');
+                ERROR(Errors.InvalidParam, 'add_param param:'+type);
             }
             
             var v = this.constant.get(param);
-            if (!v) ERROR(Errors.Fail, 'identifier not in constant');
+            if (!v) ERROR(Errors.Fail, 'identifier not in constant:'+e);
             this.type_validator.push(v!.type);
             this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type));
             this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, param));
             break;
         default:
-            ERROR(Errors.InvalidParam, 'add_param type' + type);
+            ERROR(Errors.InvalidParam, 'add_param type:'+e);
         };
         return this;
     }
 
     // object_address_from: string for static address; number as identifier  inconstant
-    add_query(module:MODULES, query_name:string, object_address_from:string | number, bWitness:boolean=false) : GuardMaker {
+    add_query(module:MODULES, query_name:string, object_address_from:string | number, bWitness:boolean=false) : GuardMaker {        
         let query_index = Guard.QUERIES.findIndex((q) => { return q[0] ==  module && q[1]  == query_name})
         if (query_index == -1)  {
-            ERROR(Errors.InvalidParam, 'query_name');
+            ERROR(Errors.InvalidParam, 'query_name:'+query_name);
         }
 
         if (typeof(object_address_from) == 'number' ) {
             if (!GuardConstantHelper.IsValidIndentifier(object_address_from)) {
-                ERROR(Errors.InvalidParam, 'object_address_from');
+                ERROR(Errors.InvalidParam, 'object_address_from:'+query_name);
             }
         } else {
             if (!IsValidAddress(object_address_from)) {
-                ERROR(Errors.InvalidParam, 'object_address_from');
+                ERROR(Errors.InvalidParam, 'object_address_from:'+query_name);
             }
         }
 
         let offset = this.type_validator.length - Guard.QUERIES[query_index][3].length;
         if (offset < 0) { 
-            ERROR(Errors.InvalidParam, 'query_name');
+            ERROR(Errors.InvalidParam, 'query_name:'+query_name);
         }
 
         let types = this.type_validator.slice(offset);
         if (!array_equal(types, Guard.QUERIES[query_index][3])) { // type validate 
-            ERROR(Errors.Fail, 'array_equal');
+            ERROR(Errors.Fail, 'array_equal:'+query_name);
         }
         
         this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, OperatorType.TYPE_QUERY)); // QUERY TYPE
@@ -550,12 +556,12 @@ export class GuardMaker {
             this.data.push(Bcs.getInstance().ser(ValueType.TYPE_ADDRESS, object_address_from)); // object address            
         } else {
             let v =  this.constant.get(object_address_from);
-            if (!v) ERROR(Errors.Fail, 'object_address_from not in constant');
+            if (!v) ERROR(Errors.Fail, 'object_address_from not in constant:'+query_name);
             if ((bWitness && v?.type == ContextType.TYPE_WITNESS_ID) || (!bWitness && v?.type == ValueType.TYPE_ADDRESS)) {
                 this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, ContextType.TYPE_CONSTANT));
                 this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, object_address_from)); // object identifer in constants
             } else {
-                ERROR(Errors.Fail, 'type bWitness not match')
+                ERROR(Errors.Fail, 'type bWitness not match:'+query_name)
             }
         }
 
@@ -566,6 +572,9 @@ export class GuardMaker {
     }
 
     add_logic(type:OperatorType, param:number=2) : GuardMaker {
+        var e:any = LogicsInfo.find((v:any) => v[0] === type);
+        if (e) { e=e[1] }
+
         let splice_len = 2;
         let ret = ValueType.TYPE_BOOL;
         switch (type) {
@@ -574,28 +583,40 @@ export class GuardMaker {
             case OperatorType.TYPE_LOGIC_AS_U256_LESSER:
             case OperatorType.TYPE_LOGIC_AS_U256_LESSER_EQUAL:
             case OperatorType.TYPE_LOGIC_AS_U256_EQUAL:
-                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length') }
-                if (!GuardMaker.match_u256(this.type_validator[this.type_validator.length - 1])) { ERROR(Errors.Fail, 'type_validator check') }
-                if (!GuardMaker.match_u256(this.type_validator[this.type_validator.length - 2])) { ERROR(Errors.Fail, 'type_validator check')  }
+                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length:' + e) }
+                if (!GuardMaker.match_u256(this.type_validator[this.type_validator.length - 1])) { ERROR(Errors.Fail, 'type_validator check:'+e) }
+                if (!GuardMaker.match_u256(this.type_validator[this.type_validator.length - 2])) { ERROR(Errors.Fail, 'type_validator check:'+e)  }
                 break;
             case OperatorType.TYPE_LOGIC_EQUAL:
-                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length') }
+                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length:' + e) }
+                if (GuardMaker.match_u256(this.type_validator[this.type_validator.length - 1]) && 
+                    GuardMaker.match_u256(this.type_validator[this.type_validator.length - 2])) {
+                    break;
+                } else if (this.type_validator[this.type_validator.length - 1] === this.type_validator[this.type_validator.length - 2]) {
+                    break;
+                } else {
+                    ERROR(Errors.Fail, 'type_validator check:' + e)  ;
+                }
                 break;
             case OperatorType.TYPE_LOGIC_HAS_SUBSTRING:
-                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length') }
+                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length:' + e) }
+                if (this.type_validator[this.type_validator.length - 1] !== ValueType.TYPE_STRING || 
+                    this.type_validator[this.type_validator.length - 2] !== ValueType.TYPE_STRING) {
+                        ERROR(Errors.Fail, 'type_validator check:' + e)  ;
+                }
                 break;
             case OperatorType.TYPE_LOGIC_NOT:
                 splice_len =  1;
-                if (this.type_validator.length < splice_len) { ERROR(Errors.Fail, 'type_validator.length') }
-                if (this.type_validator[this.type_validator.length -1] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
+                if (this.type_validator.length < splice_len) { ERROR(Errors.Fail, 'type_validator.length:'+e) }
+                if (this.type_validator[this.type_validator.length -1] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check:'+e)  }
                 break;
             case OperatorType.TYPE_LOGIC_AND:
             case OperatorType.TYPE_LOGIC_OR: //@ logics count
-                if (!param || param < 2) ERROR(Errors.Fail, 'logic param invalid');
+                if (!param || param < 2) ERROR(Errors.Fail, 'logic param invalid:'+e);
                 splice_len = param!;
-                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length') }
+                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length:'+e) }
                 for (let i = 1; i <= splice_len; ++i) {
-                    if (this.type_validator[this.type_validator.length -i] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check')  }
+                    if (this.type_validator[this.type_validator.length -i] != ValueType.TYPE_BOOL) { ERROR(Errors.Fail, 'type_validator check:'+e)  }
                 }
                 break;
             case OperatorType.TYPE_LOGIC_ALWAYS_TRUE:
@@ -605,14 +626,15 @@ export class GuardMaker {
             case OperatorType.TYPE_NUMBER_MULTIPLY:
             case OperatorType.TYPE_NUMBER_SUBTRACT:
             case OperatorType.TYPE_NUMBER_MOD:
-                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length') }
-                if (!GuardMaker.IsNumberType(this.type_validator[this.type_validator.length -1])) { ERROR(Errors.Fail, 'type_validator check')  }
-                if (!GuardMaker.IsNumberType(this.type_validator[this.type_validator.length -2])) { ERROR(Errors.Fail, 'type_validator check')  }
+                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length:'+e) }
+                if (!GuardMaker.IsNumberType(this.type_validator[this.type_validator.length -1])) { ERROR(Errors.Fail, 'type_validator check:'+e)  }
+                if (!GuardMaker.IsNumberType(this.type_validator[this.type_validator.length -2])) { ERROR(Errors.Fail, 'type_validator check:'+e)  }
                 ret = ValueType.TYPE_U256;
                 break;
             default:
-                ERROR(Errors.InvalidParam, 'add_logic type invalid' + type) 
+                ERROR(Errors.InvalidParam, 'add_logic type invalid:' + e) 
         }
+
         this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type)); // TYPE 
         if (type === OperatorType.TYPE_LOGIC_AND || type === OperatorType.TYPE_LOGIC_OR) {
             this.data.push((Bcs.getInstance().ser(ValueType.TYPE_U8, param))); //@ logics
@@ -680,13 +702,7 @@ export class GuardMaker {
     }
 
     static match_u256(type:number) : boolean {
-        if (type == ValueType.TYPE_U8 || 
-            type == ValueType.TYPE_U64 || 
-            type == ValueType.TYPE_U128 ||
-            type == ValueType.TYPE_U256) {
-                return true;
-        }
-        return false;
+        return (type == ValueType.TYPE_U8 || type == ValueType.TYPE_U64 || type == ValueType.TYPE_U128 || type == ValueType.TYPE_U256);
     }
 }
 

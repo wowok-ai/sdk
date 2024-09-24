@@ -87,7 +87,7 @@ export const LogicsInfo = [
     [OperatorType.TYPE_LOGIC_AS_U256_LESSER, 'Unsigned Integer <'],
     [OperatorType.TYPE_LOGIC_AS_U256_LESSER_EQUAL, 'Unsigned Integer <='],
     [OperatorType.TYPE_LOGIC_AS_U256_EQUAL, 'Unsigned Integer ='],
-    [OperatorType.TYPE_LOGIC_EQUAL, 'Equals ='],
+    [OperatorType.TYPE_LOGIC_EQUAL, 'Equal'],
     [OperatorType.TYPE_LOGIC_HAS_SUBSTRING, 'Sub String'],
     [OperatorType.TYPE_LOGIC_ALWAYS_TRUE, 'Always True'], 
     [OperatorType.TYPE_LOGIC_NOT, 'Not'],
@@ -208,10 +208,10 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    package: "0x6c706185ee3eccde4223d1509c0e0ab24f70f025b728ee29b8b1736c54d4a31a",
-    wowok_object: '0xfde92b609df794a54db295e9f3ac1533d24c9160cdcd7d31f32c495adf929c7a',
-    entity_object: '0x61e73f5ea27d384103a26a359d81192b94e3dda594c69caa8c385b2d47e8ffae',
-    treasury_cap:'0x711478cafc9517ac608a6153fa5f130c33118b19af668596a8468ed9d6fb2ed3',
+    package: "0x9bb4aaf63c1ae982829b3e5ea9b301358961c9e80de92f677069e2894d80598f",
+    wowok_object: '0x25aae21219b4e65cceca56374445d4fb621ea2e538ab95b5029c487a57bfa3f8',
+    entity_object: '0x0d4d9ed969c3e3bf5030162a3835760ee57ec85c28f74ae2a1a1e93b1babac40',
+    treasury_cap:'0x3c498b5bf6f72fd9e42fd7af971429ac6154269c9c1e8058f535af7b6609b5dc',
 }
 const MAINNET = {
     package: "",
