@@ -765,6 +765,7 @@ export class Passport {
             });        
         })
 
+        console.log(query)
         // witness
         query?.witness.forEach((w) => {
             this.txb.moveCall({

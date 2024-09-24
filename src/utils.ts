@@ -120,7 +120,6 @@ export const concatenate = (resultConstructor:any, ...arrays:any[]) => {
 }
 
 export const array_equal =  (arr1: any[], arr2: any[]) => {
-    // Array.some(): 有一项不满足，返回false
     if (arr1.length !== arr2.length) {
       return false;
     }

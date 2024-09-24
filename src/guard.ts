@@ -502,7 +502,7 @@ export class GuardMaker {
             this.data.push(Bcs.getInstance().ser(ValueType.TYPE_ADDRESS, param));
             this.type_validator.push(ValueType.TYPE_ADDRESS);
             break;   
-        case ContextType.TYPE_CONSTANT:
+        case ContextType.TYPE_CONSTANT: 
             if (!param) {
                 ERROR(Errors.InvalidParam, 'param invalid:'+e);
             }
@@ -512,9 +512,13 @@ export class GuardMaker {
             
             var v = this.constant.get(param);
             if (!v) ERROR(Errors.Fail, 'identifier not in constant:'+e);
-            this.type_validator.push(v!.type);
-            this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type));
-            this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, param));
+            var t = v!.type; 
+            if (v?.type === ContextType.TYPE_WITNESS_ID) {
+                t = ValueType.TYPE_ADDRESS;
+            }
+            this.type_validator.push(t); //@ type validator convert
+            this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type)); // constant flag
+            this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, param)); // identifier
             break;
         default:
             ERROR(Errors.InvalidParam, 'add_param type:'+e);

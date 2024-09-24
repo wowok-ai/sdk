@@ -165,7 +165,7 @@ interface ValueTypeString {
 export const SER_VALUE: ValueTypeString[] = [
     {type: ValueType.TYPE_BOOL, name: 'bool', description:'boolean. eg:true or false', validator:(value:any) => { return (value === true || value === false)}},
     {type: ValueType.TYPE_ADDRESS, name: 'address', description:'address or object-id. eg:0x6789af', validator:IsValidAddress},
-    {type: ContextType.TYPE_WITNESS_ID, name: 'future address', description:"eg: address of the Machine that will generate future Progress, address of the Service that will generate future Order",  validator:IsValidAddress},
+    {type: ContextType.TYPE_WITNESS_ID, name: 'witness address', description:"For example, the address of the Machine object ensures that the Progress generated in the past or future is verified; the address of the Service object ensures that the Order generated in the past or future is verified.",  validator:IsValidAddress},
     {type: ContextType.TYPE_SIGNER, name: 'txn signer', description:"signer address of the transaction, "},
     {type: ContextType.TYPE_CLOCK, name: 'txn time', description:"unsigned-64 number for the transaction time"},
     {type: ValueType.TYPE_U64, name: 'number', description:'unsigned-64 number. eg:23870233', validator:IsValidU64},
@@ -208,10 +208,10 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    package: "0x4ce36e03ef9cd230f1158e48293ee01cb572cdcd2f9cab7ac7b2fd2251bfe51e",
-    wowok_object: '0xd3639daf1daa300bbf694b21e42cecac6be242ad038fe48a7a1212e93f3845f6',
-    entity_object: '0x8de1e01e6baca0990ca18de3ec51b57183512deaeb76076be9161ca38988c74f',
-    treasury_cap:'0x2e05eda6ee5b0773854be6eb48c6cee2b5ca8aaa13ee810434d66232005b40ef',
+    package: "0xc92517bd946c0956eae4eb8ea2696baaecdaaafa30693ecf3bdb2e63ebf0332a",
+    wowok_object: '0x3530d3139bdc56d098cf0e413b71191c3db4c3689ea1559ae5dda6ae99e63473',
+    entity_object: '0xc9450bd373925a8475d495397e503a772e6d79abaa21851305d0b2cfcd0ebc29',
+    treasury_cap:'0x1f983d04416477e441f7c8e79e0f7c6917d6743a07390747091ccb37a8a7c378',
 }
 const MAINNET = {
     package: "",
