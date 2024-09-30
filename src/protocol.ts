@@ -208,10 +208,10 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    package: "0xc92517bd946c0956eae4eb8ea2696baaecdaaafa30693ecf3bdb2e63ebf0332a",
-    wowok_object: '0x3530d3139bdc56d098cf0e413b71191c3db4c3689ea1559ae5dda6ae99e63473',
-    entity_object: '0xc9450bd373925a8475d495397e503a772e6d79abaa21851305d0b2cfcd0ebc29',
-    treasury_cap:'0x1f983d04416477e441f7c8e79e0f7c6917d6743a07390747091ccb37a8a7c378',
+    package: "0x46e9a55686124138132d83098a1ae0b9d63d91e93d96d636c47b5e6f7f00a3d4",
+    wowok_object: '0xa78e02dd7d537ddeab3a33bb9b40df4663f58b4e835dfa5dc430f5ae4e71b4fe',
+    entity_object: '0x487524f61ed9dd3f4a02ae7311b2879f3b0ebeef1a9a4cd36f291dcd351e8e56',
+    treasury_cap:'0xf5ecc294e9e5524c55a5775c7fb3e8aa8e7d4b6bb4fc2f91712f8610d02e0287',
 }
 const MAINNET = {
     package: "",

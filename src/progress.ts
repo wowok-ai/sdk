@@ -188,24 +188,25 @@ export class Progress {
         }
     }
     unhold(next:ProgressNext, passport?:PassportObject)  {
-        console.log(next)
         if (!Progress.IsValidProgressNext(next)) {
             ERROR(Errors.InvalidParam, 'unhold')
         }
         
+        const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
+
         if (passport) {
             this.txb.moveCall({
                 target:Protocol.Instance().ProgressFn('unhold_with_passport') as FnCallType,
                 arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), 
                     Protocol.TXB_OBJECT(this.txb, this.machine), this.txb.pure.string(next.next_node_name), 
-                    this.txb.pure.string(next.forward), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                    this.txb.pure.string(next.forward), Protocol.TXB_OBJECT(this.txb, this.permission), this.txb.object(clock)],
             })     
         } else {
             this.txb.moveCall({
                 target:Protocol.Instance().ProgressFn('unhold') as FnCallType,
                 arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), 
                     this.txb.pure.string(next.next_node_name), this.txb.pure.string(next.forward), 
-                    Protocol.TXB_OBJECT(this.txb, this.permission)],
+                    Protocol.TXB_OBJECT(this.txb, this.permission), this.txb.object(clock)],
             })           
         }
     }
@@ -237,7 +238,7 @@ export class Progress {
             this.txb.moveCall({
                 target:Protocol.Instance().ProgressFn('parent_set_with_passport') as FnCallType,
                 arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), 
-                    this.txb.pure.address(parent.parent_id), 
+                    this.txb.object(parent.parent_id), 
                     this.txb.pure.u64(parent.parent_session_id), 
                     this.txb.pure.string(parent.next_node),
                     this.txb.pure.string(parent.forward),
@@ -247,7 +248,7 @@ export class Progress {
             this.txb.moveCall({
                 target:Protocol.Instance().ProgressFn('parent_set') as FnCallType,
                 arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), 
-                    this.txb.pure.address(parent.parent_id), 
+                    this.txb.object(parent.parent_id), 
                     this.txb.pure.u64(parent.parent_session_id), 
                     this.txb.pure.string(parent.next_node),
                     this.txb.pure.string(parent.forward),
@@ -257,7 +258,6 @@ export class Progress {
     }
 
     next(next:ProgressNext, deliverables_address?:string, sub_id?:string, passport?:PassportObject)  {
-        console.log(next)
         if (!Progress.IsValidProgressNext(next)) {
             ERROR(Errors.InvalidParam, 'next')
         }
@@ -293,11 +293,11 @@ export class Progress {
         if (!Progress.IsValidProgressNext(next)) {
             ERROR(Errors.InvalidParam, 'hold')
         }
-        
+        const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         this.txb.moveCall({
             target:Protocol.Instance().ProgressFn('hold') as FnCallType,
             arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), this.txb.pure.string(next.next_node_name), 
-                this.txb.pure.string(next.forward), this.txb.pure.bool(hold), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                this.txb.pure.string(next.forward), this.txb.pure.bool(hold), Protocol.TXB_OBJECT(this.txb, this.permission), this.txb.object(clock)],
         })  
     }
 

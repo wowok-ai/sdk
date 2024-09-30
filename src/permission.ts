@@ -273,7 +273,7 @@ export class  Permission {
             ERROR(Errors.IsValidArray, 'add_entity2');
         }
 
-        if (index) {
+        if (index !== undefined) {
             this.txb.moveCall({
                 target:Protocol.Instance().PermissionFn('add_with_index') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u64(index),
@@ -288,9 +288,7 @@ export class  Permission {
     }
 
     add_entity(entities:Permission_Entity[])  {
-        if (!entities) {
-            ERROR(Errors.InvalidParam, 'add_entity');
-        }
+        if (entities.length === 0) return
 
         let bValid = true;
         let e = entities.forEach((v) => {
@@ -322,13 +320,14 @@ export class  Permission {
                     }
                 }      
             }    
-            //if (indexes.length > 0) {
+
+            if (indexes.length > 0) {
                 this.txb.moveCall({
                     target:Protocol.Instance().PermissionFn('add_batch') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity.entity_address), 
                         this.txb.pure.vector('u64', indexes)]
                 })            
-            //}
+            }
         } 
         // set guards
         guards.forEach(({entity_address, index, guard}) => {
@@ -368,7 +367,8 @@ export class  Permission {
         if (!IsValidAddress(entity_address)) {
             ERROR(Errors.IsValidAddress)
         }
-        if (!index || !(IsValidArray(index, Permission.IsValidPermissionIndex))) {
+        if (index.length === 0) return ;
+        if (!(IsValidArray(index, Permission.IsValidPermissionIndex))) {
             ERROR(Errors.InvalidParam, 'index')
         }
 
@@ -379,7 +379,8 @@ export class  Permission {
         })            
     }
     remove_entity(entity_address:string[])  {
-        if (!entity_address || !IsValidArray(entity_address, IsValidAddress)) {
+        if (entity_address.length === 0) return ;
+        if (!IsValidArray(entity_address, IsValidAddress)) {
             ERROR(Errors.IsValidArray)
         }
 

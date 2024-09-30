@@ -210,7 +210,7 @@ export class GuardParser {
                         let addr = '0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(arr)).toString();
                         arr.splice(0, 32); // address            
                         value = addr;
-                        cmd = arr.shift()! as number; // cmd
+                        cmd = Bcs.getInstance().de('u16', Uint8Array.from(arr.splice(0, 2))) as number; // cmd(u16)
                     } else if (t[0] == ContextType.TYPE_CONSTANT) {
                         let id = arr.splice(0, 1); // key
                         let v = constants.find((v) => 
@@ -218,7 +218,7 @@ export class GuardParser {
                             ((v.type == ValueType.TYPE_ADDRESS) || (v.type == ContextType.TYPE_WITNESS_ID)));
                         if (!v) { ERROR(Errors.Fail, 'GuardObject: indentifier not in  constant')}
                         identifier = id[0];
-                        cmd = arr.shift()! as number; // cmd
+                        cmd = Bcs.getInstance().de('u16', Uint8Array.from(arr.splice(0, 2))) as number; // cmd(u16)
                     } else {
                         ERROR(Errors.Fail, 'GuardObject: constant type invalid');
                     }
@@ -258,7 +258,7 @@ export class GuardParser {
                     value = read.value;
                     break;
                 default:
-                    ERROR(Errors.Fail, 'GuardObject: parse_bcs types')
+                    ERROR(Errors.Fail, 'GuardObject: parse_bcs types ' + type)
             }
             data.push({type:type as number, value:value, cmd:cmd, identifier:identifier, child:[]});
         } 
@@ -611,14 +611,15 @@ export class GuardParser {
                 let type = arr.splice(0, 1);
                 if (type[0] == ValueType.TYPE_ADDRESS || type[0] == ContextType.TYPE_WITNESS_ID) {
                     let addr = '0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(arr)).toString();
-                    const offset = arr.splice(0, 33); // address + cmd              
+                    const offset = arr.splice(0, 34); // address + cmd(U16)            
                     if (type[0] == ValueType.TYPE_ADDRESS) {
                         info.query_list.push(addr);
                     } else if (type[0] == ContextType.TYPE_WITNESS_ID){
                         info.query_list.push({index:this.get_index(), type:type[0], value_or_witness:addr, cmd:offset[offset.length-1]});
                     }
                 } else if (type[0] == ContextType.TYPE_CONSTANT) {
-                    const identifer = arr.splice(0, 2); // key + cmd
+                    const identifer = arr.splice(0, 1); // key
+                    const cmd:number = Bcs.getInstance().de('u16', Uint8Array.from(arr.splice(0, 2)));
                     let constant = info.constant.find((v) => 
                         (v.identifier == identifer[0]) && 
                         ((v.type == ValueType.TYPE_ADDRESS) || (v.type == ContextType.TYPE_WITNESS_ID)));
@@ -628,17 +629,17 @@ export class GuardParser {
                     } else if (constant?.type == ContextType.TYPE_WITNESS_ID) {
                         const index = this.get_index();
                         info.query_list.push({identifier:identifer[0], type:constant.type, value_or_witness:constant.value_or_witness, 
-                            index:index, cmd:identifer[identifer.length-1]}); // query witness in constant
-                        constant.cmd = identifer[identifer.length-1]; // mark this is a cmd in querylist(avoid multi input future by singer)
+                            index:index, cmd:cmd}); // query witness in constant
+                        constant.cmd = cmd; // mark this is a cmd in querylist(avoid multi input future by singer)
                         constant.index = index;
                     } 
                 } else {
-                    ERROR(Errors.Fail, 'constant type invalid');
+                    ERROR(Errors.Fail, 'constant type invalid ' + type);
                 }
 
                 break;
             default:
-                ERROR(Errors.Fail, 'parse_bcs types')
+                ERROR(Errors.Fail, 'parse_bcs types ' + arr)
             }
         } 
     }
