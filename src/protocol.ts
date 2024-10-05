@@ -24,6 +24,9 @@ export enum MODULES {
     resource = 'resource',
     entity = 'entity',
     wowok = 'wowok',
+    treasury = 'treasury',
+    payment = 'payment',
+    withholding = 'withholding',
 }
 
 export type PermissionAddress = TransactionResult;

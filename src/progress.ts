@@ -19,6 +19,7 @@ export type ParentProgress = {
     forward: string;
 }
 
+export type CurrentSessionId = TransactionResult;
 export interface Holder {
     forward: string;
     who?:string;
@@ -257,7 +258,7 @@ export class Progress {
         }
     }
 
-    next(next:ProgressNext, deliverables_address?:string, sub_id?:string, passport?:PassportObject)  {
+    next(next:ProgressNext, deliverables_address?:string, sub_id?:string, passport?:PassportObject) : CurrentSessionId {
         if (!Progress.IsValidProgressNext(next)) {
             ERROR(Errors.InvalidParam, 'next')
         }
@@ -273,7 +274,7 @@ export class Progress {
         const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
 
         if (passport) {
-            this.txb.moveCall({
+            return this.txb.moveCall({
                 target:Protocol.Instance().ProgressFn('next_with_passport') as FnCallType,
                 arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), 
                     this.txb.pure.string(next.next_node_name), 
@@ -281,7 +282,7 @@ export class Progress {
                     Protocol.TXB_OBJECT(this.txb, this.permission), this.txb.object(clock)],
             })    
         } else {
-            this.txb.moveCall({
+            return this.txb.moveCall({
                 target:Protocol.Instance().ProgressFn('next') as FnCallType,
                 arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), this.txb.pure.string(next.next_node_name), 
                     this.txb.pure.string(next.forward), diliverable, sub, Protocol.TXB_OBJECT(this.txb, this.permission), this.txb.object(clock)],
@@ -289,12 +290,12 @@ export class Progress {
         }
     }
 
-    hold(next:ProgressNext, hold:boolean)  {
+    hold(next:ProgressNext, hold:boolean)  : CurrentSessionId  {
         if (!Progress.IsValidProgressNext(next)) {
             ERROR(Errors.InvalidParam, 'hold')
         }
         const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
-        this.txb.moveCall({
+        return this.txb.moveCall({
             target:Protocol.Instance().ProgressFn('hold') as FnCallType,
             arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), this.txb.pure.string(next.next_node_name), 
                 this.txb.pure.string(next.forward), this.txb.pure.bool(hold), Protocol.TXB_OBJECT(this.txb, this.permission), this.txb.object(clock)],

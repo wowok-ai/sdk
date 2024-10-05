@@ -78,6 +78,10 @@ export enum PermissionIndex {
     progress_context_repository = 653,
     progress_unhold = 654,
     progress_parent = 655,
+
+    treasury = 700,
+    treasury_deposit = 701,
+    treasury_take = 702,
     user_defined_start = 1000,
 }
 
@@ -175,6 +179,10 @@ export const PermissionInfo : PermissionInfoType[] = [
     {index:PermissionIndex.progress_context_repository, name: 'Repository', description:'Set Progress repository', module: 'progress'},
     {index:PermissionIndex.progress_unhold, name: 'Unhold', description:'Release Progress holdings', module: 'progress'},
     {index:PermissionIndex.progress_parent, name: 'Parent', description:'Set Progress parent', module: 'progress'},
+    
+    {index:PermissionIndex.treasury, name: 'Treasury', description:'Launch new Treasury', module: 'treasury'},
+    {index:PermissionIndex.treasury_deposit, name: 'Deposit', description:'Deposit coins', module: 'treasury'},
+    {index:PermissionIndex.treasury_take, name: 'Take', description:'Take out coins', module: 'treasury'},
 ]
 
 export type PermissionIndexType = PermissionIndex | number;
