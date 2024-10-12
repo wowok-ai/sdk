@@ -1,6 +1,6 @@
 
 
-import { Protocol, LogicsInfo, GuardAddress, FnCallType, Data_Type, MODULES, ContextType, ValueType,  OperatorType, ConstantType, SER_VALUE} from './protocol';
+import { Protocol, LogicsInfo, GuardAddress, FnCallType, Data_Type, MODULES, ContextType, ValueType,  OperatorType, SER_VALUE} from './protocol';
 import { concatenate, array_equal } from './utils';
 import { IsValidDesription, Bcs, IsValidInt, IsValidAddress, FirstLetterUppercase, insertAtHead } from './utils';
 import { ERROR, Errors } from './exception';
@@ -9,9 +9,9 @@ import { Transaction as TransactionBlock } from '@mysten/sui/transactions';
 export type GuardConstant = Map<number, Guard_Variable>;
 
 export interface Guard_Variable {
-    type: ConstantType ,
+    type: ValueType ,
     value?: Uint8Array,
-    witness?: Uint8Array,
+    bWitness : boolean,
 }
 
 export  interface Guard_Options {
@@ -39,8 +39,9 @@ export class Guard {
     
         let bValid = true;
         constants?.forEach((v, k) => {
-            if (!GuardConstantHelper.IsValidIndentifier(k)) bValid = false;
-            if (!v.value && !v.witness) bValid =  false;
+            if (!GuardMaker.IsValidIndentifier(k)) bValid = false;
+            if (v.value && v.bWitness) bValid =  false;
+            if (v.value === undefined && !v.bWitness) bValid =  false;
         })
         if (!bValid) {
             ERROR(Errors.InvalidParam, 'launch constants')
@@ -55,23 +56,17 @@ export class Guard {
         });
 
         constants?.forEach((v, k) => {
-            if (v.type == ContextType.TYPE_WITNESS_ID) {
-                if (!v.witness) {
-                    ERROR(Errors.InvalidParam, 'constants type')
-                }
-                const n = insertAtHead(v.witness!, v.type);
+            if (v.bWitness) {
+                const n = new Uint8Array(1); n.set([v.type], 0);
                 txb.moveCall({
                     target:Protocol.Instance().GuardFn("constant_add") as FnCallType,
-                    arguments:[guard, txb.pure.u8(k), txb.pure.vector('u8', [].slice.call(n)), txb.pure.bool(true)]
-                })            
+                    arguments:[guard, txb.pure.u8(k), txb.pure.bool(true), txb.pure.vector('u8', [].slice.call(n)), txb.pure.bool(true)]
+                }) 
             } else {
-                if (!v.value)   {
-                    ERROR(Errors.InvalidParam, 'constants type')
-                }
                 const n = insertAtHead(v.value!, v.type);
                 txb.moveCall({
                     target:Protocol.Instance().GuardFn("constant_add") as FnCallType,
-                    arguments:[guard, txb.pure.u8(k), txb.pure.vector('u8', [].slice.call(n)), txb.pure.bool(true)]
+                    arguments:[guard, txb.pure.u8(k), txb.pure.bool(false),  txb.pure.vector('u8', [].slice.call(n)), txb.pure.bool(true)]
                 }) 
             }
         });
@@ -95,7 +90,6 @@ export class Guard {
             arguments: []
         }); 
     }
-
     static QUERIES:any[] = [ 
         // module, 'name', 'id', [input], output
         [MODULES.permission, 'Owner', 1, [], ValueType.TYPE_ADDRESS, "Owner's address."],
@@ -121,14 +115,14 @@ export class Guard {
         [MODULES.repository, 'Policy Mode', 110, [], ValueType.TYPE_U8, 'Policy Mode. 0: Free mode;  1: Strict mode.'],   
         [MODULES.repository, 'Reference Count', 111, [], ValueType.TYPE_U64, 'The number of times it is referenced by other objects.'],   
         [MODULES.repository, 'Is Referenced by An Object', 112, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Is it referenced by an object?', 'Input:address'],   
-        [MODULES.repository, 'Data Number', 113, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_U256, 'Data for a field at an address and get unsigned integer type data.', 'Input 1:address, Input 2:the field name'],       
-        [MODULES.repository, 'Data String', 114, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_STRING, 'Data for a field at an address and get string type data.', 'Input 1:address, Input 2:the field name'],       
-        [MODULES.repository, 'Data Address', 115, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_ADDRESS, 'Data for a field at an address and get address type data.', 'Input 1:address, Input 2:the field name'],       
-        [MODULES.repository, 'Data Bool', 116, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_BOOL, 'Data for a field at an address and get bool type data.', 'Input 1:address, Input 2:the field name'],       
-        [MODULES.repository, 'Data Number Vector', 117, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_U256, 'Data for a field at an address and get unsigned integer vector type data.', 'Input 1:address, Input 2:the field name'],       
-        [MODULES.repository, 'Data String Vector', 118, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_STRING, 'Data for a field at an address and get string vector type data.', 'Input 1:address, Input 2:the field name'],  
-        [MODULES.repository, 'Data Address Vector', 119, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_ADDRESS, 'Data for a field at an address and get address vector type data.', 'Input 1:address, Input 2:the field name'],       
-        [MODULES.repository, 'Data Bool Vector', 120, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_BOOL, 'Data for a field at an address and get bool vector type data.', 'Input 1:address, Input 2:the field name'],            
+        [MODULES.repository, 'Number Data', 113, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_U256, 'Data for a field at an address and get unsigned integer type data.', 'Input 1:address, Input 2:the field name'],       
+        [MODULES.repository, 'String Data', 114, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_STRING, 'Data for a field at an address and get string type data.', 'Input 1:address, Input 2:the field name'],       
+        [MODULES.repository, 'Address Data', 115, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_ADDRESS, 'Data for a field at an address and get address type data.', 'Input 1:address, Input 2:the field name'],       
+        [MODULES.repository, 'Bool Data', 116, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_BOOL, 'Data for a field at an address and get bool type data.', 'Input 1:address, Input 2:the field name'],       
+        [MODULES.repository, 'Number Vector Data', 117, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_U256, 'Data for a field at an address and get unsigned integer vector type data.', 'Input 1:address, Input 2:the field name'],       
+        [MODULES.repository, 'String Vector Data', 118, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_STRING, 'Data for a field at an address and get string vector type data.', 'Input 1:address, Input 2:the field name'],  
+        [MODULES.repository, 'Address Vector Data', 119, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_ADDRESS, 'Data for a field at an address and get address vector type data.', 'Input 1:address, Input 2:the field name'],       
+        [MODULES.repository, 'Bool Vector Data', 120, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_BOOL, 'Data for a field at an address and get bool vector type data.', 'Input 1:address, Input 2:the field name'],            
         
         [MODULES.entity, 'Contains Entity?', 200, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Is an entity already registered?', 'Input:address'], 
         [MODULES.entity, 'Likes', 201, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'The number of likes for an address by other addresses.', 'Input:address'], 
@@ -389,89 +383,6 @@ export class Guard {
         return Guard.CommonOptions(ret_type);
     }
 }
-
-export class GuardConstantHelper {
-    static IsValidIndentifier = (identifier:number) : boolean => {
-        if (!IsValidInt(identifier) || identifier > 255) return false;
-        return true
-    }
-    static get_constant_value(constants:GuardConstant, identifier:number, type:ConstantType) : Uint8Array | undefined {
-        if (constants.has(identifier)) {
-            let v = constants.get(identifier);
-            if (v?.value && v.type == type) {
-                return v.value;
-            }
-        } 
-    }
-    static get_constant_witness(constants:GuardConstant, identifier:number) : Uint8Array | undefined {
-        if (constants.has(identifier)) {
-            let v = constants.get(identifier);
-            if (v?.witness && v.type == ContextType.TYPE_WITNESS_ID) {
-                return v.witness;
-            }
-        } 
-    }
-
-    static add_future_constant(constants:GuardConstant, identifier:number, witness:any, value?:any, bNeedSerialize=true)  {
-        if (!GuardConstantHelper.IsValidIndentifier(identifier)) ERROR(Errors.IsValidIndentifier, 'add_future_constant');
-        if (!witness && !value) ERROR(Errors.InvalidParam, 'both witness and value invalid');
-        let v = constants.get(identifier);
-        if (!v || v.type == ContextType.TYPE_WITNESS_ID) {
-            if (bNeedSerialize) {
-                constants.set(identifier, {type:ContextType.TYPE_WITNESS_ID, value:value ? Bcs.getInstance().ser(ValueType.TYPE_ADDRESS, value) : undefined, 
-                    witness:witness ? Bcs.getInstance().ser(ValueType.TYPE_ADDRESS, witness) : undefined})
-            } else {
-                constants.set(identifier, {type:ContextType.TYPE_WITNESS_ID, value:value?value:undefined, witness:witness?witness:undefined});             
-            }                     
-        } 
-    }
-    
-    static add_constant(constants:GuardConstant, identifier:number, type:ValueType, value:any, bNeedSerialize=true) {
-        const e = SER_VALUE.find((v:any)=>v.type===type)?.name ?? '' + ' invalid';
-        if (!GuardConstantHelper.IsValidIndentifier(identifier)) {
-            ERROR(Errors.InvalidParam, 'add_constant identifier')
-        }
-        if (value === undefined) {
-            ERROR(Errors.InvalidParam, 'add_constant value')
-        }
-    
-        switch (type) {
-            case ValueType.TYPE_BOOL:
-            case ValueType.TYPE_ADDRESS:
-            case ValueType.TYPE_U64:
-            case ValueType.TYPE_U8:
-            case ValueType.TYPE_U128:
-            case ValueType.TYPE_U256:
-            case ValueType.TYPE_VEC_U64:
-            case ValueType.TYPE_VEC_VEC_U8:   
-            case ValueType.TYPE_OPTION_ADDRESS:
-            case ValueType.TYPE_OPTION_BOOL:
-            case ValueType.TYPE_OPTION_U128:
-            case ValueType.TYPE_OPTION_U256:
-            case ValueType.TYPE_OPTION_U64:
-            case ValueType.TYPE_OPTION_U8:
-            case ValueType.TYPE_VEC_ADDRESS:
-            case ValueType.TYPE_VEC_BOOL:
-            case ValueType.TYPE_VEC_U128:
-            case ValueType.TYPE_VEC_U256:
-            case ValueType.TYPE_STRING:  
-            case ValueType.TYPE_VEC_U8:
-            case ValueType.TYPE_OPTION_STRING:
-            case ValueType.TYPE_OPTION_VEC_U8:
-            case ValueType.TYPE_VEC_STRING:
-                let ser = SER_VALUE.find(s=>s.type==type);
-                if (!ser) ERROR(Errors.Fail, 'add_constant: invalid type:'+e);
-                if (bNeedSerialize) {
-                    constants.set(identifier, {type:type, value:Bcs.getInstance().ser(type, value)}) 
-                } else {
-                    constants.set(identifier, {type:type, value:value}) 
-                }
-                return    
-            default:
-                ERROR(Errors.Fail, 'add_constant  serialize not impl yet:'+e)
-        }
-    }
-}
 export class GuardMaker {
     protected data : Uint8Array[] = [];
     protected type_validator : Data_Type[] = [];
@@ -484,32 +395,27 @@ export class GuardMaker {
         }
         return GuardMaker.index++
     }
-
+    static IsValidIndentifier = (identifier:number) : boolean => {
+        if (!IsValidInt(identifier) || identifier > 255) return false;
+        return true
+    }
     constructor() { }
 
-    add_constant(type:ConstantType, value:any, identifier?:number, bNeedSerialize=true) : number {
+    // undefined value means witness
+    add_constant(type:ValueType, value?:any, identifier?:number, bNeedSerialize=true) : number {
         if (identifier === undefined) identifier = GuardMaker.get_index();
-        if (type === ContextType.TYPE_WITNESS_ID) {
-            // add witness to constant
-            GuardConstantHelper.add_future_constant(this.constant, identifier, value, undefined, bNeedSerialize);
-        } else {
-            GuardConstantHelper.add_constant(this.constant, identifier, type, value, bNeedSerialize);
-        }
+        let v = this.constant.get(identifier);
+        if (!v) {
+            if (bNeedSerialize && value !== undefined) {
+                value = Bcs.getInstance().ser(type, value);
+            } 
+            this.constant.set(identifier, {type:type, value:value===undefined ? undefined:value, bWitness:value===undefined ? true:false});               
+        } 
         return identifier
     }
 
-    private  serValueParam(type:ValueType, param?:any) {
-        if (param === undefined) ERROR(Errors.InvalidParam, 'param');
-        this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type));
-        let ser = SER_VALUE.find(s=>s.type==type);
-        if (!ser) ERROR(Errors.Fail, 'serValueParam: invalid type');
-        this.data.push(Bcs.getInstance().ser(ser!.type as number, param));
-        this.type_validator.push(type);
-    }
-
-    // serialize const & data
+    // serialize const & data, WITNESS use constants only.
     add_param(type:ValueType | ContextType, param?:any) : GuardMaker {
-        const e = SER_VALUE.find((v:any)=>v.type===type)?.name ?? '' + ' invalid';
         switch(type)  {
         case ValueType.TYPE_ADDRESS: 
         case ValueType.TYPE_BOOL:
@@ -529,12 +435,14 @@ export class GuardMaker {
         case ValueType.TYPE_OPTION_U256:
         case ValueType.TYPE_OPTION_U8:
         case ValueType.TYPE_VEC_U256:
-            this.serValueParam(type, param);
+            this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type));
+            this.data.push(Bcs.getInstance().ser(type as number, param));
+            this.type_validator.push(type);
             break;
         case ValueType.TYPE_STRING:
         case ValueType.TYPE_VEC_U8:
-            if (!param) ERROR(Errors.InvalidParam, 'param:'+e);
-            this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type)); //@ USE VEC-U8
+            if (!param) ERROR(Errors.InvalidParam, 'param: ' + type);
+            this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type)); 
             if (typeof(param) == 'string') {
                 this.data.push(Bcs.getInstance().ser(ValueType.TYPE_STRING, param));
             } else {
@@ -550,45 +458,32 @@ export class GuardMaker {
             this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type));
             this.type_validator.push(ValueType.TYPE_U64);
             break;
-        case ContextType.TYPE_WITNESS_ID:
-            if (!param) ERROR(Errors.InvalidParam, 'param:'+e);
-            this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type));
-            this.data.push(Bcs.getInstance().ser(ValueType.TYPE_ADDRESS, param));
-            this.type_validator.push(ValueType.TYPE_ADDRESS);
-            break;   
         case ContextType.TYPE_CONSTANT: 
-            if (!param) {
-                ERROR(Errors.InvalidParam, 'param invalid:'+e);
-            }
-            if (typeof(param) != 'number' || !IsValidInt(param) || param > 255) {
+            if (typeof(param) !== 'number' || !IsValidInt(param) || param > 255) {
                 ERROR(Errors.InvalidParam, 'add_param param:'+type);
             }
             
             var v = this.constant.get(param);
-            if (!v) ERROR(Errors.Fail, 'identifier not in constant:'+e);
-            var t = v!.type; 
-            if (v?.type === ContextType.TYPE_WITNESS_ID) {
-                t = ValueType.TYPE_ADDRESS;
-            }
-            this.type_validator.push(t); //@ type validator convert
+            if (!v) ERROR(Errors.Fail, 'identifier not in constant:'+param);
+            this.type_validator.push(v!.type); //@ type validator convert
             this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type)); // constant flag
             this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, param)); // identifier
             break;
         default:
-            ERROR(Errors.InvalidParam, 'add_param type:'+e);
+            ERROR(Errors.InvalidParam, 'add_param type:'+type);
         };
         return this;
     }
 
     // object_address_from: string for static address; number as identifier  inconstant
-    add_query(module:MODULES, query_name:string, object_address_from:string | number, bWitness:boolean=false) : GuardMaker {        
+    add_query(module:MODULES, query_name:string, object_address_from:string | number) : GuardMaker {        
         let query_index = Guard.QUERIES.findIndex((q) => { return q[0] ==  module && q[1]  == query_name})
         if (query_index == -1)  {
             ERROR(Errors.InvalidParam, 'query_name:'+query_name);
         }
 
         if (typeof(object_address_from) == 'number' ) {
-            if (!GuardConstantHelper.IsValidIndentifier(object_address_from)) {
+            if (!GuardMaker.IsValidIndentifier(object_address_from)) {
                 ERROR(Errors.InvalidParam, 'object_address_from:'+query_name);
             }
         } else {
@@ -609,13 +504,12 @@ export class GuardMaker {
         
         this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, OperatorType.TYPE_QUERY)); // QUERY TYPE
         if (typeof(object_address_from) == 'string') {
-            bWitness ? this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, ContextType.TYPE_WITNESS_ID)) :
-                this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, ValueType.TYPE_ADDRESS)); 
+            this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, ValueType.TYPE_ADDRESS)); 
             this.data.push(Bcs.getInstance().ser(ValueType.TYPE_ADDRESS, object_address_from)); // object address            
         } else {
             let v =  this.constant.get(object_address_from);
             if (!v) ERROR(Errors.Fail, 'object_address_from not in constant:'+query_name);
-            if ((bWitness && v?.type == ContextType.TYPE_WITNESS_ID) || (!bWitness && v?.type == ValueType.TYPE_ADDRESS)) {
+            if (v?.type == ValueType.TYPE_ADDRESS) {
                 this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, ContextType.TYPE_CONSTANT));
                 this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, object_address_from)); // object identifer in constants
             } else {
@@ -732,13 +626,13 @@ export class GuardMaker {
         if (!otherBuilt.IsReady() || !this.IsReady()) { ERROR(Errors.Fail, 'both should built yet')};
         let maker = new GuardMaker();
         this.constant.forEach((v, k) => {
-            maker.constant.set(k,  {type:v.type, value:v.value, witness:v.witness});
+            maker.constant.set(k,  {type:v.type, value:v.value, bWitness:v.bWitness});
         })
         otherBuilt.constant.forEach((v, k) => {
             if (maker.constant.has(k) && !bCombinConstant) {
                 ERROR(Errors.Fail, 'constant identifier exist');
             }
-            maker.constant.set(k, {type:v.type, value:v.value, witness:v.witness});
+            maker.constant.set(k, {type:v.type, value:v.value, bWitness:v.bWitness});
         })
         let op = bAnd ? OperatorType.TYPE_LOGIC_AND :  OperatorType.TYPE_LOGIC_OR;
         maker.data.push(concatenate(Uint8Array, ...this.data, ...otherBuilt.data, Bcs.getInstance().ser(ValueType.TYPE_U8, op), Bcs.getInstance().ser(ValueType.TYPE_U8, 2)));

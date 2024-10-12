@@ -244,8 +244,6 @@ export class Bcs {
                 return this.bcs.ser('vector<u8>', d).toBytes();
             case ValueType.TYPE_VEC_STRING:
                 return this.bcs.ser('vector<vector<u8>>', data.map((v:string)=>{return new TextEncoder().encode(v)})).toBytes();
-            case ContextType.TYPE_WITNESS_ID:
-                return this.bcs.ser(BCS.ADDRESS, data).toBytes();
             default:
                 ERROR(Errors.bcsTypeInvalid, 'ser');
         }
@@ -589,7 +587,7 @@ export const query_object = (param:query_object_param) => {
     }
   }
 
-  export const FirstLetterUppercase = (str:string) => {
-    if (!str) return str;
+  export const FirstLetterUppercase = (str:string|undefined|null) : string => {
+    if (!str) return '';
     return str.substring(0, 1).toUpperCase() + str.substring(1);
   }

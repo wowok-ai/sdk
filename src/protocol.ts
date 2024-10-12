@@ -155,7 +155,6 @@ export const IsNumberType = (type:ValueType | any) : boolean => { return type===
 export enum ContextType {
     TYPE_SIGNER  = 60,
     TYPE_CLOCK = 61,
-    TYPE_WITNESS_ID = 62, 
     TYPE_CONSTANT = 80,
 }
 interface ValueTypeString {
@@ -168,8 +167,7 @@ interface ValueTypeString {
 export const SER_VALUE: ValueTypeString[] = [
     {type: ValueType.TYPE_BOOL, name: 'bool', description:'boolean. eg:true or false', validator:(value:any) => { return (value === true || value === false)}},
     {type: ValueType.TYPE_ADDRESS, name: 'address', description:'address or object-id. eg:0x6789af', validator:IsValidAddress},
-    {type: ContextType.TYPE_WITNESS_ID, name: 'witness address', description:"For example, the address of the Machine object ensures that the Progress generated in the past or future is verified; the address of the Service object ensures that the Order generated in the past or future is verified.",  validator:IsValidAddress},
-    {type: ContextType.TYPE_SIGNER, name: 'txn signer', description:"signer address of the transaction, "},
+    {type: ContextType.TYPE_SIGNER, name: 'txn signer', description:"signer address of the transaction"},
     {type: ContextType.TYPE_CLOCK, name: 'txn time', description:"unsigned-64 number for the transaction time"},
     {type: ValueType.TYPE_U64, name: 'number', description:'unsigned-64 number. eg:23870233', validator:IsValidU64},
     {type: ValueType.TYPE_U8, name: 'number', description:'unsigned-8 number. eg:255', validator:IsValidU8},
@@ -193,7 +191,7 @@ export const SER_VALUE: ValueTypeString[] = [
     {type: ValueType.TYPE_U256, name: 'number', description:'unsigned-256 number. eg:12345678901233', validator:IsValidUintLarge},
 ]
 
-export type ConstantType = ValueType | ContextType.TYPE_WITNESS_ID;
+//export type ConstantType = ValueType | ContextType.TYPE_WITNESS_ID;
 export type Data_Type = ValueType | OperatorType | ContextType;
 
 export enum ENTRYPOINT {
@@ -211,10 +209,10 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    package: "0x46e9a55686124138132d83098a1ae0b9d63d91e93d96d636c47b5e6f7f00a3d4",
-    wowok_object: '0xa78e02dd7d537ddeab3a33bb9b40df4663f58b4e835dfa5dc430f5ae4e71b4fe',
-    entity_object: '0x487524f61ed9dd3f4a02ae7311b2879f3b0ebeef1a9a4cd36f291dcd351e8e56',
-    treasury_cap:'0xf5ecc294e9e5524c55a5775c7fb3e8aa8e7d4b6bb4fc2f91712f8610d02e0287',
+    package: "0xd714ae940eb2e8bd18dad6bad8901f4449d64310cc97d3f85057f6003b46ac8c",
+    wowok_object: '0xc4984922621f17453580488938e4e7a5a772c49cce9a7a6756e0e825237b543c',
+    entity_object: '0x9436645b7ba6c6e1889a59fe1a11650e070901b4b2534255757771d5ca88120a',
+    treasury_cap:'0xceb850e3c57854f87d672b9eed98f11535c7e25b8dee7ab2c03fd599da91708c',
 }
 const MAINNET = {
     package: "",

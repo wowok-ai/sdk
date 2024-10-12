@@ -1,8 +1,8 @@
-import { type TransactionObjectInput, Inputs, Transaction as TransactionBlock} from '@mysten/sui/transactions';
+import { type TransactionObjectInput, Inputs, Transaction as TransactionBlock, TransactionResult, CallArg} from '@mysten/sui/transactions';
 import { SuiObjectResponse } from '@mysten/sui/client';
 import { FnCallType, GuardObject, Protocol, ContextType, OperatorType, Data_Type,
     ValueType, SER_VALUE, IsValidOperatorType } from './protocol';
-import { parse_object_type, array_unique, Bcs, ulebDecode, IsValidAddress, IsValidArray,  OPTION_NONE, readOption, readOptionString } from './utils';
+import { parse_object_type, array_unique, Bcs, ulebDecode, IsValidAddress, IsValidArray, insertAtHead, readOption, readOptionString } from './utils';
 import { ERROR, Errors } from './exception';
 import { Guard } from './guard';
 
@@ -13,49 +13,43 @@ export type Guard_Query_Object = {
     id: string, // object id
 }
 
-export interface QueryInfo {
-    identifier?: number;
-    index:  number;
-    type: number;
-    value_or_witness: string;
-    future?: string;
-    cmd?: number;
-}
 interface GuardInfo {
     id: string; // guard id
-    object: TransactionObjectInput;
-    query_list: (string | QueryInfo)[]; // object or witness object query
-    constant: QueryInfo[]; // witness in constant & ValueType.TYPE_ADDRESS(for Query)
-    input_witness: QueryInfo[]; // witness in input
+    digest?: string;
+    version?: string | number;
+    input: DeGuardInput[]; // object or witness object query
+    constant: DeGuardConstant[]; // witness in constant & ValueType.TYPE_ADDRESS(for Query)
 }
 
 export interface DeGuardConstant {
     type: number; // 
     value: any; //
-    identifier?: number; // ID
+    bWitness: boolean; 
+    identifier: number; // ID
 }
-export interface DeGuardData {
+export interface DeGuardInput {
     type: number; // 
     value?: any; //
     identifier?: number; // ID
     cmd?: number; // 
+}
+export interface DeGuardData extends DeGuardInput {
     child: DeGuardData[];
     ret_type?: number;
 }
 
-export interface FutureFill {
+export interface WitnessFill {
     guard: string;
-    index: number;
-    witness: string;
-    future?: string;
-    cmd?: number;
-    type?: string;
+    witness: any;
+    cmd: number[];
+    cited: number;
+    type: ValueType;
     identifier?: number;
 }
+
 export interface PassportQuery {
-    guard: (string | TransactionObjectInput)[];
     query: Guard_Query_Object[];
-    witness: Guard_Query_Object[];
+    info: GuardInfo[];
 }
 export class GuardParser {
     protected guard_list: GuardInfo[] = [];
@@ -69,205 +63,16 @@ export class GuardParser {
     guardlist = () => { return this.guard_list }
 
     static DeGuardObject_FromData = (guard_constants:any, guard_input_bytes:any) : {object:DeGuardData, constant:DeGuardConstant[]} => {
-        let  constants : DeGuardConstant[] = [];
-        guard_constants.forEach((c:any) => {
-            let v = c?.fields ?? c; // graphql dosnot 'fields', but rpcall has.
-            const data:Uint8Array = Uint8Array.from(v.value);
-            const type = data.slice(0, 1)[0];
-            var value : any = data.slice(1);
-            switch (type) {
-                case ContextType.TYPE_WITNESS_ID:
-                case ValueType.TYPE_ADDRESS:
-                    value = '0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(value)).toString();
-                    break;
-                case ValueType.TYPE_BOOL:
-                case ValueType.TYPE_U8:
-                case ValueType.TYPE_U64:
-                case ValueType.TYPE_U128:
-                case ValueType.TYPE_U256:
-                case ValueType.TYPE_VEC_U8:
-                case ValueType.TYPE_VEC_U64:
-                case ValueType.TYPE_VEC_U128:
-                case ValueType.TYPE_VEC_ADDRESS:
-                case ValueType.TYPE_VEC_BOOL:
-                case ValueType.TYPE_VEC_VEC_U8:
-                case ValueType.TYPE_OPTION_ADDRESS:
-                case ValueType.TYPE_OPTION_BOOL: 
-                case ValueType.TYPE_OPTION_U128:
-                case ValueType.TYPE_OPTION_U8:
-                case ValueType.TYPE_OPTION_U64:
-                case ValueType.TYPE_OPTION_U256:
-                case ValueType.TYPE_VEC_U256:
-                case ValueType.TYPE_STRING:
-                case ValueType.TYPE_OPTION_STRING:
-                case ValueType.TYPE_OPTION_VEC_U8:
-                case ValueType.TYPE_VEC_STRING:
-                    let de  = SER_VALUE.find(s=>s.type==type);
-                    if (!de) ERROR(Errors.Fail, 'GuardObject de error')
-                    value = Bcs.getInstance().de(type as number, Uint8Array.from(value));
-                    break;
-
-                default:
-                    ERROR(Errors.Fail, 'GuardObject constant type invalid:' +type)
-            }
-            constants.push({identifier:v.identifier, type:type,  value:value});
-        });
+        let  constants : DeGuardConstant[] = GuardParser.parse_constant(guard_constants);
         // console.log(constants)
-        let bytes = Uint8Array.from(guard_input_bytes);
-        let arr = [].slice.call(bytes.reverse());
-        let data : DeGuardData[] = [];
-        while (arr.length > 0) {
-            let type : unknown = arr.shift() ;
-            let value:any; let cmd:any; let identifier:any; 
-            switch (type as Data_Type) { 
-                case ContextType.TYPE_SIGNER:
-                case ContextType.TYPE_CLOCK:
-                case OperatorType.TYPE_LOGIC_AS_U256_GREATER:
-                case OperatorType.TYPE_LOGIC_AS_U256_GREATER_EQUAL:
-                case OperatorType.TYPE_LOGIC_AS_U256_LESSER:
-                case OperatorType.TYPE_LOGIC_AS_U256_LESSER_EQUAL:
-                case OperatorType.TYPE_LOGIC_AS_U256_EQUAL:
-                case OperatorType.TYPE_LOGIC_EQUAL:
-                case OperatorType.TYPE_LOGIC_HAS_SUBSTRING:
-                case OperatorType.TYPE_LOGIC_ALWAYS_TRUE:
-                case OperatorType.TYPE_LOGIC_NOT:
-                case OperatorType.TYPE_NUMBER_ADD:
-                case OperatorType.TYPE_NUMBER_DEVIDE:
-                case OperatorType.TYPE_NUMBER_MOD:
-                case OperatorType.TYPE_NUMBER_MULTIPLY:
-                case OperatorType.TYPE_NUMBER_SUBTRACT:
-                    break;    
-                case OperatorType.TYPE_LOGIC_AND: //@ with logics count
-                case OperatorType.TYPE_LOGIC_OR:
-                    value = arr.shift()! as number; 
-                    break;
-                case ContextType.TYPE_CONSTANT:
-                    identifier = arr.shift()! as number;  // identifier
-                    break;
-                case ContextType.TYPE_WITNESS_ID:  // add to constant 
-                case ValueType.TYPE_ADDRESS: 
-                    value = '0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(arr)).toString();
-                    arr.splice(0, 32); // address     
-                    break;
-                case ValueType.TYPE_BOOL:
-                case ValueType.TYPE_U8:
-                    value = Bcs.getInstance().de(type as ValueType, Uint8Array.from(arr)) as number;
-                    arr.shift();
-                    break;
-                case ValueType.TYPE_U64: 
-                    value = Bcs.getInstance().de(type as ValueType, Uint8Array.from(arr)) as number;
-                    arr.splice(0, 8);
-                    break;
-                case ValueType.TYPE_U128: 
-                    value = Bcs.getInstance().de(type as ValueType, Uint8Array.from(arr)) as bigint;
-                    arr.splice(0, 16);
-                    break;
-                case ValueType.TYPE_U256:
-                    value = Bcs.getInstance().de(type as ValueType, Uint8Array.from(arr)) as bigint;
-                    arr.splice(0, 32);
-                    break;
-                case ValueType.TYPE_VEC_U8:
-                case ValueType.TYPE_VEC_BOOL:
-                case ValueType.TYPE_STRING:
-                    let r = ulebDecode(Uint8Array.from(arr));
-                    value = Bcs.getInstance().de(type as ValueType, Uint8Array.from(arr));
-                    arr.splice(0, r.value+r.length);
-                    break;  
-                case ValueType.TYPE_VEC_ADDRESS:
-                    r = ulebDecode(Uint8Array.from(arr));
-                    value = Bcs.getInstance().de(type as ValueType, Uint8Array.from(arr));
-                    arr.splice(0, r.value*32+r.length);
-                    break;  
-                case ValueType.TYPE_VEC_U128:
-                    r = ulebDecode(Uint8Array.from(arr));
-                    value = Bcs.getInstance().de(type as ValueType, Uint8Array.from(arr));
-                    arr.splice(0, r.value*16+r.length);
-                    break;  
-                case ValueType.TYPE_VEC_U256:
-                    r = ulebDecode(Uint8Array.from(arr));
-                    value = Bcs.getInstance().de(type as ValueType, Uint8Array.from(arr));
-                    arr.splice(0, r.value*32+r.length);
-                    break;  
-                case ValueType.TYPE_VEC_U64:
-                    r = ulebDecode(Uint8Array.from(arr));
-                    value = Bcs.getInstance().de(type as ValueType, Uint8Array.from(arr));
-                    arr.splice(0, r.value*8+r.length);
-                    break;              
-                case ValueType.TYPE_VEC_VEC_U8:
-                case ValueType.TYPE_VEC_STRING:
-                    r = ulebDecode(Uint8Array.from(arr)); arr.splice(0, r.length);
-                    let res = [];
-                    for (let i = 0; i < r.value; i++) {
-                        let r2 = ulebDecode(Uint8Array.from(arr)); 
-                        res.push(Bcs.getInstance().de(ValueType.TYPE_VEC_U8, Uint8Array.from(arr)));
-                        arr.splice(0, r2.length+r2.value);
-                    }
-                    value = res;
-                    break;     
-                case OperatorType.TYPE_QUERY:
-                    let t = arr.splice(0, 1); // data-type
-                    if (t[0] == ValueType.TYPE_ADDRESS || t[0] == ContextType.TYPE_WITNESS_ID) {
-                        let addr = '0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(arr)).toString();
-                        arr.splice(0, 32); // address            
-                        value = addr;
-                        cmd = Bcs.getInstance().de('u16', Uint8Array.from(arr.splice(0, 2))) as number; // cmd(u16)
-                    } else if (t[0] == ContextType.TYPE_CONSTANT) {
-                        let id = arr.splice(0, 1); // key
-                        let v = constants.find((v) => 
-                            (v.identifier == id[0]) && 
-                            ((v.type == ValueType.TYPE_ADDRESS) || (v.type == ContextType.TYPE_WITNESS_ID)));
-                        if (!v) { ERROR(Errors.Fail, 'GuardObject: indentifier not in  constant')}
-                        identifier = id[0];
-                        cmd = Bcs.getInstance().de('u16', Uint8Array.from(arr.splice(0, 2))) as number; // cmd(u16)
-                    } else {
-                        ERROR(Errors.Fail, 'GuardObject: constant type invalid');
-                    }
-                    break;
-                case ValueType.TYPE_OPTION_ADDRESS:
-                    let read = readOption(arr, ValueType.TYPE_ADDRESS);
-                    value = read.value;
-                    if (!read.bNone) arr.splice(0, 32);
-                    break;
-                case ValueType.TYPE_OPTION_BOOL:
-                    read = readOption(arr, ValueType.TYPE_BOOL);
-                    value = read.value;
-                    if (!read.bNone) arr.splice(0, 1);
-                    break;
-                case ValueType.TYPE_OPTION_U8:
-                    read = readOption(arr, ValueType.TYPE_U8);
-                    value = read.value;
-                    if (!read.bNone) arr.splice(0, 1);
-                    break;
-                case ValueType.TYPE_OPTION_U128:
-                    read = readOption(arr, ValueType.TYPE_U128);
-                    value = read.value;
-                    if (!read.bNone) arr.splice(0, 16);
-                    break;
-                case ValueType.TYPE_OPTION_U256:
-                    read = readOption(arr, ValueType.TYPE_U256);
-                    value = read.value;
-                    if (!read.bNone) arr.splice(0, 32);
-                    break;
-                case ValueType.TYPE_OPTION_U64:
-                    read = readOption(arr, ValueType.TYPE_U64);
-                    value = read.value;
-                    if (!read.bNone) arr.splice(0, 8);
-                    break;
-                case ValueType.TYPE_OPTION_STRING:
-                    read = readOptionString(arr); // splice in it
-                    value = read.value;
-                    break;
-                default:
-                    ERROR(Errors.Fail, 'GuardObject: parse_bcs types ' + type)
-            }
-            data.push({type:type as number, value:value, cmd:cmd, identifier:identifier, child:[]});
-        } 
+        
+        let inputs : DeGuardInput[] = GuardParser.parse_bcs(constants, guard_input_bytes);
 
         // console.log(data);
-        if (!data || data.length == 0) ERROR(Errors.Fail, 'GuardObject: data parsed error');
+        if (!inputs || inputs.length == 0) ERROR(Errors.Fail, 'GuardObject: data parsed error');
         let stack: DeGuardData[] = [];
-        data.forEach((d) => {
-            this.ResolveData(constants, stack, d);
+        inputs.forEach((d) => {
+            GuardParser.ResolveData(constants, stack, {...d, child:[]});
         })
 
         if (stack.length != 1) {
@@ -425,7 +230,6 @@ export class GuardParser {
                 stack.push(current);
                 return;
             case ContextType.TYPE_SIGNER:
-            case ContextType.TYPE_WITNESS_ID: /// notice!! convert witness type to address type
                 current.ret_type = ValueType.TYPE_ADDRESS;
                 stack.push(current);
                 return;
@@ -434,10 +238,6 @@ export class GuardParser {
                 if (!v) ERROR(Errors.Fail, 'OperateParamCount: identifier  invalid ' + current.type);
                 
                 current.ret_type = v?.type;
-                if (v?.type == ContextType.TYPE_WITNESS_ID) {
-                    current.ret_type = ValueType.TYPE_ADDRESS;
-                }
-                
                 stack.push(current);
                 return;
                 
@@ -445,52 +245,24 @@ export class GuardParser {
         ERROR(Errors.Fail, 'OperateParamCount: type  invalid ' + current.type);
     }
 
- /*   
-    static CreateAsync = async (protocol: Protocol, guards: string[]) => {
-        if (!IsValidArray(guards, IsValidAddress)) {
-            ERROR(Errors.IsValidArray, 'guards');
-        }
-
-        let guard_list = array_unique(guards);
-        const me = new GuardParser(protocol, guards);
-        
-        let res =  await protocol.Query_Raw(guard_list);
-        console.log(res)
-        res.forEach((r) => {
-            let c = r.data?.content as any;
-            if (!c) return;
-
-            let index = protocol.WOWOK_OBJECTS_TYPE().findIndex(v => {return v.includes('guard::Guard') && v == c.type});
-            if (index == -1) return;
-
-            let info:GuardInfo = {id: c.fields.id.id, query_list:[],  constant:[], input_witness:[]};
-            me.parse_constant(info,  c.fields.constants);
-            if (c.fields.input.type == (protocol.Package() + '::bcs::BCS')) {
-                me.parse_bcs(info,  Uint8Array.from(c.fields.input.fields.bytes));
-            }
-            me.guard_list.push(info);
-        })
-        return me
-    }
-*/
     private static  Parse_Guard_Helper(guards: string[], res:SuiObjectResponse[]) {
         const protocol = Protocol.Instance();
         const me = new GuardParser(guards);
         res.forEach((r) => {
-            let c = r.data?.content as any;
-            if (!c) return;
+            const c = r.data?.content as any;
+            if (!c) ERROR(Errors.Fail, 'Parse_Guard_Helper invalid content');
 
-            let index = protocol.WOWOK_OBJECTS_TYPE().findIndex(v => {return v.includes('guard::Guard') && v == c.type});
-            if (index == -1) return;
+            const index = protocol.WOWOK_OBJECTS_TYPE().findIndex(v => {return v.includes('guard::Guard') && v == c.type});
+            if (index === -1) ERROR(Errors.Fail, 'Parse_Guard_Helper invalid type: ' + c.type);
 
-            let info:GuardInfo = {id: c.fields.id.id, query_list:[],  constant:[], input_witness:[], object:Inputs.ObjectRef(
-                {objectId:c.fields.id.id, digest:r.data?.digest??'', version:r.data?.version ?? ''}
-            )};
-            me.parse_constant(info,  c.fields.constants); // MUST first
+
             if (c.fields.input.type === (protocol.Package() + '::bcs::BCS')) {
-                me.parse_bcs(info,  Uint8Array.from(c.fields.input.fields.bytes)); // second
+                const constants = GuardParser.parse_constant(c.fields.constants); // MUST first
+                const inputs = GuardParser.parse_bcs(constants, Uint8Array.from(c.fields.input.fields.bytes));
+                me.guard_list.push({id: c.fields.id.id, input:[...inputs],  constant:[...constants], digest:r.data?.digest??'', version:r.data?.version ?? ''});
+            } else {
+                ERROR(Errors.Fail, 'Parse_Guard_Helper invalid package: '+c.fields.input.type);
             }
-            me.guard_list.push(info);
         })
         return me
     }
@@ -502,10 +274,8 @@ export class GuardParser {
         }
 
         let guard_list = array_unique(guards);
-        const protocol = Protocol.Instance();
-
         if (onGuardInfo) {
-            protocol.Query_Raw(guard_list)
+            Protocol.Instance().Query_Raw(guard_list)
                 .then((res) => { 
                     onGuardInfo(GuardParser.Parse_Guard_Helper(guards, res)); 
                 }).catch((e) => { 
@@ -513,50 +283,86 @@ export class GuardParser {
                     onGuardInfo(undefined); 
                 })            
         } else {
-            const res = await protocol.Query_Raw(guard_list);
+            const res = await Protocol.Instance().Query_Raw(guard_list);
             return GuardParser.Parse_Guard_Helper(guards, res);
         }
     }
 
-    future_fills = () : FutureFill[] => {
-        const ret : FutureFill[] = [];
+    future_fills = () : WitnessFill[] => {
+        const ret : WitnessFill[] = [];
         this.guard_list.forEach((g) => {
-            g.query_list.forEach((v) => {
-                if (typeof(v) !== 'string') {
-                    ret.push({guard:g.id, index:v.index, witness:v.value_or_witness, cmd:v.cmd, identifier:v?.identifier});
-                }
-            })
             // cmd already in query_list, so filter it out.
-            g.constant.filter((v)=>v.type === ContextType.TYPE_WITNESS_ID && v.cmd === undefined).forEach((v) => {
-                ret.push({guard:g.id, index:v.index, witness:v.value_or_witness, identifier:v?.identifier});
-            })
-            g.input_witness.forEach((v) => {
-                ret.push({guard:g.id, index:v.index, witness:v.value_or_witness, identifier:v?.identifier});
+            //console.log(g.constant); console.log(g.input)
+            g.constant.filter((i)=>i.bWitness).forEach((v) => {
+                const cmd = g.input.filter((k)=>k.identifier === v.identifier && k.cmd !== undefined).map((k)=>k.cmd!);
+                let cited = 0;
+                g.input.forEach((k) => {
+                    if (k.identifier === v.identifier) cited ++;
+                })
+                ret.push({guard:g.id,  witness:undefined, identifier:v.identifier, type:v.type, cmd:cmd??[], cited:cited});
             })
         }); return ret;
     }
 
-    parse_constant = (info:GuardInfo, constants:any)  => {
-        constants.forEach((v:any) => {
-            if (v.type == (Protocol.Instance().Package() + '::guard::Constant')) {
-                // ValueType.TYPE_ADDRESS: Query_Cmd maybe used the address, so save it for querying
-                const data = Uint8Array.from(v.fields.value);
-                const type = data.slice(0, 1)[0];
-                const value = data.slice(1);
-                if (type == ContextType.TYPE_WITNESS_ID || type == ValueType.TYPE_ADDRESS) {
-                    info.constant.push({identifier:v.fields.identifier,  index:this.get_index(), type:type,
-                        value_or_witness:'0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(value))});
-                }
+    static parse_constant = (constants:any) : DeGuardConstant[] => {
+        let  ret : DeGuardConstant[] = [];
+        constants.forEach((c:any) => {
+            let v = c?.fields ?? c; // graphql dosnot 'fields', but rpcall has.
+            const data:Uint8Array = Uint8Array.from(v.value);
+            const type = data.slice(0, 1)[0];
+
+            if (v.bWitness) { //@ witness
+                ret.push({identifier:v.identifier, type:type, bWitness:v.bWitness, value:undefined});
+                return 
             }
+
+            var value : any = data.slice(1);
+            switch (type) {
+                case ValueType.TYPE_ADDRESS:
+                    value = '0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(value)).toString();
+                    break;
+                case ValueType.TYPE_BOOL:
+                case ValueType.TYPE_U8:
+                case ValueType.TYPE_U64:
+                case ValueType.TYPE_U128:
+                case ValueType.TYPE_U256:
+                case ValueType.TYPE_VEC_U8:
+                case ValueType.TYPE_VEC_U64:
+                case ValueType.TYPE_VEC_U128:
+                case ValueType.TYPE_VEC_ADDRESS:
+                case ValueType.TYPE_VEC_BOOL:
+                case ValueType.TYPE_VEC_VEC_U8:
+                case ValueType.TYPE_OPTION_ADDRESS:
+                case ValueType.TYPE_OPTION_BOOL: 
+                case ValueType.TYPE_OPTION_U128:
+                case ValueType.TYPE_OPTION_U8:
+                case ValueType.TYPE_OPTION_U64:
+                case ValueType.TYPE_OPTION_U256:
+                case ValueType.TYPE_VEC_U256:
+                case ValueType.TYPE_STRING:
+                case ValueType.TYPE_OPTION_STRING:
+                case ValueType.TYPE_OPTION_VEC_U8:
+                case ValueType.TYPE_VEC_STRING:
+                    let de  = SER_VALUE.find(s=>s.type==type);
+                    if (!de) ERROR(Errors.Fail, 'GuardObject de error')
+                    value = Bcs.getInstance().de(type as number, Uint8Array.from(value));
+                    break;
+
+                default:
+                    ERROR(Errors.Fail, 'GuardObject constant type invalid:' +type)
+            }
+            ret.push({identifier:v.identifier, type:type, bWitness:v.bWitness, value:value});
         });
-        //console.log(info.constant)
+        return ret;
     }
 
-    parse_bcs = (info:GuardInfo, chain_bytes: Uint8Array) => {
-        var arr = [].slice.call(chain_bytes.reverse());
+    static parse_bcs = (constants: DeGuardConstant[], chain_bytes: Uint8Array) : DeGuardInput[] => {
+        let bytes = Uint8Array.from(chain_bytes);
+        let arr = [].slice.call(bytes.reverse());
+        let data : DeGuardInput[] = [];
         while (arr.length > 0) {
-            var type : unknown = arr.shift() ;
-            // console.log(type);
+            let type : unknown = arr.shift() ;
+            let value:any; let cmd:any; let identifier:any; 
             switch (type as Data_Type) { 
                 case ContextType.TYPE_SIGNER:
                 case ContextType.TYPE_CLOCK:
@@ -574,112 +380,164 @@ export class GuardParser {
                 case OperatorType.TYPE_NUMBER_MOD:
                 case OperatorType.TYPE_NUMBER_MULTIPLY:
                 case OperatorType.TYPE_NUMBER_SUBTRACT:
-                break;    
-            case OperatorType.TYPE_LOGIC_AND: //@ logics count
-            case OperatorType.TYPE_LOGIC_OR:
-                arr.splice(0, 1); // identifier of constant
-                break;      
-            case ContextType.TYPE_CONSTANT:
-                arr.splice(0, 1); // identifier of constant
-                break;
-            case ContextType.TYPE_WITNESS_ID:  // add to constant 
-                let addr = '0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(arr)).toString();
-                arr.splice(0, 32); // address     
-                info.input_witness.push({index:this.get_index(), type:ContextType.TYPE_WITNESS_ID, value_or_witness:addr})
-                break;
-            case ValueType.TYPE_BOOL:
-            case ValueType.TYPE_U8:
-                arr.splice(0, 1); // identifier
-                break;
-            case ValueType.TYPE_ADDRESS: 
-                arr.splice(0, 32);
-                break;
-            case ValueType.TYPE_U64: 
-                arr.splice(0, 8);
-                break;
-            case ValueType.TYPE_U128: 
-                arr.splice(0, 16);
-                break;
-            case ValueType.TYPE_U256:
-                arr.splice(0, 32);
-                break;
-            case ValueType.TYPE_VEC_U8:
-                let {value, length} = ulebDecode(Uint8Array.from(arr));
-                arr.splice(0, value+length);
-                break;     
-            case OperatorType.TYPE_QUERY:
-                let type = arr.splice(0, 1);
-                if (type[0] == ValueType.TYPE_ADDRESS || type[0] == ContextType.TYPE_WITNESS_ID) {
-                    let addr = '0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(arr)).toString();
-                    const offset = arr.splice(0, 34); // address + cmd(U16)            
-                    if (type[0] == ValueType.TYPE_ADDRESS) {
-                        info.query_list.push(addr);
-                    } else if (type[0] == ContextType.TYPE_WITNESS_ID){
-                        info.query_list.push({index:this.get_index(), type:type[0], value_or_witness:addr, cmd:offset[offset.length-1]});
+                    break;    
+                case OperatorType.TYPE_LOGIC_AND: //@ with logics count
+                case OperatorType.TYPE_LOGIC_OR:
+                    value = arr.shift()! as number; 
+                    break;
+                case ContextType.TYPE_CONSTANT:
+                    identifier = arr.shift()! as number;  // identifier
+                    break;
+                case ValueType.TYPE_ADDRESS: 
+                    value = '0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(arr)).toString();
+                    arr.splice(0, 32); // address     
+                    break;
+                case ValueType.TYPE_BOOL:
+                case ValueType.TYPE_U8:
+                    value = Bcs.getInstance().de(type as ValueType, Uint8Array.from(arr)) as number;
+                    arr.shift();
+                    break;
+                case ValueType.TYPE_U64: 
+                    value = Bcs.getInstance().de(type as ValueType, Uint8Array.from(arr)) as number;
+                    arr.splice(0, 8);
+                    break;
+                case ValueType.TYPE_U128: 
+                    value = Bcs.getInstance().de(type as ValueType, Uint8Array.from(arr)) as bigint;
+                    arr.splice(0, 16);
+                    break;
+                case ValueType.TYPE_U256:
+                    value = Bcs.getInstance().de(type as ValueType, Uint8Array.from(arr)) as bigint;
+                    arr.splice(0, 32);
+                    break;
+                case ValueType.TYPE_VEC_U8:
+                case ValueType.TYPE_VEC_BOOL:
+                case ValueType.TYPE_STRING:
+                    let r = ulebDecode(Uint8Array.from(arr));
+                    value = Bcs.getInstance().de(type as ValueType, Uint8Array.from(arr));
+                    arr.splice(0, r.value+r.length);
+                    break;  
+                case ValueType.TYPE_VEC_ADDRESS:
+                    r = ulebDecode(Uint8Array.from(arr));
+                    value = Bcs.getInstance().de(type as ValueType, Uint8Array.from(arr));
+                    arr.splice(0, r.value*32+r.length);
+                    break;  
+                case ValueType.TYPE_VEC_U128:
+                    r = ulebDecode(Uint8Array.from(arr));
+                    value = Bcs.getInstance().de(type as ValueType, Uint8Array.from(arr));
+                    arr.splice(0, r.value*16+r.length);
+                    break;  
+                case ValueType.TYPE_VEC_U256:
+                    r = ulebDecode(Uint8Array.from(arr));
+                    value = Bcs.getInstance().de(type as ValueType, Uint8Array.from(arr));
+                    arr.splice(0, r.value*32+r.length);
+                    break;  
+                case ValueType.TYPE_VEC_U64:
+                    r = ulebDecode(Uint8Array.from(arr));
+                    value = Bcs.getInstance().de(type as ValueType, Uint8Array.from(arr));
+                    arr.splice(0, r.value*8+r.length);
+                    break;              
+                case ValueType.TYPE_VEC_VEC_U8:
+                case ValueType.TYPE_VEC_STRING:
+                    r = ulebDecode(Uint8Array.from(arr)); arr.splice(0, r.length);
+                    let res = [];
+                    for (let i = 0; i < r.value; i++) {
+                        let r2 = ulebDecode(Uint8Array.from(arr)); 
+                        res.push(Bcs.getInstance().de(ValueType.TYPE_VEC_U8, Uint8Array.from(arr)));
+                        arr.splice(0, r2.length+r2.value);
                     }
-                } else if (type[0] == ContextType.TYPE_CONSTANT) {
-                    const identifer = arr.splice(0, 1); // key
-                    const cmd:number = Bcs.getInstance().de('u16', Uint8Array.from(arr.splice(0, 2)));
-                    let constant = info.constant.find((v) => 
-                        (v.identifier == identifer[0]) && 
-                        ((v.type == ValueType.TYPE_ADDRESS) || (v.type == ContextType.TYPE_WITNESS_ID)));
-                    if (!constant) { ERROR(Errors.Fail, 'indentifier not in  constant')}
-                    if (constant?.type == ValueType.TYPE_ADDRESS) {
-                        info.query_list.push(constant.value_or_witness);
-                    } else if (constant?.type == ContextType.TYPE_WITNESS_ID) {
-                        const index = this.get_index();
-                        info.query_list.push({identifier:identifer[0], type:constant.type, value_or_witness:constant.value_or_witness, 
-                            index:index, cmd:cmd}); // query witness in constant
-                        constant.cmd = cmd; // mark this is a cmd in querylist(avoid multi input future by singer)
-                        constant.index = index;
-                    } 
-                } else {
-                    ERROR(Errors.Fail, 'constant type invalid ' + type);
-                }
-
-                break;
-            default:
-                ERROR(Errors.Fail, 'parse_bcs types ' + arr)
+                    value = res;
+                    break;     
+                case OperatorType.TYPE_QUERY:
+                    let t = arr.splice(0, 1); // data-type
+                    if (t[0] == ValueType.TYPE_ADDRESS) {
+                        let addr = '0x' + Bcs.getInstance().de(ValueType.TYPE_ADDRESS, Uint8Array.from(arr)).toString();
+                        arr.splice(0, 32); // address            
+                        value = addr;
+                        cmd = Bcs.getInstance().de('u16', Uint8Array.from(arr.splice(0, 2))) as number; // cmd(u16)
+                    } else if (t[0] == ContextType.TYPE_CONSTANT) {
+                        let id = arr.splice(0, 1); // key
+                        let v = constants.find((v) => 
+                            (v.identifier == id[0]) && 
+                            ((v.type == ValueType.TYPE_ADDRESS)));
+                        if (!v) { ERROR(Errors.Fail, 'GuardObject: indentifier not in  constant')}
+                        identifier = id[0];
+                        cmd = Bcs.getInstance().de('u16', Uint8Array.from(arr.splice(0, 2))) as number; // cmd(u16)
+                    } else {
+                        ERROR(Errors.Fail, 'GuardObject: constant type invalid');
+                    }
+                    break;
+                case ValueType.TYPE_OPTION_ADDRESS:
+                    let read = readOption(arr, ValueType.TYPE_ADDRESS);
+                    value = read.value;
+                    if (!read.bNone) arr.splice(0, 32);
+                    break;
+                case ValueType.TYPE_OPTION_BOOL:
+                    read = readOption(arr, ValueType.TYPE_BOOL);
+                    value = read.value;
+                    if (!read.bNone) arr.splice(0, 1);
+                    break;
+                case ValueType.TYPE_OPTION_U8:
+                    read = readOption(arr, ValueType.TYPE_U8);
+                    value = read.value;
+                    if (!read.bNone) arr.splice(0, 1);
+                    break;
+                case ValueType.TYPE_OPTION_U128:
+                    read = readOption(arr, ValueType.TYPE_U128);
+                    value = read.value;
+                    if (!read.bNone) arr.splice(0, 16);
+                    break;
+                case ValueType.TYPE_OPTION_U256:
+                    read = readOption(arr, ValueType.TYPE_U256);
+                    value = read.value;
+                    if (!read.bNone) arr.splice(0, 32);
+                    break;
+                case ValueType.TYPE_OPTION_U64:
+                    read = readOption(arr, ValueType.TYPE_U64);
+                    value = read.value;
+                    if (!read.bNone) arr.splice(0, 8);
+                    break;
+                case ValueType.TYPE_OPTION_STRING:
+                    read = readOptionString(arr); // splice in it
+                    value = read.value;
+                    break;
+                default:
+                    ERROR(Errors.Fail, 'GuardObject: parse_bcs types ' + type)
             }
+            data.push({type:type as number, value:value, cmd:cmd, identifier:identifier});
         } 
+        return data;
     }
 
-    private get_object(guardid:string, info:QueryInfo, fill?:FutureFill[]) :  string  {
-        let r = fill?.find(i => guardid == i.guard && i.index == info.index);
-        if (!r || !r.future) {
-            if (!info.future) {
-                ERROR(Errors.InvalidParam, 'index invalid for fill') 
-            }
-        } else {
-            info.future = r!.future;
-        }
-        return info.future!
-    }
-
-    done = async (fill?:FutureFill[], onPassportQueryReady?:(passport:PassportQuery | undefined)=>void) : Promise<PassportQuery | undefined>=> {
+    done = async (fill?:WitnessFill[], onPassportQueryReady?:(passport:PassportQuery | undefined)=>void) : Promise<PassportQuery | undefined>=> {
         let objects: string[] = [];
+        // check all witness and get all objects to query.
         this.guard_list.forEach((g) => {
-            // futures in constant table (all witness)
-            g.constant.filter(v => v.type == ContextType.TYPE_WITNESS_ID /*&& v.cmd === undefined*/).forEach((q) => {
-                objects.push(this.get_object(g.id, q, fill));
-            })
-            // objects to query
-            let list = g.query_list.map((q) => {
-                if (typeof(q) === "string") {
-                    objects.push(q)
-                    return q
-                } else {
-                    let r = this.get_object(g.id, q, fill);
-                    objects.push(r);
-                    return r
+            g.constant.forEach((v)=> {
+                if (v.bWitness) {
+                    const value = fill?.find((i)=>i.identifier === v.identifier);
+                    if (!value) {
+                        ERROR(Errors.Fail, 'done: invalid witness '+v.identifier);
+                    } else {
+                        v.value = value.witness;
+                    }
                 }
             })
-            g.query_list =  list; // all to string to query
-            g.input_witness.forEach((q) => {
-                objects.push(this.get_object(g.id, q, fill));
+            g.input.filter((v)=>v.cmd !== undefined).forEach((i)=> {
+                if (i.identifier !== undefined) {
+                    const value = g.constant.find((c)=>c.identifier === i.identifier && c.type === ValueType.TYPE_ADDRESS);
+                    if (!value || !IsValidAddress(value.value as string)) ERROR(Errors.Fail, 'done: invalid identifier '+i.identifier);
+                    objects.push(value!.value);
+                } else {
+                    objects.push(i.value);
+                }
             })
         })
+        
         if (onPassportQueryReady) {
+            if (objects.length === 0) {
+                onPassportQueryReady(this.done_helper([]));
+                return
+            }
             Protocol.Instance().Query_Raw(array_unique(objects), {showType:true}).then((res) => {
                 onPassportQueryReady(this.done_helper(res));
             }).catch(e => {
@@ -688,37 +546,34 @@ export class GuardParser {
             })
             return undefined;
         } else {
-            const res = await Protocol.Instance().Query_Raw(array_unique(objects), {showType:true});
+            let res:any[] = [];
+            if (objects.length > 0) {
+                res = await Protocol.Instance().Query_Raw(array_unique(objects), {showType:true});
+            }
             return this.done_helper(res);
         }
     }
 
     private done_helper(res:SuiObjectResponse[]) {
         let query: Guard_Query_Object[] = [];
-        let witness: Guard_Query_Object[] = [];
         let guards: TransactionObjectInput[] = [];
         this.guard_list.forEach(g => {
-            g.query_list.forEach(q => { // query list
-                let r = res.find(r => r.data?.objectId == q as string);  
+            guards.push(g.id);
+            g.input.filter((v)=>v.cmd !== undefined).forEach(q => { // query list
+                let id = q.value;
+                if (!id && q.identifier !== undefined) {
+                    id = g.constant.find((i)=>i.identifier == q.identifier)?.value;
+                }
+                
+                let r = res.find(r => r.data?.objectId == id);  
                 if (!r)   { ERROR(Errors.Fail, 'query object not match')} 
                 let object = this.object_query(r!.data); // build passport query objects
                 if (!object) { ERROR(Errors.Fail, 'query object fail')} 
                 query.push(object!);
             })
-            res.forEach(q => { // witness(address & query) list
-                let r1 = g.constant.find(v  => v.future === q.data?.objectId);
-                let r2 = g.input_witness.find(v  => v.future === q.data?.objectId)
-                // not match r1 || r2 means query-cmd, not witness-cmd
-                if (r1 || r2) {
-                    let object = this.object_query(q.data, 'witness'); // witness address onchain check
-                    if (!object)  { ERROR(Errors.Fail, 'witness object fail') }
-                    witness.push(object!);
-                }
-            })
-            guards.push(g.object);
         })
 
-        return {guard:guards, query:query,  witness:witness} as PassportQuery;
+        return {query:query, info:this.guard_list} as PassportQuery;
     }
 
     // create onchain query for objects : object, movecall-types, id
@@ -748,7 +603,7 @@ export class Passport {
     // return passport object used
     // bObject(true) in cmd env; (false) in service env
     constructor (txb:TransactionBlock, query:PassportQuery, bObject:boolean=false)  {
-        if (!query.guard || query.guard.length > Passport.MAX_GUARD_COUNT)   {
+        if (query.info.length === 0 || query.info.length > Passport.MAX_GUARD_COUNT)   {
             ERROR(Errors.InvalidParam, 'guards' )
         }
 
@@ -759,21 +614,24 @@ export class Passport {
         });
 
         // add others guards, if any
-        query.guard.forEach((g) => {
+        query.info.forEach((g) => {
+            const ids = g.constant.filter((i)=>i.bWitness).map((v)=>v.identifier);
+            const values = g.constant.filter((i)=>i.bWitness).map((v)=> {
+                const bcs = Bcs.getInstance().ser(v.type, v.value);
+                let r = new Uint8Array(bcs.length + 1);
+                r.set([v.type], 0); r.set(bcs, 1);
+                return [].slice.call(r)
+            });
+
+            const guard = g.version !== undefined && g.digest !== undefined ? 
+                txb.objectRef({objectId:g.id, version:g.version, digest:g.digest}) :
+                txb.object(g.id);
+            //console.log(ids); console.log(values)
             this.txb.moveCall({
                 target:Protocol.Instance().PassportFn('guard_add') as FnCallType,
-                arguments:[this.passport, this.txb.object(g)]
-            });        
-        })
-
-        console.log(query)
-        // witness
-        query?.witness.forEach((w) => {
-            this.txb.moveCall({
-                target: w.target as FnCallType,
-                arguments: [this.passport, this.txb.object(w.object)],
-                typeArguments: w.types,
-            })
+                arguments:[this.passport, guard, this.txb.pure.vector('u8', [].slice.call(ids)), 
+                    this.txb.pure(Bcs.getInstance().ser('vector<vector<u8>>', [...values]))]
+            });      
         })
 
         const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
@@ -788,7 +646,7 @@ export class Passport {
                 arguments: [ bObject ? this.txb.object(q.object) : this.txb.object(q.id), this.passport],
                 typeArguments: q.types,
             })
-        })
+        }) 
         this.txb.moveCall({
             target: Protocol.Instance().PassportFn('passport_verify') as FnCallType,
             arguments: [ this.passport,  this.txb.object(clock) ]
