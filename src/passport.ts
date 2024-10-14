@@ -233,6 +233,10 @@ export class GuardParser {
                 current.ret_type = ValueType.TYPE_ADDRESS;
                 stack.push(current);
                 return;
+            case ContextType.TYPE_GUARD:
+                current.ret_type = ValueType.TYPE_ADDRESS;
+                stack.push(current);
+                return;
             case ContextType.TYPE_CONSTANT:
                 let  v = constants.find((e) => e.identifier ==  current?.identifier);
                 if (!v) ERROR(Errors.Fail, 'OperateParamCount: identifier  invalid ' + current.type);
@@ -366,6 +370,7 @@ export class GuardParser {
             switch (type as Data_Type) { 
                 case ContextType.TYPE_SIGNER:
                 case ContextType.TYPE_CLOCK:
+                case ContextType.TYPE_GUARD:
                 case OperatorType.TYPE_LOGIC_AS_U256_GREATER:
                 case OperatorType.TYPE_LOGIC_AS_U256_GREATER_EQUAL:
                 case OperatorType.TYPE_LOGIC_AS_U256_LESSER:

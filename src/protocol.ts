@@ -155,6 +155,7 @@ export const IsNumberType = (type:ValueType | any) : boolean => { return type===
 export enum ContextType {
     TYPE_SIGNER  = 60,
     TYPE_CLOCK = 61,
+    TYPE_GUARD = 62, // current guard address
     TYPE_CONSTANT = 80,
 }
 interface ValueTypeString {
@@ -168,6 +169,7 @@ export const SER_VALUE: ValueTypeString[] = [
     {type: ValueType.TYPE_BOOL, name: 'bool', description:'boolean. eg:true or false', validator:(value:any) => { return (value === true || value === false)}},
     {type: ValueType.TYPE_ADDRESS, name: 'address', description:'address or object-id. eg:0x6789af', validator:IsValidAddress},
     {type: ContextType.TYPE_SIGNER, name: 'txn signer', description:"signer address of the transaction"},
+    {type: ContextType.TYPE_GUARD, name: 'guard address', description:"current guard address"},
     {type: ContextType.TYPE_CLOCK, name: 'txn time', description:"unsigned-64 number for the transaction time"},
     {type: ValueType.TYPE_U64, name: 'number', description:'unsigned-64 number. eg:23870233', validator:IsValidU64},
     {type: ValueType.TYPE_U8, name: 'number', description:'unsigned-8 number. eg:255', validator:IsValidU8},
@@ -209,10 +211,10 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    package: "0xd714ae940eb2e8bd18dad6bad8901f4449d64310cc97d3f85057f6003b46ac8c",
-    wowok_object: '0xc4984922621f17453580488938e4e7a5a772c49cce9a7a6756e0e825237b543c',
-    entity_object: '0x9436645b7ba6c6e1889a59fe1a11650e070901b4b2534255757771d5ca88120a',
-    treasury_cap:'0xceb850e3c57854f87d672b9eed98f11535c7e25b8dee7ab2c03fd599da91708c',
+    package: "0x61dad08ebbda7d4f38223e222a2dcc18cec644d99c66937cde65dd99a9ba93b1",
+    wowok_object: '0xed0a7c40db1f8de42e4dd5ecca2e7912701dee0fe9f7b6fe7ebd7205133a80b7',
+    entity_object: '0x4a4850bf062bb29fec3b64de337db02f7ccee0ae13b85f287ee5850a568ae330',
+    treasury_cap:'0xb33d469f8164eefbf02b260e02194faab5bfad2acafd36088e1e64302bbcd797',
 }
 const MAINNET = {
     package: "",
