@@ -626,15 +626,21 @@ export class Service {
     }
 
     // support both withdraw guard and permission guard
-    withdraw(order:OrderObject, passport?:PassportObject) {
+    withdraw(order:OrderObject, withdraw_guard?:string, passport?:PassportObject) {
         if (!Protocol.IsValidObjects([order]))  {
-            ERROR(Errors.IsValidObjects, 'order')
+            ERROR(Errors.IsValidObjects, 'withdraw.order')
         }
-        
-        if (passport) {
+        if (withdraw_guard && !IsValidAddress(withdraw_guard)) {
+            ERROR(Errors.IsValidAddress, 'withdraw.withdraw_guard')
+        }
+        if (passport && !withdraw_guard) {
+            ERROR(Errors.InvalidParam, 'withdraw.passport need withdraw_guard')
+        }
+        if (passport && withdraw_guard) {
             this.txb.moveCall({
                 target:Protocol.Instance().ServiceFn('withdraw_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order), 
+                    this.txb.object(withdraw_guard), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })        
         } else {
@@ -868,15 +874,20 @@ export class Service {
         }    
     }
 
-    refund(order:OrderObject, passport?:PassportObject) {
+    refund(order:OrderObject, refund_guard?:string, passport?:PassportObject) {
         if (!Protocol.IsValidObjects([order])) {
-            ERROR(Errors.IsValidObjects, 'order')
+            ERROR(Errors.IsValidObjects, 'refund.order')
         }
-
-        if (passport) {
+        if (refund_guard && !IsValidAddress(refund_guard)) {
+            ERROR(Errors.IsValidAddress, 'refund.refund_guard')
+        }
+        if (passport && !refund_guard) {
+            ERROR(Errors.InvalidParam, 'refund.passport need refund_guard')
+        }
+        if (passport && refund_guard) {
             this.txb.moveCall({
             target:Protocol.Instance().ServiceFn('refund_with_passport') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order), passport],
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order), this.txb.object(refund_guard), passport],
             typeArguments:[this.pay_token_type]
             })               
         } else {

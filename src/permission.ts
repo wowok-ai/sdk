@@ -81,7 +81,9 @@ export enum PermissionIndex {
 
     treasury = 700,
     treasury_deposit = 701,
-    treasury_take = 702,
+    treasury_withdraw = 702,
+    treasury_free_deposit_set = 703,
+    treasury_descritption = 704, 
     user_defined_start = 1000,
 }
 
@@ -182,7 +184,9 @@ export const PermissionInfo : PermissionInfoType[] = [
     
     {index:PermissionIndex.treasury, name: 'Treasury', description:'Launch new Treasury', module: 'treasury'},
     {index:PermissionIndex.treasury_deposit, name: 'Deposit', description:'Deposit coins', module: 'treasury'},
-    {index:PermissionIndex.treasury_take, name: 'Take', description:'Take out coins', module: 'treasury'},
+    {index:PermissionIndex.treasury_withdraw, name: 'Withdraw', description:'Withdraw coins', module: 'treasury'},
+    {index:PermissionIndex.treasury_free_deposit_set, name: 'Be Free Deposit', description:'Set whether deposits can be made without permission', module: 'treasury'},
+    {index:PermissionIndex.treasury_descritption, name: 'Description', description:'Set Treasury description', module: 'treasury'},
 ]
 
 export type PermissionIndexType = PermissionIndex | number;

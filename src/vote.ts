@@ -4,8 +4,7 @@ import { ERROR, Errors } from './exception';
 import { ValueType } from './protocol';
 import { Transaction as TransactionBlock} from '@mysten/sui/transactions';
 
-export const MAX_AGREES_COUNT = 200;
-export const MAX_CHOICE_COUNT = 200;
+
 
 export type VoteOption = {
     name:string;
@@ -42,7 +41,7 @@ export class Vote {
         if (max_choice_count && !IsValidUintLarge(max_choice_count)) {
             ERROR(Errors.IsValidUint, 'max_choice_count')
         }
-        if (max_choice_count && max_choice_count > MAX_CHOICE_COUNT) {
+        if (max_choice_count && max_choice_count > Vote.MAX_CHOICE_COUNT) {
             ERROR(Errors.InvalidParam, 'max_choice_count')
         }
         if (reference_address && !IsValidAddress(reference_address)) {
@@ -250,7 +249,7 @@ export class Vote {
         }
     }
     set_max_choice_count(max_choice_count:number, passport?:PassportObject)  {
-        if (!IsValidUintLarge(max_choice_count) || max_choice_count > MAX_CHOICE_COUNT) {
+        if (!IsValidUintLarge(max_choice_count) || max_choice_count > Vote.MAX_CHOICE_COUNT) {
             ERROR(Errors.InvalidParam, 'max_choice_count')
         }
 
@@ -333,7 +332,7 @@ export class Vote {
 
     agree(options:string[], passport?:PassportObject)  {
         if (options.length === 0) return;
-        if (options.length > MAX_CHOICE_COUNT) {
+        if (options.length > Vote.MAX_CHOICE_COUNT) {
             ERROR(Errors.InvalidParam, 'agree')
         }
 
@@ -363,4 +362,7 @@ export class Vote {
         })    
         this.permission = new_permission
     }
+
+    static  MAX_AGREES_COUNT = 100;
+    static  MAX_CHOICE_COUNT = 100;
 }

@@ -65,7 +65,6 @@ export class Machine {
 
         let m = new Machine(txb, permission);   
         let ep = txb.pure.option('string', endpoint ? endpoint : undefined);
-    
         if (passport) {
             m.object = txb.moveCall({
                 target:Protocol.Instance().MachineFn('new_with_passport') as FnCallType,

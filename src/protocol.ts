@@ -211,10 +211,10 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    package: "0x61dad08ebbda7d4f38223e222a2dcc18cec644d99c66937cde65dd99a9ba93b1",
-    wowok_object: '0xed0a7c40db1f8de42e4dd5ecca2e7912701dee0fe9f7b6fe7ebd7205133a80b7',
-    entity_object: '0x4a4850bf062bb29fec3b64de337db02f7ccee0ae13b85f287ee5850a568ae330',
-    treasury_cap:'0xb33d469f8164eefbf02b260e02194faab5bfad2acafd36088e1e64302bbcd797',
+    package: "0xf108d64c8143ec040da0d5538e834a67f0a9c661f92011195b60f51b3bc33a46",
+    wowok_object: '0xc4fc2a42a5fbcfc68b3d8ac079e4d5a07f637c541e0183446a9da655965cda5e',
+    entity_object: '0x8bbab9023092dc89c3c60c766b204c0dfbe3da46a2de486d8ab92ba91a4c905f',
+    treasury_cap:'0x07e7b3c355b63bade82c1e0e2653e655a1b20da6cc531db5707ad1292fd418e4',
 }
 const MAINNET = {
     package: "",
@@ -311,6 +311,7 @@ export class Protocol {
     ResourceFn = (fn: any) => { return `${this.package}::${MODULES.resource}::${fn}`};
     EntityFn = (fn: any) => { return `${this.package}::${MODULES.entity}::${fn}`};
     WowokFn = (fn: any) => { return `${this.package}::${MODULES.wowok}::${fn}`};
+    TreasuryFn = (fn: any) => { return `${this.package}::${MODULES.treasury}::${fn}`};
     
     Query = async (objects: Query_Param[], options:SuiObjectDataOptions={showContent:true}) : Promise<SuiObjectResponse[]> => {
         const client =  new SuiClient({ url: this.NetworkUrl() });  
@@ -465,7 +466,7 @@ export class RpcResultParser {
         return names;
     }
     static objectids_from_response = (protocol:Protocol, response:SuiTransactionBlockResponse, concat_result?:Map<string, TxbObject[]>): Map<string, TxbObject[]> => {
-        // console.log(response)
+        //console.log(response)
         let ret = new Map<string, string[]>();
         if (response?.objectChanges) {
             response.objectChanges.forEach((change) => {
