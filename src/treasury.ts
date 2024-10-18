@@ -99,7 +99,7 @@ export class Treasury {
         if (from_object && !IsValidAddress(from_object)) {
             ERROR(Errors.IsValidAddress, 'deposit.from_object')
         }
-        if (index !== undefined && IsValidU64(index)) {
+        if (index !== undefined && !IsValidU64(index)) {
             ERROR(Errors.InvalidParam, 'deposit.index')
         }
         const for_obj = this.txb.pure.option('address', for_object ?? undefined);
@@ -116,7 +116,7 @@ export class Treasury {
             })
         } else {
             return this.txb.moveCall({
-                target:Protocol.Instance().TreasuryFn('deposit_with_passport') as FnCallType,
+                target:Protocol.Instance().TreasuryFn('deposit') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, coin), 
                     this.txb.pure.string(tips), for_obj, idx, from_obj, this.txb.object(clock), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.token_type],
@@ -137,7 +137,7 @@ export class Treasury {
         if (from_object && !IsValidAddress(from_object)) {
             ERROR(Errors.IsValidAddress, 'free_deposit.from_object')
         }
-        if (index !== undefined && IsValidU64(index)) {
+        if (index !== undefined && !IsValidU64(index)) {
             ERROR(Errors.InvalidParam, 'free_deposit.index')
         }
         const for_obj = this.txb.pure.option('address', for_object ?? undefined);
@@ -166,7 +166,7 @@ export class Treasury {
         if (to_object && !IsValidAddress(to_object)) {
             ERROR(Errors.IsValidAddress, 'withdraw.to_object')
         }
-        if (index !== undefined && IsValidU64(index)) {
+        if (index !== undefined && !IsValidU64(index)) {
             ERROR(Errors.InvalidParam, 'withdraw.index')
         }
         const for_obj = this.txb.pure.option('address', for_object ?? undefined);
