@@ -1,7 +1,6 @@
 import { FnCallType, TxbObject, PermissionObject, PermissionAddress, GuardObject, Protocol} from './protocol';
-import { array_unique, IsValidAddress, IsValidArray,  IsValidDesription, IsValidUintLarge, Bcs, IsValidName} from './utils';
+import { array_unique, IsValidAddress, IsValidArray,  IsValidDesription, Bcs, IsValidName, IsValidU64} from './utils';
 import { ERROR, Errors } from './exception';
-import { ValueType } from './protocol';
 import { BCS } from '@mysten/bcs';
 import { Transaction as TransactionBlock } from '@mysten/sui/transactions';
 
@@ -565,7 +564,7 @@ export class  Permission {
     static BUSINESS_PERMISSIONS_START = PermissionIndex.user_defined_start;
 
     static IsValidUserDefinedIndex = (index:number)  => { 
-        return index >= Permission.BUSINESS_PERMISSIONS_START && IsValidUintLarge(index)
+        return index >= Permission.BUSINESS_PERMISSIONS_START && IsValidU64(index)
     }
     
     static IsValidPermissionIndex = (index:PermissionIndexType) : boolean  => {

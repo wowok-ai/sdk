@@ -1,9 +1,7 @@
 import { Transaction as TransactionBlock, TransactionObjectArgument, type TransactionResult } from '@mysten/sui/transactions';
 import { Protocol, FnCallType, PermissionObject, RepositoryObject,  PassportObject, MachineObject, MachineAddress,  GuardObject, TxbObject} from './protocol';
 import { IsValidInt, Bcs, array_unique, IsValidArray, IsValidAddress, IsValidName, IsValidName_AllowEmpty, 
-    IsValidEndpoint, IsValidDesription,
-    IsValidUintLarge,
-    IsValidU64} from './utils'
+    IsValidEndpoint, IsValidDesription, IsValidU64 } from './utils'
 import { Permission, PermissionIndexType } from './permission';
 import { Errors, ERROR}  from './exception'
 import { ValueType } from './protocol';

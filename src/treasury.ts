@@ -86,7 +86,7 @@ export class Treasury {
         }
     }
     
-    deposit(coin:CoinObject, tips:string, for_object?:string, index?:number, from_object?:string, passport?:PassportObject) :TxbObject {
+    deposit(coin:CoinObject, tips:string, for_object?:string, index?:bigint, from_object?:string, passport?:PassportObject) :TxbObject {
         if (!Protocol.IsValidObjects([coin])) {
             ERROR(Errors.IsValidObjects, 'deposit.coin')
         }
@@ -153,7 +153,7 @@ export class Treasury {
         })  
     }
     
-    withdraw(amount:number, tips:string, for_object?:string, index?:number, to_object?:string, passport?:PassportObject) : CoinObject {
+    withdraw(amount:bigint, tips:string, for_object?:string, index?:bigint, to_object?:string, passport?:PassportObject) : CoinObject {
         if (!IsValidU64(amount)) {
             ERROR(Errors.IsValidObjects, 'withdraw.amount')
         }

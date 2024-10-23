@@ -1,16 +1,27 @@
 import { FnCallType, PassportObject, PermissionObject, GuardObject, VoteAddress, Protocol, TxbObject} from './protocol';
-import { IsValidDesription, IsValidUintLarge, IsValidAddress, Bcs, array_unique, IsValidArray, IsValidName } from './utils';
+import { IsValidDesription, IsValidAddress, Bcs, array_unique, IsValidArray, IsValidName, IsValidU64, IsValidU256, IsValidU8 } from './utils';
 import { ERROR, Errors } from './exception';
 import { ValueType } from './protocol';
 import { Transaction as TransactionBlock} from '@mysten/sui/transactions';
-
-
 
 export type VoteOption = {
     name:string;
     reference_address?:string;
 }
 
+export type QueryVotedResult = {
+    who: string;
+    voted: number[]
+    weight: bigint;
+    error?: string;
+}
+
+export type VoteGuardWeight = {
+    guard: GuardObject;
+    weight: bigint;
+}
+
+export type OnQueryVoted = (result: QueryVotedResult) => void;
 export class Vote {
     protected permission;
     protected object : TxbObject;
@@ -35,10 +46,10 @@ export class Vote {
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription)
         }
-        if (!IsValidUintLarge(time)) {
+        if (!IsValidU64(time)) {
             ERROR(Errors.IsValidUint, 'time')
         }
-        if (max_choice_count && !IsValidUintLarge(max_choice_count)) {
+        if (max_choice_count && !IsValidU64(max_choice_count)) {
             ERROR(Errors.IsValidUint, 'max_choice_count')
         }
         if (max_choice_count && max_choice_count > Vote.MAX_CHOICE_COUNT) {
@@ -120,25 +131,32 @@ export class Vote {
         }
         
     }
-    add_guard(guard:GuardObject, weight:number, passport?:PassportObject)   {
-        if (!Protocol.IsValidObjects([guard])) {
-            ERROR(Errors.IsValidObjects, 'add_guard')
-        }
-        if (!IsValidUintLarge(weight)) {
-            ERROR(Errors.IsValidUint, 'add_guard')
+    add_guard(guards:VoteGuardWeight[], passport?:PassportObject)   {
+        if (guards.length === 0) return;
+        let bValid = true;
+        guards.forEach((v) => {
+            if (!IsValidU64(v.weight) || v.weight === BigInt(0)) bValid = false;
+            if (!Protocol.IsValidObjects([v.guard])) bValid = false;
+        })
+        if (!bValid) {
+            ERROR(Errors.InvalidParam, 'add_guard.gurads')
         }
 
         if (passport) {
-            this.txb.moveCall({
-                target:Protocol.Instance().VoteFn('guard_add_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, guard), 
-                    this.txb.pure.u64(weight), Protocol.TXB_OBJECT(this.txb, this.permission)]
+            guards.forEach((guard) => {
+                this.txb.moveCall({
+                    target:Protocol.Instance().VoteFn('guard_add_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, guard.guard), 
+                        this.txb.pure.u64(guard.weight), Protocol.TXB_OBJECT(this.txb, this.permission)]
+                })
             })
         } else {
-            this.txb.moveCall({
-                target:Protocol.Instance().VoteFn('guard_add') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, guard), 
-                    this.txb.pure.u64(weight), Protocol.TXB_OBJECT(this.txb, this.permission)]
+            guards.forEach((guard) => {
+                this.txb.moveCall({
+                    target:Protocol.Instance().VoteFn('guard_add') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, guard.guard), 
+                        this.txb.pure.u64(guard.weight), Protocol.TXB_OBJECT(this.txb, this.permission)]
+                })
             })
         }
     }
@@ -186,7 +204,7 @@ export class Vote {
         let bValid = true;
         options.forEach((v) => {
             if (!IsValidName(v.name)) bValid = false;
-            if (v?.reference_address && IsValidAddress(v.reference_address)) bValid = false;
+            if (v?.reference_address && !IsValidAddress(v.reference_address)) bValid = false;
         })
         if (!bValid) {
             ERROR(Errors.InvalidParam, 'options')
@@ -214,8 +232,8 @@ export class Vote {
         if (!removeall && options.length===0) {
             return
         }
-        if (options && !IsValidArray(options, IsValidAddress)) {
-            ERROR(Errors.IsValidArray, 'remove_option')
+        if (!IsValidArray(options, IsValidName)) {
+            ERROR(Errors.IsValidArray, 'remove_option.options')
         }
         
         if (passport) {
@@ -249,7 +267,7 @@ export class Vote {
         }
     }
     set_max_choice_count(max_choice_count:number, passport?:PassportObject)  {
-        if (!IsValidUintLarge(max_choice_count) || max_choice_count > Vote.MAX_CHOICE_COUNT) {
+        if (!IsValidU64(max_choice_count) || max_choice_count > Vote.MAX_CHOICE_COUNT) {
             ERROR(Errors.InvalidParam, 'max_choice_count')
         }
 
@@ -297,7 +315,7 @@ export class Vote {
     }
 
     expand_deadline(ms_expand:boolean, time:number, passport?:PassportObject)  {
-        if (!IsValidUintLarge(time)) {
+        if (!IsValidU64(time)) {
             ERROR(Errors.IsValidUint, 'time')
         }
         
@@ -319,38 +337,57 @@ export class Vote {
     lock_guard(passport?:PassportObject)  {
         if (passport) {
             this.txb.moveCall({
-                target:Protocol.Instance().VoteFn('guard_lock_with_passport') as FnCallType,
+                target:Protocol.Instance().VoteFn('guard_locked_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)]
             })   
         } else {
             this.txb.moveCall({
-                target:Protocol.Instance().VoteFn('guard_lock') as FnCallType,
+                target:Protocol.Instance().VoteFn('guard_locked') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)]
             })   
         }
     }
 
-    agree(options:string[], passport?:PassportObject)  {
+    agree(options:number[], passport?:PassportObject)  {
         if (options.length === 0) return;
         if (options.length > Vote.MAX_CHOICE_COUNT) {
-            ERROR(Errors.InvalidParam, 'agree')
+            ERROR(Errors.InvalidParam, 'agree.options')
         }
+        if (!IsValidArray(options, (v:any) => {
+            return IsValidU8(v) && v <= Vote.MAX_AGREES_COUNT;
+        })) {
+            ERROR(Errors.IsValidArray, 'agree.options')
+        }
+
+        const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
 
         if (passport) {
             this.txb.moveCall({
-                target:Protocol.Instance().VoteFn('with_passport') as FnCallType,
+                target:Protocol.Instance().VoteFn('vote_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
-                    this.txb.pure.vector('string', array_unique(options))]
+                    this.txb.pure.vector('u8', array_unique(options)), this.txb.object(clock)]
             })  
         } else {
             this.txb.moveCall({
-                target:Protocol.Instance().VoteFn('this.object') as FnCallType,
+                target:Protocol.Instance().VoteFn('vote') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
-                    this.txb.pure.vector('string', array_unique(options))]
+                    this.txb.pure.vector('u8', array_unique(options)), this.txb.object(clock)]
             })           
         }
     }
+    QueryVoted(address_queried:string, event:OnQueryVoted, sender?:string) {
+        Protocol.Client().devInspectTransactionBlock({sender:sender ?? address_queried, transactionBlock:this.txb}).then((res) => {
+            if (res.results && res.results[0].returnValues && res.results[0].returnValues.length !== 3 )  {
+                event({who:address_queried, error:'not match', voted:[], weight:BigInt(0)});
+                return 
+            }
+            console.log((res.results as any)[0].returnValues);
 
+        }).catch((e) => {
+            console.log(e);
+            event({who:address_queried, error:'error', weight:BigInt(0), voted:[]});
+        })
+    }
     change_permission(new_permission:PermissionObject)  {
         if (!Protocol.IsValidObjects([new_permission])) {
             ERROR(Errors.IsValidObjects)
@@ -364,5 +401,6 @@ export class Vote {
     }
 
     static  MAX_AGREES_COUNT = 100;
-    static  MAX_CHOICE_COUNT = 100;
+    static  MAX_CHOICE_COUNT = 100; 
+    static  MAX_GUARD_COUNT = 16;
 }

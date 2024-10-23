@@ -399,20 +399,17 @@ export const IsValidBigint = (value:string | number | undefined | bigint, max:bi
     }; return false
 }
 
-export const IsValidUintLarge = (value:string | number | undefined | bigint) : boolean => {
-    return IsValidBigint(value, MAX_U64, BigInt(0))
+export const IsValidU8 = (value:string | number | undefined | bigint, min=0) : boolean => {
+    return IsValidBigint(value, MAX_U8, BigInt(min))
 }
-export const IsValidU8 = (value:string | number | undefined | bigint) : boolean => {
-    return IsValidBigint(value, MAX_U8, BigInt(0))
+export const IsValidU64 = (value:string | number | undefined | bigint, min=0) : boolean => {
+    return IsValidBigint(value, MAX_U64, BigInt(min))
 }
-export const IsValidU64 = (value:string | number | undefined | bigint) : boolean => {
-    return IsValidBigint(value, MAX_U64, BigInt(0))
+export const IsValidU128 = (value:string | number | undefined | bigint, min=0) : boolean => {
+    return IsValidBigint(value, MAX_U128, BigInt(min))
 }
-export const IsValidU128 = (value:string | number | undefined | bigint) : boolean => {
-    return IsValidBigint(value, MAX_U128, BigInt(0))
-}
-export const IsValidU256 = (value:string | number | undefined | bigint) : boolean => {
-    return IsValidBigint(value, MAX_U256, BigInt(0))
+export const IsValidU256 = (value:string | number | undefined | bigint, min=0) : boolean => {
+    return IsValidBigint(value, MAX_U256, BigInt(min))
 }
 
 export const IsValidTokenType = (argType: string) : boolean => { 

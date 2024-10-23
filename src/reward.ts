@@ -1,6 +1,6 @@
 import { TransactionArgument, Transaction as TransactionBlock, type TransactionResult, } from '@mysten/sui/transactions';
 import { FnCallType, GuardObject, PassportObject, PermissionObject, RewardAddress, Protocol, TxbObject, } from './protocol';
-import { array_unique, IsValidAddress, IsValidArgType, IsValidArray, IsValidDesription,  IsValidUintLarge, } from './utils';
+import { array_unique, IsValidAddress, IsValidArgType, IsValidArray, IsValidDesription, IsValidU64} from './utils';
 import { ERROR, Errors } from './exception';
 
 export type CoinReward = TransactionResult;
@@ -39,7 +39,7 @@ export class Reward {
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription)
         }
-        if (!IsValidUintLarge(time)) {
+        if (!IsValidU64(time)) {
             ERROR(Errors.IsValidUint, 'time')
         }
 
@@ -96,7 +96,7 @@ export class Reward {
     }
 
     expand_time(ms_expand:boolean, time:number, passport?:PassportObject)  {
-        if (!IsValidUintLarge(time)) {
+        if (!IsValidU64(time)) {
             ERROR(Errors.IsValidUint, 'minutes_expand')
         }
         
@@ -117,20 +117,20 @@ export class Reward {
         }
     }
 
-    add_guard(gurads:RewardGuardPortions[], passport?:PassportObject)  {
-        if (gurads.length === 0) return;
+    add_guard(guards:RewardGuardPortions[], passport?:PassportObject)  {
+        if (guards.length === 0) return;
 
         let bValid = true;
-        gurads.forEach((v) => {
-            if (!IsValidUintLarge(v.portions) || v.portions > Reward.MAX_PORTIONS_COUNT) bValid = false;
+        guards.forEach((v) => {
+            if (!IsValidU64(v.portions) || v.portions > Reward.MAX_PORTIONS_COUNT) bValid = false;
             if (!Protocol.IsValidObjects([v.guard])) bValid = false;
         })
         if (!bValid) {
-            ERROR(Errors.InvalidParam, 'gurads')
+            ERROR(Errors.InvalidParam, 'guards')
         }
 
         if (passport) {
-            gurads.forEach((guard) => 
+            guards.forEach((guard) => 
                 this.txb.moveCall({
                     target:Protocol.Instance().RewardFn('guard_add_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
@@ -140,7 +140,7 @@ export class Reward {
                 })
             )
         } else {
-            gurads.forEach((guard) => 
+            guards.forEach((guard) => 
                 this.txb.moveCall({
                     target:Protocol.Instance().RewardFn('guard_add') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, guard.guard), 

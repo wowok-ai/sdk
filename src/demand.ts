@@ -1,6 +1,6 @@
 import { type TransactionResult, Transaction as TransactionBlock } from '@mysten/sui/transactions';
 import { FnCallType, Protocol, PassportObject, PermissionObject, GuardObject, DemandAddress, TxbObject, ResourceObject} from './protocol';
-import { IsValidDesription, IsValidUintLarge, IsValidAddress, IsValidArgType, } from './utils'
+import { IsValidDesription, IsValidAddress, IsValidArgType, IsValidU64, } from './utils'
 import { Errors, ERROR}  from './exception'
 
 export class Demand {
@@ -35,7 +35,7 @@ export class Demand {
         if (!IsValidArgType(bounty_type)) {
             ERROR(Errors.IsValidArgType, bounty_type);
         }
-        if (!IsValidUintLarge(time)) {
+        if (!IsValidU64(time)) {
             ERROR(Errors.IsValidUint, 'time')
         }
         
@@ -95,7 +95,7 @@ export class Demand {
     
     // minutes_duration TRUE , time is minutes count; otherwise, the deadline time
     expand_time(minutes_duration:boolean, time: number, passport?:PassportObject) {
-        if (!IsValidUintLarge(time)) {
+        if (!IsValidU64(time)) {
             ERROR(Errors.IsValidUint, 'time');
         }
         const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);

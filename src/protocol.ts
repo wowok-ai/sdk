@@ -3,7 +3,7 @@ import { SuiClient, SuiObjectResponse, SuiObjectDataOptions, SuiTransactionBlock
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { toHEX, fromHEX, BcsReader } from '@mysten/bcs';
 import { Transaction as TransactionBlock, Inputs, TransactionResult, TransactionArgument } from '@mysten/sui/transactions';
-import { capitalize, IsValidAddress, IsValidArray, IsValidU128, IsValidU64, IsValidU8, IsValidUintLarge } from './utils'
+import { capitalize, IsValidAddress, IsValidArray, IsValidU128, IsValidU256, IsValidU64, IsValidU8 } from './utils'
 import { GuardConstant } from './guard';
 import { isValidSuiAddress, isValidSuiObjectId } from '@mysten/sui/utils'
 
@@ -190,7 +190,7 @@ export const SER_VALUE: ValueTypeString[] = [
     {type: ValueType.TYPE_VEC_STRING, name: '[string]', description:'ascii string array. eg:["abc", "hi"]'},
     {type: ValueType.TYPE_STRING, name: 'string', description:'eg:"wowok"', },
     {type: ValueType.TYPE_OPTION_STRING, name: 'option', description:'option of string. eg:none or string value'},
-    {type: ValueType.TYPE_U256, name: 'number', description:'unsigned-256 number. eg:12345678901233', validator:IsValidUintLarge},
+    {type: ValueType.TYPE_U256, name: 'number', description:'unsigned-256 number. eg:12345678901233', validator:IsValidU256},
 ]
 
 //export type ConstantType = ValueType | ContextType.TYPE_WITNESS_ID;
@@ -211,10 +211,10 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    package: "0xf108d64c8143ec040da0d5538e834a67f0a9c661f92011195b60f51b3bc33a46",
-    wowok_object: '0xc4fc2a42a5fbcfc68b3d8ac079e4d5a07f637c541e0183446a9da655965cda5e',
-    entity_object: '0x8bbab9023092dc89c3c60c766b204c0dfbe3da46a2de486d8ab92ba91a4c905f',
-    treasury_cap:'0x07e7b3c355b63bade82c1e0e2653e655a1b20da6cc531db5707ad1292fd418e4',
+    package: "0x0a0a86d4d364ba566d5392cd8ba7d980f4d65fc1e1586e5b2e49b0ecd8dfeae4",
+    wowok_object: '0x8e5424a7899597dc75b456d597dd0a741296c1363282a72d52421b1c85d2460e',
+    entity_object: '0xd88aaf554750437ab4148acca27e0ba51cff97c13882722a4a89289e57a7b8fa',
+    treasury_cap:'0x01079f2baa2c320afc52e0f2680167c44bbaad9a6a21514bfd2e56356028be9d',
 }
 const MAINNET = {
     package: "",
