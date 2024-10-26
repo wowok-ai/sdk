@@ -56,6 +56,11 @@ export type ResourceObject = TransactionResult | string | TransactionArgument;
 export type ResourceAddress = TransactionResult;
 export type EntityObject = TransactionResult | string | TransactionArgument;
 export type EntityAddress = TransactionResult;
+export type TreasuryAddress = TransactionResult;
+export type PaymentObject = TransactionResult | string | TransactionArgument;
+export type PaymentAddress = TransactionResult;
+export type ReceivedObject = TransactionResult;
+export type CoinWrapperObject = TransactionResult;
 
 export type TxbObject = string | TransactionResult | TransactionArgument | GuardObject |  RepositoryObject | PermissionObject | MachineObject | PassportObject |
     DemandObject | ServiceObject | RewardObject | OrderObject | DiscountObject | VoteObject | DemandObject | ResourceObject | EntityObject;
@@ -204,20 +209,22 @@ export enum ENTRYPOINT {
 }
 /*
 const TESTNET = {
-    package: "0xbd3d0929072f7647e521bf72851ccdc7e2169052b22bfdc5b49439c48cfb119a",
+    wowok: "0xbd3d0929072f7647e521bf72851ccdc7e2169052b22bfdc5b49439c48cfb119a",
     wowok_object: '0xb0a521a287e9d5e08932b3984dbe6ce159e836179c41bd08c556ef77ecdb7439',
     entity_object: '0x16aab98920e7341d1dc19631031253234b2b71fc2ab8c32d65ee3ded8072acef',
     treasury_cap:'0xb75a2ca2f651755c134ad521175f33f9e3f9008ad44340f76b3229e1f30cfdff',
 }
 */
 const TESTNET = {
-    package: "0x0a0a86d4d364ba566d5392cd8ba7d980f4d65fc1e1586e5b2e49b0ecd8dfeae4",
-    wowok_object: '0x8e5424a7899597dc75b456d597dd0a741296c1363282a72d52421b1c85d2460e',
-    entity_object: '0xd88aaf554750437ab4148acca27e0ba51cff97c13882722a4a89289e57a7b8fa',
-    treasury_cap:'0x01079f2baa2c320afc52e0f2680167c44bbaad9a6a21514bfd2e56356028be9d',
+    wowok: "0xb82ef16ea48fb4f732310c3a0c86c34d0b8711f4dac1c4ca693005345047bfa4",
+    base: '0x74fb58a0b148f19852a721293a797fdeb59dec5da71ca31838fc810af2d32fdd',
+    wowok_object: '0x41c93c2903227632a33394d37fd3b7f62a33bc72b16a7f9aafc8161b78b232be',
+    entity_object: '0x0b34c975a4b179755dabdec5c50505bd21c0439c463d171a54fa44f215e3bb57',
+    treasury_cap:'0xacb8b1d380d4f75a802dd7412142290bebd7f6266785690de2daf68f6a7ba9ce',
 }
 const MAINNET = {
-    package: "",
+    wowok: "",
+    base:"",
     wowok_object: '',
     entity_object: '',
     treasury_cap:'',
@@ -231,7 +238,7 @@ export interface CoinTypeInfo {
 }
 export class Protocol {
     protected network = '';
-    protected package = '';
+    protected package = new Map<string, string>();
     protected signer = '';
     protected wowok_object = '';
     protected entity_object = '';
@@ -262,14 +269,16 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package = TESTNET.package;
+                this.package.set('wowok', TESTNET.wowok);
+                this.package.set('base', TESTNET.base);
                 this.wowok_object = TESTNET.wowok_object;
                 this.entity_object= TESTNET.entity_object;
                 this.treasury_cap = TESTNET.treasury_cap;
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 break;
             case ENTRYPOINT.mainnet:
-                this.package = MAINNET.package;
+                this.package.set('wowok', MAINNET.wowok);
+                this.package.set('base', MAINNET.base);
                 this.wowok_object = MAINNET.wowok_object;
                 this.entity_object= MAINNET.entity_object;
                 this.treasury_cap = MAINNET.treasury_cap;
@@ -277,7 +286,10 @@ export class Protocol {
                 break;
         };
     }
-    Package(): string { return this.package }
+    Package(type:string): string { 
+        return this.package.get(type) ?? ''
+    }
+
     WowokObject(): string { return this.wowok_object }
     EntityObject(): string { return this.entity_object }
     TreasuryCap() : string { return this.treasury_cap }
@@ -312,6 +324,8 @@ export class Protocol {
     EntityFn = (fn: any) => { return `${this.package}::${MODULES.entity}::${fn}`};
     WowokFn = (fn: any) => { return `${this.package}::${MODULES.wowok}::${fn}`};
     TreasuryFn = (fn: any) => { return `${this.package}::${MODULES.treasury}::${fn}`};
+    PaymentFn = (fn: any) => { return `${this.package}::${MODULES.payment}::${fn}`};
+    WithholdingFn = (fn: any) => { return `${this.package}::${MODULES.withholding}::${fn}`};
     
     Query = async (objects: Query_Param[], options:SuiObjectDataOptions={showContent:true}) : Promise<SuiObjectResponse[]> => {
         const client =  new SuiClient({ url: this.NetworkUrl() });  
@@ -392,13 +406,13 @@ export class Protocol {
     CoinTypes_Testnet:CoinTypeInfo[] = [
         {symbol:'SUI', type:'0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI', decimals:9, alias:true},
         {symbol:'SUI', type:'0x2::sui::SUI', decimals:9, },
-        {symbol:'WOW', type:TESTNET.package + '::wowok::WOWOK', decimals:9},
+        {symbol:'WOW', type:TESTNET.wowok + '::wowok::WOWOK', decimals:9},
     ];
 
     CoinTypes_Mainnet:CoinTypeInfo[] = [
         {symbol:'SUI', type:'0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI', decimals:9, alias:true},
         {symbol:'SUI', type:'0x2::sui::SUI', decimals:9, },
-        {symbol:'WOW', type:TESTNET.package + '::wowok::WOWOK', decimals:9},
+        {symbol:'WOW', type:TESTNET.wowok + '::wowok::WOWOK', decimals:9},
         {symbol:'USDT', type:'0xc060006111016b8a020ad5b33834984a437aaa7d3c74c18e09a95d48aceab08c::coin::COIN', decimals:6},
         {symbol:'USDC', type:'0x5d4b302506645c37ff133b98c4b50a5ae14841659738d6d733d59d0d217a93bf::coin::COIN', decimals:6},              
         {symbol:'WETH', type:'0xaf8cd5edc19c4512f4259f0bee101a40d41ebed738ade5874359610ef8eeced5::coin::COIN', decimals:8},
@@ -441,10 +455,17 @@ export class Protocol {
         { let i = this.package + '::' + key + '::';  return i + capitalize(key); })
     WOWOK_OBJECTS_PREFIX_TYPE = () => (Object.keys(MODULES) as Array<keyof typeof MODULES>).map((key) => 
         { return this.package + '::' + key + '::'; })
+    private hasPackage(pack:string) : boolean {
+        for (let value of this.package.values()) {
+            if (value === pack) {
+                return true;
+            }
+        } return false;
+    }
     object_name_from_type_repr = (type_repr:string) : string => {
         if (!type_repr) return ''
         let i = type_repr.indexOf('::');
-        if (i > 0 && type_repr.slice(0, i) === this.package) {
+        if (i > 0 && this.hasPackage(type_repr.slice(0, i))) {
             i = type_repr.indexOf('<');
             if (i > 0) {
                 type_repr = type_repr.slice(0, i);
@@ -471,7 +492,7 @@ export class RpcResultParser {
         if (response?.objectChanges) {
             response.objectChanges.forEach((change) => {
                 RpcResultParser.Object_Type_Extra().forEach((name) => {
-                    let type = protocol.Package() + '::' + name;
+                    let type = protocol.Package('wowok') + '::' + name;
                     if (change.type == 'created' && change.objectType.includes(type)) {
                         if (ret.has(name)) {
                             ret.get(name)?.push(change.objectId);

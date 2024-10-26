@@ -1062,7 +1062,7 @@ export class Service {
 
     static DiscountObjects = (owner:string, handleDiscountObject:handleDiscountObject) => {
         Protocol.Client().getOwnedObjects({owner:owner, 
-            filter:{MoveModule:{module:'order', package:Protocol.Instance().Package()}}, 
+            filter:{MoveModule:{module:'order', package:Protocol.Instance().Package('wowok')}}, 
             options:{showContent:true, showType:true}}).then((res) => {
             handleDiscountObject(owner, res.data.map((v)=>v.data));
         }).catch((e) => {

@@ -94,7 +94,7 @@ export class GuardParser {
 
         // console.log(res[0].data?.content);
         let content = res[0].data!.content as any;
-        if (content?.type != protocol.Package() + '::guard::Guard') {
+        if (content?.type != protocol.Package('base') + '::guard::Guard') {
             ERROR(Errors.Fail, 'GuardObject object invalid')
         }
 
@@ -260,7 +260,7 @@ export class GuardParser {
             if (index === -1) ERROR(Errors.Fail, 'Parse_Guard_Helper invalid type: ' + c.type);
 
 
-            if (c.fields.input.type === (protocol.Package() + '::bcs::BCS')) {
+            if (c.fields.input.type === (protocol.Package('base') + '::bcs::BCS')) {
                 const constants = GuardParser.parse_constant(c.fields.constants); // MUST first
                 const inputs = GuardParser.parse_bcs(constants, Uint8Array.from(c.fields.input.fields.bytes));
                 me.guard_list.push({id: c.fields.id.id, input:[...inputs],  constant:[...constants], digest:r.data?.digest??'', version:r.data?.version ?? ''});
