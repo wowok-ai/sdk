@@ -463,19 +463,40 @@ export const ResolveU64 = (value:bigint) : bigint => {
     }
 }
 
+function removeTrailingZeros(numberString: string): string {
+    const trimmedString = numberString.trim();
+    const decimalIndex = trimmedString.indexOf('.');
+    
+    if (decimalIndex !== -1) {
+      let endIndex = trimmedString.length - 1;
+      
+      while (trimmedString[endIndex] === '0') {
+        endIndex--;
+      }
+      
+      if (trimmedString[endIndex] === '.') {
+        endIndex--; // 如果小数点后面全是零，也去掉小数点
+      }
+      
+      return trimmedString.slice(0, endIndex + 1);
+    }
+    
+    return trimmedString;
+  }
+
 export const ResolveBalance = (balance:string, decimals:number) : string => {
     if (!balance) return ''
     if (balance === '0') return '0'
     if (decimals <= 0) return balance;
     var pos = decimals - balance.length;
     if (pos === 0) {
-       return '.' + balance;
+       return removeTrailingZeros('.' + (balance));
     } else if (pos < 0) {
         let start = balance.slice(0, Math.abs(pos));
         let end = balance.slice(Math.abs(pos));
-        return start + '.' + end;
+        return removeTrailingZeros(start + '.' + end);
     } else {
-        return '.' + balance.padStart(decimals, '0');
+        return removeTrailingZeros('.' + balance.padStart(decimals, '0'));
     }
 }
 

@@ -11,7 +11,6 @@ export enum MODULES {
     machine = 'machine',
     node = 'node',
     progress = 'progress',
-    community = 'community',
     repository = 'repository',
     permission = 'permission',
     passport = 'passport',
@@ -59,7 +58,7 @@ export type EntityAddress = TransactionResult;
 export type TreasuryAddress = TransactionResult;
 export type PaymentObject = TransactionResult | string | TransactionArgument;
 export type PaymentAddress = TransactionResult;
-export type ReceivedObject = TransactionResult;
+export type ReceivedObject = TransactionResult | string | TransactionArgument;
 export type CoinWrapperObject = TransactionResult;
 
 export type TxbObject = string | TransactionResult | TransactionArgument | GuardObject |  RepositoryObject | PermissionObject | MachineObject | PassportObject |
@@ -308,24 +307,23 @@ export class Protocol {
         }; return "";
     };
     
-    MachineFn = (fn:any) => { return `${this.package}::${MODULES.machine}::${fn}`};
-    ProgressFn = (fn:any) => { return `${this.package}::${MODULES.progress}::${fn}`};
-    CommunityFn = (fn: any) => { return `${this.package}::${MODULES.community}::${fn}`};
-    RepositoryFn = (fn:any) => { return `${this.package}::${MODULES.repository}::${fn}`};
-    PermissionFn = (fn: any) => { return `${this.package}::${MODULES.permission}::${fn}`};
-    PassportFn = (fn:any) => { return `${this.package}::${MODULES.passport}::${fn}`};
-    GuardFn = (fn: any) => { return `${this.package}::${MODULES.guard}::${fn}`};
-    VoteFn = (fn:any) => { return `${this.package}::${MODULES.vote}::${fn}`};
-    DemandFn = (fn: any) => { return `${this.package}::${MODULES.demand}::${fn}`};
-    OrderFn = (fn:any) => { return `${this.package}::${MODULES.order}::${fn}`};
-    RewardFn = (fn: any) => { return `${this.package}::${MODULES.reward}::${fn}`};
-    ServiceFn = (fn: any) => { return `${this.package}::${MODULES.service}::${fn}`};
-    ResourceFn = (fn: any) => { return `${this.package}::${MODULES.resource}::${fn}`};
-    EntityFn = (fn: any) => { return `${this.package}::${MODULES.entity}::${fn}`};
-    WowokFn = (fn: any) => { return `${this.package}::${MODULES.wowok}::${fn}`};
-    TreasuryFn = (fn: any) => { return `${this.package}::${MODULES.treasury}::${fn}`};
-    PaymentFn = (fn: any) => { return `${this.package}::${MODULES.payment}::${fn}`};
-    WithholdingFn = (fn: any) => { return `${this.package}::${MODULES.withholding}::${fn}`};
+    MachineFn = (fn:any) => { return `${this.package.get('wowok')}::${MODULES.machine}::${fn}`};
+    ProgressFn = (fn:any) => { return `${this.package.get('wowok')}::${MODULES.progress}::${fn}`};
+    RepositoryFn = (fn:any) => { return `${this.package.get('wowok')}::${MODULES.repository}::${fn}`};
+    PermissionFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.permission}::${fn}`};
+    PassportFn = (fn:any) => { return `${this.package.get('wowok')}::${MODULES.passport}::${fn}`};
+    GuardFn = (fn: any) => { return `${this.package.get('base')}::${MODULES.guard}::${fn}`};
+    VoteFn = (fn:any) => { return `${this.package.get('wowok')}::${MODULES.vote}::${fn}`};
+    DemandFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.demand}::${fn}`};
+    OrderFn = (fn:any) => { return `${this.package.get('wowok')}::${MODULES.order}::${fn}`};
+    RewardFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.reward}::${fn}`};
+    ServiceFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.service}::${fn}`};
+    ResourceFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.resource}::${fn}`};
+    EntityFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.entity}::${fn}`};
+    WowokFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.wowok}::${fn}`};
+    TreasuryFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.treasury}::${fn}`};
+    PaymentFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.payment}::${fn}`};
+    WithholdingFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.withholding}::${fn}`};
     
     Query = async (objects: Query_Param[], options:SuiObjectDataOptions={showContent:true}) : Promise<SuiObjectResponse[]> => {
         const client =  new SuiClient({ url: this.NetworkUrl() });  
@@ -356,7 +354,6 @@ export class Protocol {
 
         const privkey = fromHEX(priv_key);
         const keypair = Ed25519Keypair.fromSecretKey(privkey);
-
         const response = await client.signAndExecuteTransaction({
             transaction: this.CurrentSession(), 
             signer: keypair,
@@ -370,8 +367,8 @@ export class Protocol {
     static SUI_TOKEN_TYPE = '0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI'; // TOKEN_TYPE
     // used in demand, reward, ...
     static SUI_COIN_TYPE = '0x0000000000000000000000000000000000000000000000000000000000000002::coin::Coin<0x2::sui::SUI>'; // COIN TYPE
-    WOWOK_TOKEN_TYPE = () => { return this.package + '::wowok::WOWOK' }
-    WOWOK_COIN_TYPE = () => {  return '0x2::coin::Coin<' + this.package + '::wowok::WOWOK>'}
+    WOWOK_TOKEN_TYPE = () => { return this.package.get('wowok') + '::wowok::WOWOK' }
+    WOWOK_COIN_TYPE = () => {  return '0x2::coin::Coin<' + this.package.get('wowok') + '::wowok::WOWOK>'}
     COINS_TYPE = () => { 
         switch(this.network) {
             case ENTRYPOINT.testnet:
@@ -452,9 +449,9 @@ export class Protocol {
         })
     }  
     WOWOK_OBJECTS_TYPE = () => (Object.keys(MODULES) as Array<keyof typeof MODULES>).map((key) => 
-        { let i = this.package + '::' + key + '::';  return i + capitalize(key); })
+        { let i = this.package.get('wowok') + '::' + key + '::';  return i + capitalize(key); })
     WOWOK_OBJECTS_PREFIX_TYPE = () => (Object.keys(MODULES) as Array<keyof typeof MODULES>).map((key) => 
-        { return this.package + '::' + key + '::'; })
+        { return this.package.get('wowok') + '::' + key + '::'; })
     private hasPackage(pack:string) : boolean {
         for (let value of this.package.values()) {
             if (value === pack) {
@@ -478,6 +475,22 @@ export class Protocol {
         }
         return ''
     }
+    module_object_name_from_type_repr = (type_repr:string) : string => {
+        if (!type_repr) return ''
+        let i = type_repr.indexOf('::');
+        if (i > 0 && this.hasPackage(type_repr.slice(0, i))) {
+            i = type_repr.indexOf('<');
+            if (i > 0) {
+                type_repr = type_repr.slice(0, i);
+            }
+            
+            let n = type_repr.indexOf('::');
+            if (n > 0) {
+                return type_repr.slice(n+2);
+            }
+        }
+        return ''
+    }
 }
 
 export class RpcResultParser {
@@ -492,8 +505,7 @@ export class RpcResultParser {
         if (response?.objectChanges) {
             response.objectChanges.forEach((change) => {
                 RpcResultParser.Object_Type_Extra().forEach((name) => {
-                    let type = protocol.Package('wowok') + '::' + name;
-                    if (change.type == 'created' && change.objectType.includes(type)) {
+                    if (change.type == 'created' && protocol.module_object_name_from_type_repr(change.objectType)===name)  {
                         if (ret.has(name)) {
                             ret.get(name)?.push(change.objectId);
                         } else {

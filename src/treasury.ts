@@ -90,7 +90,7 @@ export class Treasury {
         }) 
     }
     
-    set_free_deposits(bFreeDeposit:boolean, passport?:PassportObject)  {
+    set_free_deposit(bFreeDeposit:boolean, passport?:PassportObject)  {
         if (passport) {
             this.txb.moveCall({
                 target:Protocol.Instance().TreasuryFn('free_deposit_set_with_passport') as FnCallType,
@@ -251,6 +251,7 @@ export class Treasury {
                     typeArguments:[this.token_type],
                 })
             } else {
+                console.log(param)
                 return this.txb.moveCall({
                     target:Protocol.Instance().TreasuryFn('withdraw') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', param.items.map(v=>v.address)), 
@@ -306,5 +307,9 @@ export class Treasury {
         }
         return '';
     }
+
+    static OP_WITHDRAW = 0;
+    static OP_DEPOSIT = 1;
+    static OP_RECEIVE = 2;
 }
 

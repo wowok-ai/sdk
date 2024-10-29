@@ -21,6 +21,7 @@ export class Resource {
     static LikeName = "like";
     static DislikeName = "dislike";
     static FavorName = "favor";
+    static LaunchName = 'launch';
 
     protected object:TxbObject;
     protected txb;
@@ -55,14 +56,14 @@ export class Resource {
         });
     }
 
-    add2(object:string, name:string[])  {
-        if (!IsValidAddress(object)) ERROR(Errors.IsValidAddress, 'add2');
+    add2(object:TxbObject, name:string[])  {
+        if (typeof(object) === 'string' && !IsValidAddress(object)) ERROR(Errors.IsValidAddress, 'add2');
         if (!IsValidArray(name, IsValidName)) ERROR(Errors.IsValidArray, 'add2');
         if (!name) return 
 
         this.txb.moveCall({
             target:Protocol.Instance().ResourceFn('add2')  as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(object), 
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), typeof(object) === 'string' ? this.txb.pure.address(object) : object, 
                 this.txb.pure.vector('string', name)]
         });
     }

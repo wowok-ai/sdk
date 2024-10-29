@@ -78,7 +78,6 @@ export class Progress {
     }
 
     launch() : ProgressAddress {
-        
         return this.txb.moveCall({
             target:Protocol.Instance().ProgressFn('create') as FnCallType,
             arguments: [Protocol.TXB_OBJECT(this.txb, this.object)],
