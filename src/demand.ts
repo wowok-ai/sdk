@@ -1,6 +1,6 @@
 import { type TransactionResult, Transaction as TransactionBlock } from '@mysten/sui/transactions';
-import { FnCallType, Protocol, PassportObject, PermissionObject, GuardObject, DemandAddress, TxbObject, ResourceObject} from './protocol';
-import { IsValidDesription, IsValidAddress, IsValidArgType, IsValidU64, } from './utils'
+import { FnCallType, Protocol, PassportObject, PermissionObject, GuardObject, DemandAddress, TxbObject } from './protocol';
+import { IsValidDesription, IsValidAddress, IsValidArgType, IsValidU64, parseObjectType } from './utils'
 import { Errors, ERROR}  from './exception'
 
 export class Demand {
@@ -250,16 +250,8 @@ export class Demand {
         })    
         this.permission = new_permission
     }
-    static parseObjectType = (chain_type:string) : string =>  {
-        if (chain_type) {
-            const s = 'demand::Demand<'
-            const i = chain_type.indexOf(s);
-            if (i > 0) {
-                let r = chain_type.slice(i + s.length, chain_type.length-1);
-                return r
-            }
-        }
-        return '';
+    static parseObjectType = (chain_type?:string | null) : string =>  {
+        return parseObjectType(chain_type, 'demand::Demand<')
     }
 
     static MAX_BOUNTY_COUNT = 300;

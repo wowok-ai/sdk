@@ -119,7 +119,7 @@ export const concatenate = (resultConstructor:any, ...arrays:any[]) => {
     return result;
 }
 
-export const parseObjectType = (chain_type:string, header:string='payment::Payment<') : string =>  {
+export const parseObjectType = (chain_type:string | null | undefined, header:string='payment::Payment<') : string =>  {
     if (chain_type) {
         const i = chain_type.indexOf(header);
         if (i > 0) {

@@ -1,6 +1,6 @@
 import { TransactionArgument, Transaction as TransactionBlock, type TransactionResult, } from '@mysten/sui/transactions';
 import { FnCallType, GuardObject, PassportObject, PermissionObject, RewardAddress, Protocol, TxbObject, } from './protocol';
-import { array_unique, IsValidAddress, IsValidArgType, IsValidArray, IsValidDesription, IsValidU64} from './utils';
+import { array_unique, IsValidAddress, IsValidArgType, IsValidArray, IsValidDesription, IsValidU64, parseObjectType} from './utils';
 import { ERROR, Errors } from './exception';
 
 export type CoinReward = TransactionResult;
@@ -277,7 +277,6 @@ export class Reward {
     }
 
     allow_claim(bAllowClaim: boolean, passport?:PassportObject) {
-        
         if (passport) {
             this.txb.moveCall({
                 target:Protocol.Instance().RewardFn('allow_claim_with_passport') as FnCallType,
@@ -298,7 +297,6 @@ export class Reward {
         if (!Protocol.IsValidObjects([new_permission])) {
             ERROR(Errors.IsValidObjects)
         }
-
         
         this.txb.moveCall({
             target:Protocol.Instance().RewardFn('permission_set') as FnCallType,
@@ -308,15 +306,7 @@ export class Reward {
         this.permission = new_permission
     }
     static parseObjectType = (chain_type:string) : string =>  {
-        if (chain_type) {
-            const s = 'reward::Reward<'
-            const i = chain_type.indexOf(s);
-            if (i > 0) {
-                let r = chain_type.slice(i + s.length, chain_type.length-1);
-                return r
-            }
-        }
-        return '';
+        return parseObjectType(chain_type, 'reward::Reward<')
     }
     static MAX_PORTIONS_COUNT = 600;
     static MAX_GUARD_COUNT = 16;

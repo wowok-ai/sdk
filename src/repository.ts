@@ -2,7 +2,7 @@ import { Protocol, FnCallType, ValueType, RepositoryValueType, RepositoryAddress
 import { PermissionIndexType, Permission } from './permission'
 import { Bcs, array_unique, IsValidDesription, IsValidAddress, IsValidArray, IsValidName,  ValueTypeConvert} from './utils';
 import { ERROR, Errors } from './exception';
-import { MAX_U8, MAX_U128, MAX_U256, MAX_U64, stringToUint8Array } from './utils';
+import { MAX_U8, MAX_U128, MAX_U256, MAX_U64, parseObjectType } from './utils';
 import { type TransactionResult, Transaction as TransactionBlock } from '@mysten/sui/transactions';
 
 export enum Repository_Policy_Mode {
@@ -394,16 +394,8 @@ export class Repository {
     static IsValidValue = (value:Uint8Array)  => {
         return value.length < Repository.MAX_VALUE_LENGTH;
     }
-    static parseObjectType = (chain_type:string) : string =>  {
-        if (chain_type) {
-            const s = 'repository::Repository<'
-            const i = chain_type.indexOf(s);
-            if (i > 0) {
-                let r = chain_type.slice(i + s.length, chain_type.length-1);
-                return r
-            }
-        }
-        return '';
+    static parseObjectType = (chain_type?:string | null) : string =>  {
+        return parseObjectType(chain_type, 'repository::Repository<');
     }
 
     static rpc_de_data(fields:any) : RepData [] {

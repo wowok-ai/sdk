@@ -1,4 +1,4 @@
-import { IsValidArray, IsValidPercent, IsValidName_AllowEmpty, Bcs, array_unique, IsValidTokenType, IsValidDesription, 
+import { IsValidArray, IsValidPercent, IsValidName_AllowEmpty, parseObjectType, array_unique, IsValidTokenType, IsValidDesription, 
     IsValidAddress, IsValidEndpoint, IsValidU64, } from './utils'
 import { FnCallType, GuardObject, PassportObject, PermissionObject, RepositoryObject, MachineObject, ServiceAddress, 
     ServiceObject, DiscountObject, OrderObject, OrderAddress, CoinObject, Protocol, ValueType,
@@ -1031,25 +1031,11 @@ export class Service {
     }
 
     static parseObjectType = (chain_type:string | undefined | null) : string =>  {
-        if (chain_type) {
-            const s = 'service::Service<'
-            const i = chain_type.indexOf(s);
-            if (i > 0) {
-                return chain_type.slice(i + s.length, chain_type.length-1);
-            }
-        }
-        return '';
+        return parseObjectType(chain_type, 'service::Service<')
     }
 
     static parseOrderObjectType = (chain_type:string | undefined | null) : string =>  {
-        if (chain_type) {
-            const s = 'order::Order<'
-            const i = chain_type.indexOf(s);
-            if (i > 0) {
-                return chain_type.slice(i + s.length, chain_type.length-1);
-            }
-        }
-        return '';
+        return parseObjectType(chain_type, 'order::Order<')
     }
 
     static endpoint = (service_endpoint:string, item_endpoint:string, item_name:string) => {

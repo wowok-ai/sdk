@@ -1,8 +1,7 @@
 import { type TransactionResult, Transaction as TransactionBlock } from '@mysten/sui/transactions';
 import { FnCallType, Protocol, PassportObject, PermissionObject, TreasuryAddress, TxbObject, CoinObject, PaymentObject,
-    ReceivedObject
-} from './protocol';
-import { IsValidDesription, IsValidU64, IsValidAddress, IsValidArgType, IsValidArray, } from './utils'
+    ReceivedObject } from './protocol';
+import { IsValidDesription, IsValidU64, IsValidAddress, IsValidArgType, IsValidArray, parseObjectType} from './utils'
 import { Errors, ERROR}  from './exception'
 
 export interface DepositParam {
@@ -297,15 +296,7 @@ export class Treasury {
         this.permission = new_permission
     }
     static parseObjectType = (chain_type:string) : string =>  {
-        if (chain_type) {
-            const s = 'treasury::Treasury<'
-            const i = chain_type.indexOf(s);
-            if (i > 0) {
-                let r = chain_type.slice(i + s.length, chain_type.length-1);
-                return r
-            }
-        }
-        return '';
+        return parseObjectType(chain_type, 'treasury::Treasury<')
     }
 
     static OP_WITHDRAW = 0;
