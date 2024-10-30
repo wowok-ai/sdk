@@ -119,6 +119,17 @@ export const concatenate = (resultConstructor:any, ...arrays:any[]) => {
     return result;
 }
 
+export const parseObjectType = (chain_type:string, header:string='payment::Payment<') : string =>  {
+    if (chain_type) {
+        const i = chain_type.indexOf(header);
+        if (i > 0) {
+            let r = chain_type.slice(i + header.length, chain_type.length-1);
+            return r
+        }
+    }
+    return '';
+}
+
 export const array_equal =  (arr1: any[], arr2: any[]) => {
     if (arr1.length !== arr2.length) {
       return false;

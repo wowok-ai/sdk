@@ -264,7 +264,7 @@ export class Guard {
  
         [MODULES.payment, 'Sender', 1200, [], ValueType.TYPE_ADDRESS, 'Payment originator address.', []], 
         [MODULES.payment, 'Total Amount', 1201, [], ValueType.TYPE_U128, "Payment amount.", []], 
-        [MODULES.payment, 'Tips', 1202, [], ValueType.TYPE_STRING, 'Payment remarks.', ['address']], 
+        [MODULES.payment, 'Remark', 1202, [], ValueType.TYPE_STRING, 'Payment remark.', ['address']], 
         [MODULES.payment, 'Has Guard for Perpose', 1203, [], ValueType.TYPE_BOOL, 'Whether the payment references a Guard?', []], 
         [MODULES.payment, 'Has Object for Perpose', 1204, [], ValueType.TYPE_BOOL, 'Whether the payment references an Object?', []], 
         [MODULES.payment, 'Guard for Perpose', 1205, [], ValueType.TYPE_ADDRESS, 'The Guard referenced by this payment.', []], 
@@ -275,7 +275,7 @@ export class Guard {
         [MODULES.payment, 'Time', 1210, [], ValueType.TYPE_U64, 'Payment time', []], 
         [MODULES.payment, 'Is from Treasury', 1211, [], ValueType.TYPE_BOOL, 'Whether the payment comes from a Treasury?', []], 
         [MODULES.payment, 'Treasury Address', 1212, [], ValueType.TYPE_ADDRESS, 'The Treasury from which the payment comes.', []], 
-        [MODULES.payment, 'Index', 1213, [], ValueType.TYPE_U64, 'Payment index or id.', []], 
+        [MODULES.payment, 'Biz-ID', 1213, [], ValueType.TYPE_U64, 'Bisiness ID number of the payment.', []], 
 
         [MODULES.withholding, 'Amount', 1300, [], ValueType.TYPE_U64, 'Total amount deposited with withholding.' , []], 
         [MODULES.withholding, 'Original Type Deposited', 1301, [], ValueType.TYPE_STRING, "Original type name of asserts deposited.", []], 

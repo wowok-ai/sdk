@@ -22,6 +22,7 @@ export class Resource {
     static DislikeName = "dislike";
     static FavorName = "favor";
     static LaunchName = 'launch';
+    static OrderName = 'order';
 
     protected object:TxbObject;
     protected txb;
