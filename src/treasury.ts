@@ -47,10 +47,10 @@ export class Treasury {
     static New(txb:TransactionBlock, token_type:string, permission:PermissionObject, description:string, 
         bFreeDeposit:boolean=false, passport?:PassportObject) : Treasury {
         if (!Protocol.IsValidObjects([permission])) {
-            ERROR(Errors.IsValidObjects, 'permission, bounty');
+            ERROR(Errors.IsValidObjects, 'Treasury.New permission, bounty');
         }
         if (!IsValidDesription(description)) {
-            ERROR(Errors.IsValidDesription);
+            ERROR(Errors.IsValidDesription, 'Treasury.New.description');
         } 
         if (!IsValidArgType(token_type)) {
             ERROR(Errors.IsValidArgType, token_type);

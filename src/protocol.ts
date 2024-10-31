@@ -9,7 +9,6 @@ import { isValidSuiAddress, isValidSuiObjectId } from '@mysten/sui/utils'
 
 export enum MODULES {
     machine = 'machine',
-    node = 'node',
     progress = 'progress',
     repository = 'repository',
     permission = 'permission',
@@ -215,11 +214,12 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    wowok: "0xb82ef16ea48fb4f732310c3a0c86c34d0b8711f4dac1c4ca693005345047bfa4",
-    base: '0x74fb58a0b148f19852a721293a797fdeb59dec5da71ca31838fc810af2d32fdd',
-    wowok_object: '0x41c93c2903227632a33394d37fd3b7f62a33bc72b16a7f9aafc8161b78b232be',
-    entity_object: '0x0b34c975a4b179755dabdec5c50505bd21c0439c463d171a54fa44f215e3bb57',
-    treasury_cap:'0xacb8b1d380d4f75a802dd7412142290bebd7f6266785690de2daf68f6a7ba9ce',
+    wowok: "0x6c0d4f3c5f1ceb981721cd44c516bbeadf22f53791906ed00893a64bb788d56c",
+    wowok_origin:'0xa487291ecede9b713400360ce81d242ad227af8184f07ace1a3dab1bfc920660' ,
+    base: '0x7efcdab72af2351e5915e34ad2ac8d4ea7f4f408e08138d3498af35a362db782',
+    wowok_object: '0xb56d70321b3205e994eb8e7664eabc91f361a55d75f363a321c8d4cf012fd6b2',
+    entity_object: '0x33881b1d2a65886c3068917a20d849e3956771df1bceb7a05678e40bcff30aa2',
+    treasury_cap:'0x538cf8f32d59f58c0450a3a97c1eeed3096f4ce63e07e0bdf343a5cc1464887c',
 }
 const MAINNET = {
     wowok: "",
@@ -270,6 +270,7 @@ export class Protocol {
             case ENTRYPOINT.testnet:
                 this.package.set('wowok', TESTNET.wowok);
                 this.package.set('base', TESTNET.base);
+                this.package.set('wowok_origin', TESTNET.wowok_origin); //@ orgin package!!!
                 this.wowok_object = TESTNET.wowok_object;
                 this.entity_object= TESTNET.entity_object;
                 this.treasury_cap = TESTNET.treasury_cap;
@@ -312,7 +313,6 @@ export class Protocol {
     RepositoryFn = (fn:any) => { return `${this.package.get('wowok')}::${MODULES.repository}::${fn}`};
     PermissionFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.permission}::${fn}`};
     PassportFn = (fn:any) => { return `${this.package.get('wowok')}::${MODULES.passport}::${fn}`};
-    GuardFn = (fn: any) => { return `${this.package.get('base')}::${MODULES.guard}::${fn}`};
     VoteFn = (fn:any) => { return `${this.package.get('wowok')}::${MODULES.vote}::${fn}`};
     DemandFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.demand}::${fn}`};
     OrderFn = (fn:any) => { return `${this.package.get('wowok')}::${MODULES.order}::${fn}`};
@@ -324,6 +324,8 @@ export class Protocol {
     TreasuryFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.treasury}::${fn}`};
     PaymentFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.payment}::${fn}`};
     WithholdingFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.withholding}::${fn}`};
+    GuardFn = (fn: any) => { return `${this.package.get('base')}::${MODULES.guard}::${fn}`};
+    MintFn = (fn: any) => { return `${this.package.get('base')}::${MODULES.wowok}::${fn}`};
     
     Query = async (objects: Query_Param[], options:SuiObjectDataOptions={showContent:true}) : Promise<SuiObjectResponse[]> => {
         const client =  new SuiClient({ url: this.NetworkUrl() });  
@@ -367,8 +369,8 @@ export class Protocol {
     static SUI_TOKEN_TYPE = '0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI'; // TOKEN_TYPE
     // used in demand, reward, ...
     static SUI_COIN_TYPE = '0x0000000000000000000000000000000000000000000000000000000000000002::coin::Coin<0x2::sui::SUI>'; // COIN TYPE
-    WOWOK_TOKEN_TYPE = () => { return this.package.get('wowok') + '::wowok::WOWOK' }
-    WOWOK_COIN_TYPE = () => {  return '0x2::coin::Coin<' + this.package.get('wowok') + '::wowok::WOWOK>'}
+    WOWOK_TOKEN_TYPE = () => { return this.package.get('base') + '::wowok::WOWOK' }
+    WOWOK_COIN_TYPE = () => {  return '0x2::coin::Coin<' + this.package.get('base') + '::wowok::WOWOK>'}
     COINS_TYPE = () => { 
         switch(this.network) {
             case ENTRYPOINT.testnet:
@@ -403,13 +405,13 @@ export class Protocol {
     CoinTypes_Testnet:CoinTypeInfo[] = [
         {symbol:'SUI', type:'0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI', decimals:9, alias:true},
         {symbol:'SUI', type:'0x2::sui::SUI', decimals:9, },
-        {symbol:'WOW', type:TESTNET.wowok + '::wowok::WOWOK', decimals:9},
+        {symbol:'WOW', type:TESTNET.base + '::wowok::WOWOK', decimals:9},
     ];
 
     CoinTypes_Mainnet:CoinTypeInfo[] = [
         {symbol:'SUI', type:'0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI', decimals:9, alias:true},
         {symbol:'SUI', type:'0x2::sui::SUI', decimals:9, },
-        {symbol:'WOW', type:TESTNET.wowok + '::wowok::WOWOK', decimals:9},
+        {symbol:'WOW', type:TESTNET.base + '::wowok::WOWOK', decimals:9},
         {symbol:'USDT', type:'0xc060006111016b8a020ad5b33834984a437aaa7d3c74c18e09a95d48aceab08c::coin::COIN', decimals:6},
         {symbol:'USDC', type:'0x5d4b302506645c37ff133b98c4b50a5ae14841659738d6d733d59d0d217a93bf::coin::COIN', decimals:6},              
         {symbol:'WETH', type:'0xaf8cd5edc19c4512f4259f0bee101a40d41ebed738ade5874359610ef8eeced5::coin::COIN', decimals:8},
@@ -449,9 +451,9 @@ export class Protocol {
         })
     }  
     WOWOK_OBJECTS_TYPE = () => (Object.keys(MODULES) as Array<keyof typeof MODULES>).map((key) => 
-        { let i = this.package.get('wowok') + '::' + key + '::';  return i + capitalize(key); })
+        { let i = (key === MODULES.guard ? this.package.get('base') : this.package.get('wowok')) + '::' + key + '::';  return i + capitalize(key); })
     WOWOK_OBJECTS_PREFIX_TYPE = () => (Object.keys(MODULES) as Array<keyof typeof MODULES>).map((key) => 
-        { return this.package.get('wowok') + '::' + key + '::'; })
+        { return (key === MODULES.guard ? this.package.get('base') : this.package.get('wowok'))  + '::' + key + '::'; })
     private hasPackage(pack:string) : boolean {
         for (let value of this.package.values()) {
             if (value === pack) {

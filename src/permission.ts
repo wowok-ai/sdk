@@ -84,6 +84,7 @@ export enum PermissionIndex {
     treasury_withdraw = 703,
     treasury_descritption = 704, 
     treasury_free_deposit_set = 705,
+
     user_defined_start = 1000,
 }
 

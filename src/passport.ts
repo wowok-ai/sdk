@@ -255,7 +255,6 @@ export class GuardParser {
         res.forEach((r) => {
             const c = r.data?.content as any;
             if (!c) ERROR(Errors.Fail, 'Parse_Guard_Helper invalid content');
-
             const index = protocol.WOWOK_OBJECTS_TYPE().findIndex(v => {return v.includes('guard::Guard') && v == c.type});
             if (index === -1) ERROR(Errors.Fail, 'Parse_Guard_Helper invalid type: ' + c.type);
 

@@ -1,5 +1,5 @@
 import { FnCallType, PaymentObject, ReceivedObject, PaymentAddress, Protocol, TxbObject, CoinObject, PassportObject} from './protocol';
-import { IsValidDesription, IsValidAddress, Bcs, array_unique, IsValidArray, IsValidName, IsValidU64, IsValidU256, IsValidU8 } from './utils';
+import { IsValidDesription, IsValidAddress, IsValidArray, IsValidU64, parseObjectType } from './utils';
 import { ERROR, Errors } from './exception';
 import { DepositParam, WithdrawParam, WithdrawItem } from './treasury';
 import { Transaction as TransactionBlock} from '@mysten/sui/transactions';
@@ -9,7 +9,8 @@ export interface WithholdingGuard {
     amount: bigint,
 }
 export interface WithholdingParam {
-    guards: WithholdingGuard[]
+    guards: WithholdingGuard[],
+    description: string,
 }
 
 export class Withholding {
@@ -34,6 +35,8 @@ export class Withholding {
 
     static New(txb:TransactionBlock, pay_token_type:string, param:WithholdingParam) : Withholding {
         if (!pay_token_type) ERROR(Errors.InvalidParam, 'Withholding.New_fromAddress.pay_token_type');
+        if (!IsValidDesription(param.description)) ERROR(Errors.IsValidDesription, 'Withholding.New.param')
+
         if (param.guards.length === 0 || param.guards.length > Withholding.MAX_GUARD_COUNT) {
             ERROR(Errors.InvalidParam, 'Withholding.New.param.guards length')
         }
@@ -42,16 +45,14 @@ export class Withholding {
         }
 
         let v = new Withholding(txb, pay_token_type);    
-        const clock = txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
-
         v.object = txb.moveCall({
             target:Protocol.Instance().WithholdingFn('new') as FnCallType,
-            arguments:[],
+            arguments:[txb.pure.string(param.description)],
             typeArguments:[pay_token_type],
         })    
 
-        param.guards.forEach((i) => {
-            txb.moveCall({
+        param.guards.forEach((i) => {   
+            v.object = txb.moveCall({
                 target:Protocol.Instance().WithholdingFn('add_guard') as FnCallType,
                 arguments:[txb.object(v.object), txb.object(i.guard), txb.pure.u64(i.amount)],
                 typeArguments:[pay_token_type],
@@ -159,6 +160,8 @@ export class Withholding {
             })
         }
     }
-
+    static parseObjectType = (chain_type:string) : string =>  {
+        return parseObjectType(chain_type, 'withholding::Withholding<')
+    }
     static  MAX_GUARD_COUNT = 16;
 }

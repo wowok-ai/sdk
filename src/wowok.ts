@@ -52,7 +52,7 @@ export class Wowok {
         if (!IsValidAddress(recipient)) ERROR(Errors.IsValidAddress, 'mint');
         if (!IsValidU64(amount)) ERROR(Errors.IsValidU64, 'mint');
         this.txb.moveCall({
-            target:Protocol.Instance().WowokFn('mint') as FnCallType,
+            target:Protocol.Instance().MintFn('mint') as FnCallType, //@ base package
             arguments:[Protocol.TXB_OBJECT(this.txb, Protocol.Instance().TreasuryCap()), this.txb.pure.u64(amount), 
                 this.txb.pure.address(recipient)]
         })
