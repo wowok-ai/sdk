@@ -59,6 +59,7 @@ export type PaymentObject = TransactionResult | string | TransactionArgument;
 export type PaymentAddress = TransactionResult;
 export type ReceivedObject = TransactionResult | string | TransactionArgument;
 export type CoinWrapperObject = TransactionResult;
+export type WithholdingAddress = TransactionResult;
 
 export type TxbObject = string | TransactionResult | TransactionArgument | GuardObject |  RepositoryObject | PermissionObject | MachineObject | PassportObject |
     DemandObject | ServiceObject | RewardObject | OrderObject | DiscountObject | VoteObject | DemandObject | ResourceObject | EntityObject;
@@ -214,11 +215,11 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    wowok: "0x6c0d4f3c5f1ceb981721cd44c516bbeadf22f53791906ed00893a64bb788d56c",
-    wowok_origin:'0xa487291ecede9b713400360ce81d242ad227af8184f07ace1a3dab1bfc920660' ,
+    wowok: "0x3bf8789855f2c6232df5891b267a4bc07378e6afd916da3aaae009fa3c4ea4ec",
+    wowok_origin:'0x3bf8789855f2c6232df5891b267a4bc07378e6afd916da3aaae009fa3c4ea4ec' ,
     base: '0x7efcdab72af2351e5915e34ad2ac8d4ea7f4f408e08138d3498af35a362db782',
-    wowok_object: '0xb56d70321b3205e994eb8e7664eabc91f361a55d75f363a321c8d4cf012fd6b2',
-    entity_object: '0x33881b1d2a65886c3068917a20d849e3956771df1bceb7a05678e40bcff30aa2',
+    wowok_object: '0x0fa6e64fce510530f54182e37eab52516eab0c42912d6a63fe750e8fd3cb2909',
+    entity_object: '0xaaebd7f77e7abac589731e761c78e4990797f9a4510cc78bb5d8c1fba6b0f919',
     treasury_cap:'0x538cf8f32d59f58c0450a3a97c1eeed3096f4ce63e07e0bdf343a5cc1464887c',
 }
 const MAINNET = {

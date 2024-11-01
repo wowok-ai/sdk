@@ -1,313 +1,167 @@
-import { TransactionArgument, Transaction as TransactionBlock, type TransactionResult, } from '@mysten/sui/transactions';
-import { FnCallType, GuardObject, PassportObject, PermissionObject, RewardAddress, Protocol, TxbObject, } from './protocol';
-import { array_unique, IsValidAddress, IsValidArgType, IsValidArray, IsValidDesription, IsValidU64, parseObjectType} from './utils';
+import { FnCallType, PaymentObject, ReceivedObject, PaymentAddress, Protocol, TxbObject, CoinObject, PassportObject} from './protocol';
+import { IsValidDesription, IsValidAddress, IsValidArray, IsValidU64, parseObjectType } from './utils';
 import { ERROR, Errors } from './exception';
+import { DepositParam, WithdrawParam, WithdrawItem } from './treasury';
+import { Transaction as TransactionBlock} from '@mysten/sui/transactions';
 
-export type CoinReward = TransactionResult;
-export type RewardGuardPortions = {
-    guard:GuardObject;
-    portions:number;
+export interface RewardGuard {
+    guard: string,
+    amount: bigint,
+}
+export interface RewardParam {
+    guards: RewardGuard[],
+    description: string,
 }
 
 export class Reward {
-    protected earnest_type;
-    protected permission ;
-    protected object:TxbObject;
+    protected object : TxbObject;
+    protected pay_token_type;
     protected txb;
     
-    get_earnest_type() {  return this.earnest_type }
+    get_pay_type() {  return this.pay_token_type }
     get_object() { return this.object }
-    private constructor(txb:TransactionBlock, earnest_type:string, permission:PermissionObject) {
-        this.txb = txb
-        this.earnest_type = earnest_type
-        this.permission = permission
-        this.object = ''
+    private constructor(txb:TransactionBlock, pay_token_type:string, ) {
+        this.object = '';
+        this.pay_token_type = pay_token_type;
+        this.txb = txb;
     }
-    static From(txb:TransactionBlock, earnest_type:string, permission:PermissionObject, object:TxbObject) : Reward {
-        let r = new Reward(txb, earnest_type,  permission);
-        r.object = Protocol.TXB_OBJECT(txb, object);
-        return  r
+
+    static From(txb:TransactionBlock, pay_token_type:string, object:TxbObject) : Reward {
+        if (!pay_token_type) ERROR(Errors.InvalidParam, 'Reward.From.pay_token_type');
+        let v = new Reward(txb, pay_token_type);
+        v.object = Protocol.TXB_OBJECT(txb, object)
+        return v
     }
-    static New(txb:TransactionBlock, earnest_type:string, permission:PermissionObject, description:string, 
-        ms_expand:boolean, time:number, passport?:PassportObject) : Reward {
-        if (!Protocol.IsValidObjects([permission])) {
-            ERROR(Errors.IsValidObjects, 'permission')
+
+    static New(txb:TransactionBlock, pay_token_type:string, param:RewardParam) : Reward {
+        if (!pay_token_type) ERROR(Errors.InvalidParam, 'Reward.New_fromAddress.pay_token_type');
+        if (!IsValidDesription(param.description)) ERROR(Errors.IsValidDesription, 'Reward.New.param')
+
+        if (param.guards.length === 0 || param.guards.length > Reward.MAX_GUARD_COUNT) {
+            ERROR(Errors.InvalidParam, 'Reward.New.param.guards length')
         }
-        if (!IsValidArgType(earnest_type)) {
-            ERROR(Errors.IsValidArgType, 'earnest_type')
-        }
-        if (!IsValidDesription(description)) {
-            ERROR(Errors.IsValidDesription)
-        }
-        if (!IsValidU64(time)) {
-            ERROR(Errors.IsValidUint, 'time')
+        if (!IsValidArray(param.guards, (item:RewardGuard) => IsValidAddress(item.guard) && IsValidU64(item.amount))) {
+            ERROR(Errors.InvalidParam, 'Reward.New.param.guards')
         }
 
-        let r = new Reward(txb, earnest_type,  permission);
-        const clock = txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
-        if (passport) {
-            r.object = txb.moveCall({
-                target:Protocol.Instance().RewardFn('new_with_passport') as FnCallType,
-                arguments:[passport, txb.pure.string(description), txb.pure.bool(ms_expand), txb.pure.u64(time), 
-                    txb.object(clock), Protocol.TXB_OBJECT(txb, permission)],
-                typeArguments:[earnest_type]
-            })
-        } else {
-            r.object = txb.moveCall({
-                target:Protocol.Instance().RewardFn('new') as FnCallType,
-                arguments:[txb.pure.string(description), txb.pure.bool(ms_expand), txb.pure.u64(time), 
-                    txb.object(clock), Protocol.TXB_OBJECT(txb, permission)], 
-                typeArguments:[earnest_type]
-            })
-        }
-        return r
+        let v = new Reward(txb, pay_token_type);    
+        v.object = txb.moveCall({
+            target:Protocol.Instance().RewardFn('new') as FnCallType,
+            arguments:[txb.pure.string(param.description)],
+            typeArguments:[pay_token_type],
+        })    
+
+        param.guards.forEach((i) => {   
+            v.object = txb.moveCall({
+                target:Protocol.Instance().RewardFn('add_guard') as FnCallType,
+                arguments:[txb.object(v.object), txb.object(i.guard), txb.pure.u64(i.amount)],
+                typeArguments:[pay_token_type],
+            })      
+        })
+        return v
     }
-    
-    launch(): RewardAddress  {
+
+    launch() : PaymentAddress {
         return this.txb.moveCall({
             target:Protocol.Instance().RewardFn('create') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(this.txb, this.object)], 
-            typeArguments:[this.earnest_type]
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object)],
+            typeArguments:[this.pay_token_type],
         })
     }
 
-    destroy()  {
-        this.txb.moveCall({
-            target:Protocol.Instance().RewardFn('destroy') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(this.txb, this.object)],
-        })   
-    }
-
-    refund(passport?:PassportObject) {
+    receive(payment:PaymentObject, received:ReceivedObject) {
+        if (!Protocol.IsValidObjects([payment, received])) {
+            ERROR(Errors.IsValidArray, 'receive.payment&received');
+        }
         const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
-        if (passport) {
-            this.txb.moveCall({
-                target:Protocol.Instance().RewardFn('refund_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(clock), Protocol.TXB_OBJECT(this.txb, this.permission)], 
-                typeArguments:[this.earnest_type]
-            })  
-        } else {
-            this.txb.moveCall({
-                target:Protocol.Instance().RewardFn('refund') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(clock), Protocol.TXB_OBJECT(this.txb, this.permission)], 
-                typeArguments:[this.earnest_type]
-            })        
-        }
-    }
 
-    expand_time(ms_expand:boolean, time:number, passport?:PassportObject)  {
-        if (!IsValidU64(time)) {
-            ERROR(Errors.IsValidUint, 'minutes_expand')
-        }
-        
-        if (passport) {
-            this.txb.moveCall({
-                target:Protocol.Instance().RewardFn('time_expand_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.bool(ms_expand),
-                    this.txb.pure.u64(time), Protocol.TXB_OBJECT(this.txb, this.permission)], 
-                typeArguments:[this.earnest_type]
-            })
-        } else {
-            this.txb.moveCall({
-                target:Protocol.Instance().RewardFn('time_expand') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(this.txb, this.object),this.txb.pure.bool(ms_expand),
-                    this.txb.pure.u64(time), Protocol.TXB_OBJECT(this.txb, this.permission)], 
-                typeArguments:[this.earnest_type]
-            })
-        }
-    }
-
-    add_guard(guards:RewardGuardPortions[], passport?:PassportObject)  {
-        if (guards.length === 0) return;
-
-        let bValid = true;
-        guards.forEach((v) => {
-            if (!IsValidU64(v.portions) || v.portions > Reward.MAX_PORTIONS_COUNT) bValid = false;
-            if (!Protocol.IsValidObjects([v.guard])) bValid = false;
+        return this.txb.moveCall({
+            target:Protocol.Instance().RewardFn('receive') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(received), this.txb.object(payment), 
+                this.txb.object(clock)],
+            typeArguments:[this.pay_token_type],
         })
-        if (!bValid) {
-            ERROR(Errors.InvalidParam, 'guards')
-        }
-
-        if (passport) {
-            guards.forEach((guard) => 
-                this.txb.moveCall({
-                    target:Protocol.Instance().RewardFn('guard_add_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
-                        Protocol.TXB_OBJECT(this.txb, guard.guard), this.txb.pure.u8(guard.portions), 
-                        Protocol.TXB_OBJECT(this.txb, this.permission)], 
-                    typeArguments:[this.earnest_type]
-                })
-            )
-        } else {
-            guards.forEach((guard) => 
-                this.txb.moveCall({
-                    target:Protocol.Instance().RewardFn('guard_add') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, guard.guard), 
-                        this.txb.pure.u8(guard.portions), Protocol.TXB_OBJECT(this.txb, this.permission)], 
-                    typeArguments:[this.earnest_type]
-                })
-            )
-        }
     }
 
-    remove_guard(guards:string[], removeall?:boolean, passport?:PassportObject)  {
-        if (!removeall && guards.length===0) {
-            return
+    deposit(param:DepositParam) {
+        if (!Protocol.IsValidObjects([param.coin])) {
+            ERROR(Errors.IsValidObjects, 'deposit.param.coin')
+        }
+        if (!IsValidDesription(param.remark)) {
+            ERROR(Errors.IsValidDesription, 'deposit.param.remark')
+        }
+        if (param?.for_object && !IsValidAddress(param.for_object)) {
+            ERROR(Errors.IsValidAddress, 'deposit.param.for_object')
+        }
+        if (param?.for_guard && !IsValidAddress(param.for_guard)) {
+            ERROR(Errors.IsValidAddress, 'deposit.param.for_guard')
+        }
+        if (param.index !== undefined && !IsValidU64(param.index)) {
+            ERROR(Errors.InvalidParam, 'deposit.param.index')
         }
 
-        if (!IsValidArray(guards, IsValidAddress)) {
-            ERROR(Errors.IsValidArray, 'guards')
-        }
-        
-        if (passport) {
-            if (removeall) {
-                this.txb.moveCall({
-                    target:Protocol.Instance().RewardFn('guard_remove_all_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)], 
-                    typeArguments:[this.earnest_type]
-                })
-            } else {
-                this.txb.moveCall({
-                    target:Protocol.Instance().RewardFn('guard_remove_with_passport') as FnCallType,
-                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(guards)), 
-                        Protocol.TXB_OBJECT(this.txb, this.permission)], 
-                    typeArguments:[this.earnest_type]
-                })
-            }
-        } else {
-            if (removeall) {
-                this.txb.moveCall({
-                    target:Protocol.Instance().RewardFn('guard_remove_all') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)], 
-                    typeArguments:[this.earnest_type]
-                })
-            } else {
-                this.txb.moveCall({
-                    target:Protocol.Instance().RewardFn('guard_remove') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(guards)), 
-                        Protocol.TXB_OBJECT(this.txb, this.permission)], 
-                    typeArguments:[this.earnest_type]
-                })
-            }
-        }
-        
-    }
-    allow_repeat_claim(allow_repeat_claim:boolean, passport?:PassportObject)  {
-        if (passport) {
-            this.txb.moveCall({
-                target:Protocol.Instance().RewardFn('allow_repeat_claim_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission), 
-                    this.txb.pure.bool(allow_repeat_claim)], 
-                typeArguments:[this.earnest_type]
-            })
-        } else {
-            this.txb.moveCall({
-                target:Protocol.Instance().RewardFn('allow_repeat_claim') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission), 
-                    this.txb.pure.bool(allow_repeat_claim)], 
-                typeArguments:[this.earnest_type]
-            })
-        }
-    }
-
-    set_description(description:string, passport?:PassportObject)  {
-        if (!IsValidDesription(description)) {
-            ERROR(Errors.IsValidDesription)
-        }
-        
-        if (passport) {
-            this.txb.moveCall({
-                target:Protocol.Instance().RewardFn('description_set_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(description), Protocol.TXB_OBJECT(this.txb, this.permission)], 
-                typeArguments:[this.earnest_type]
-            })
-        } else {
-            this.txb.moveCall({
-                target:Protocol.Instance().RewardFn('description_set') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(description), Protocol.TXB_OBJECT(this.txb, this.permission)], 
-                typeArguments:[this.earnest_type]
-            })
-        }
-    }
-
-    lock_guards(passport?:PassportObject)  {
-        if (passport) {
-            this.txb.moveCall({
-                target:Protocol.Instance().RewardFn('guard_lock_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)], 
-                typeArguments:[this.earnest_type]
-            })
-        } else {
-            this.txb.moveCall({
-                target:Protocol.Instance().RewardFn('guard_lock') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)], 
-                typeArguments:[this.earnest_type]
-            })
-        }
-    }
-
-    claim(passport?:PassportObject)  {
+        const for_obj = this.txb.pure.option('address', param.for_object ?? undefined);
         const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
-        if (passport) {
-            this.txb.moveCall({
-                target:Protocol.Instance().RewardFn('claim_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(clock)], 
-                typeArguments:[this.earnest_type]
+
+        if (param.for_guard) {
+            return this.txb.moveCall({
+                target:Protocol.Instance().RewardFn('deposit_forGuard') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, param.coin), this.txb.pure.u64(param.index),
+                    this.txb.pure.string(param.remark), for_obj, this.txb.object(param.for_guard), this.txb.object(clock)],
+                typeArguments:[this.pay_token_type],
             })
         } else {
-            this.txb.moveCall({
-                target:Protocol.Instance().RewardFn('claim') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(clock)], 
-                typeArguments:[this.earnest_type]
-            })        
+            return this.txb.moveCall({
+                target:Protocol.Instance().RewardFn('deposit') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, param.coin), this.txb.pure.u64(param.index),
+                    this.txb.pure.string(param.remark), for_obj, this.txb.object(clock)],
+                typeArguments:[this.pay_token_type],
+            })
         }
     }
 
-    deposit(rewards:(TransactionResult | TransactionArgument)[])  {
-        if (!rewards || !Protocol.IsValidObjects(rewards)) {
-            ERROR(Errors.IsValidArray)
+    // param.treasury -> coins ; param.receiver -> null
+    withdraw(guard:string, param:WithdrawParam, passport:PassportObject)  {
+        if (param.items.length === 0) return undefined;
+        if (!IsValidArray(param.items, (item:WithdrawItem) => IsValidU64(item.amount) && IsValidAddress(item.address))) {
+            ERROR(Errors.IsValidArray, 'withdraw.param.items')
+        }
+        if (!IsValidDesription(param.remark)) {
+            ERROR(Errors.IsValidDesription, 'withdraw.param.remark')
+        }
+        if (!IsValidU64(param.index)) {
+            ERROR(Errors.IsValidU64, 'withdraw.param.index')
+        }
+        if (param?.for_guard && !IsValidAddress(param.for_guard)) {
+            ERROR(Errors.IsValidAddress, 'withdraw.param.for_guard')
+        }
+        if (param?.for_object && !IsValidAddress(param.for_object)) {
+            ERROR(Errors.IsValidAddress, 'withdraw.param.for_object')
         }
 
-        this.txb.moveCall({
-            target:Protocol.Instance().RewardFn('deposit') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.makeMoveVec({elements:array_unique(rewards)})], //@
-            typeArguments:[this.earnest_type]
-        })
-    }
+        const for_obj = this.txb.pure.option('address', param.for_object ?? undefined);
+        const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
 
-    allow_claim(bAllowClaim: boolean, passport?:PassportObject) {
-        if (passport) {
-            this.txb.moveCall({
-                target:Protocol.Instance().RewardFn('allow_claim_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission),
-                    this.txb.pure.bool(bAllowClaim)], 
-                typeArguments:[this.earnest_type]
-            })      
+        if (param.for_guard) {
+            return this.txb.moveCall({
+                target:Protocol.Instance().RewardFn('withdraw_forGuard') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(guard), this.txb.object(passport), 
+                    this.txb.pure.vector('address', param.items.map(i=>i.address)), this.txb.pure.vector('u64', param.items.map(i=>i.amount)),
+                    this.txb.pure.u64(param.index), this.txb.pure.string(param.remark), for_obj, this.txb.object(param.for_guard), this.txb.object(clock)],
+                typeArguments:[this.pay_token_type],
+            })
         } else {
-            this.txb.moveCall({
-                target:Protocol.Instance().RewardFn('allow_claim') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission), this.txb.pure.bool(bAllowClaim)], 
-                typeArguments:[this.earnest_type]
-            })            
+            return this.txb.moveCall({
+                target:Protocol.Instance().RewardFn('withdraw') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(guard), this.txb.object(passport), 
+                    this.txb.pure.vector('address', param.items.map(i=>i.address)), this.txb.pure.vector('u64', param.items.map(i=>i.amount)),
+                    this.txb.pure.u64(param.index), this.txb.pure.string(param.remark), for_obj, this.txb.object(clock)],
+                typeArguments:[this.pay_token_type],
+            })
         }
-    }
-
-    change_permission(new_permission:PermissionObject) {
-        if (!Protocol.IsValidObjects([new_permission])) {
-            ERROR(Errors.IsValidObjects)
-        }
-        
-        this.txb.moveCall({
-            target:Protocol.Instance().RewardFn('permission_set') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission), Protocol.TXB_OBJECT(this.txb, new_permission)],
-            typeArguments:[this.earnest_type]            
-        })    
-        this.permission = new_permission
     }
     static parseObjectType = (chain_type:string) : string =>  {
         return parseObjectType(chain_type, 'reward::Reward<')
     }
-    static MAX_PORTIONS_COUNT = 600;
-    static MAX_GUARD_COUNT = 16;
+    static  MAX_GUARD_COUNT = 16;
 }

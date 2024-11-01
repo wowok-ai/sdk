@@ -46,15 +46,34 @@ export class Resource {
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object)]
         });
     }
-    add(name:string, object:string[])  {
-        if (!IsValidName(name)) ERROR(Errors.IsValidName, 'add');
-        if (!IsValidArray(object, IsValidAddress)) ERROR(Errors.IsValidArray, 'add');
+    add(name:string, object:string[] | TransactionResult[])  {
+        if (object.length === 0) return ;
+        var bString = false;
 
-        this.txb.moveCall({
-            target:Protocol.Instance().ResourceFn('add')  as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(name), 
-                this.txb.pure.vector('address', object)]
-        });
+        if (!IsValidName(name)) ERROR(Errors.IsValidName, 'add.name');
+        if (!IsValidArray(object, (item:any) => {
+            if (typeof(item) === 'string') {
+                bString = true;
+                return IsValidAddress(item)
+            }
+            return true;
+        })) {
+            ERROR(Errors.IsValidArray, 'add.object');
+        }
+
+        if (bString) {
+            this.txb.moveCall({
+                target:Protocol.Instance().ResourceFn('add')  as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(name), 
+                    this.txb.pure.vector('address', object as string[])]
+            });            
+        } else {
+            this.txb.moveCall({
+                target:Protocol.Instance().ResourceFn('add')  as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(name), 
+                    this.txb.makeMoveVec({elements:object as TransactionResult[], type:'address'})]
+            });   
+        }
     }
 
     add2(object:TxbObject, name:string[])  {
