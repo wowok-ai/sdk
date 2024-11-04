@@ -46,14 +46,14 @@ export enum PermissionIndex {
     //service_change_order_required_pubkey = 224,
     service_pause = 225,
 
-    withholding = 240,
-    withholding_refund = 241,
-    withholding_expand_time = 242,
-    withholding_guard = 243,
-    withholding_description = 245,
-    withholding_lock_guards = 246,
-    withholding_claim_repeatably = 247,
-    withholding_allow_claiming = 248,
+    reward = 240,
+    reward_refund = 241,
+    reward_expand_time = 242,
+    reward_guard = 243,
+    reward_description = 245,
+    reward_lock_guards = 246,
+    reward_claim_repeatably = 247,
+    reward_allow_claiming = 248,
 
     demand = 260,
     demand_refund = 261,
@@ -83,7 +83,9 @@ export enum PermissionIndex {
     treasury_deposit = 702,
     treasury_withdraw = 703,
     treasury_descritption = 704, 
-    treasury_free_deposit_set = 705,
+    treasury_deposit_guard = 705,
+    treasury_withdraw_mode = 706,
+    treasury_withdraw_guard = 707,
 
     user_defined_start = 1000,
 }
@@ -151,14 +153,14 @@ export const PermissionInfo : PermissionInfoType[] = [
     //{index:PermissionIndex.service_change_order_required_pubkey, name:'Order pubkey', description:'Update Serivce order pubkey', module: 'service'},
     {index:PermissionIndex.service_pause, name:'Pause', description:'Pause/Unpause Service', module: 'service'},
 
-    {index:PermissionIndex.withholding, name:'withholding', description:'Launch new withholding', module: 'reward'},
-    {index:PermissionIndex.withholding_refund, name:'Refund', description:'Refund from withholding', module: 'reward'},
-    {index:PermissionIndex.withholding_expand_time, name:'Expand deadline', description:'Expand withholding deadline', module: 'reward'},
-    {index:PermissionIndex.withholding_guard, name:'Guard', description:'Set withholding guard', module: 'reward'},
-    {index:PermissionIndex.withholding_description, name:'Description', description:'Set withholding description', module: 'reward'},
-    {index:PermissionIndex.withholding_lock_guards, name:'Lock Guard', description:'Set withholding guard immutable', module: 'reward'},
-    {index:PermissionIndex.withholding_claim_repeatably, name:'Claim repeatably', description:'Allow claimming repeatably', module: 'reward'},
-    {index:PermissionIndex.withholding_allow_claiming, name:'Allow claiming', description:'Allow claiming', module: 'reward'},
+    {index:PermissionIndex.reward, name:'reward', description:'Launch new reward', module: 'reward'},
+    {index:PermissionIndex.reward_refund, name:'Refund', description:'Refund from reward', module: 'reward'},
+    {index:PermissionIndex.reward_expand_time, name:'Expand deadline', description:'Expand reward deadline', module: 'reward'},
+    {index:PermissionIndex.reward_guard, name:'Guard', description:'Set reward guard', module: 'reward'},
+    {index:PermissionIndex.reward_description, name:'Description', description:'Set reward description', module: 'reward'},
+    {index:PermissionIndex.reward_lock_guards, name:'Lock Guard', description:'Set reward guard immutable', module: 'reward'},
+    {index:PermissionIndex.reward_claim_repeatably, name:'Claim repeatably', description:'Allow claimming repeatably', module: 'reward'},
+    {index:PermissionIndex.reward_allow_claiming, name:'Allow claiming', description:'Allow claiming', module: 'reward'},
 
     {index:PermissionIndex.demand, name:'Demand', description:'Launch new Demand', module: 'demand'},
     {index:PermissionIndex.demand_refund, name:'Refund', description:'Refund from Demand', module: 'demand'},
@@ -187,8 +189,9 @@ export const PermissionInfo : PermissionInfoType[] = [
     {index:PermissionIndex.treasury_deposit, name: 'Deposit', description:'Deposit coins', module: 'treasury'},
     {index:PermissionIndex.treasury_receive, name: 'Receive', description:'Receive coins from some address sent', module: 'treasury'},
     {index:PermissionIndex.treasury_withdraw, name: 'Withdraw', description:'Withdraw coins', module: 'treasury'},
-    {index:PermissionIndex.treasury_free_deposit_set, name: 'Be Free Deposit', description:'Set whether deposits can be made without permission', module: 'treasury'},
-    {index:PermissionIndex.treasury_descritption, name: 'Description', description:'Set Treasury description', module: 'treasury'},
+    {index:PermissionIndex.treasury_withdraw_guard, name: 'Withdraw Guard', description:'Add/Remove Treasury withdraw guard', module: 'treasury'},
+    {index:PermissionIndex.treasury_withdraw_mode, name: 'Withdraw mode', description:'Set Treasury withdraw mode', module: 'treasury'},
+    {index:PermissionIndex.treasury_deposit_guard, name: 'Deposit Guard', description:'Set Treasury deposit guard', module: 'treasury'},
 ]
 
 export type PermissionIndexType = PermissionIndex | number;

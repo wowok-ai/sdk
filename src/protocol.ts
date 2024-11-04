@@ -24,7 +24,6 @@ export enum MODULES {
     wowok = 'wowok',
     treasury = 'treasury',
     payment = 'payment',
-    withholding = 'withholding',
 }
 
 export type PermissionAddress = TransactionResult;
@@ -59,7 +58,6 @@ export type PaymentObject = TransactionResult | string | TransactionArgument;
 export type PaymentAddress = TransactionResult;
 export type ReceivedObject = TransactionResult | string | TransactionArgument;
 export type CoinWrapperObject = TransactionResult;
-export type WithholdingAddress = TransactionResult;
 
 export type TxbObject = string | TransactionResult | TransactionArgument | GuardObject |  RepositoryObject | PermissionObject | MachineObject | PassportObject |
     DemandObject | ServiceObject | RewardObject | OrderObject | DiscountObject | VoteObject | DemandObject | ResourceObject | EntityObject;
@@ -215,11 +213,11 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    wowok: "0x3bf8789855f2c6232df5891b267a4bc07378e6afd916da3aaae009fa3c4ea4ec",
-    wowok_origin:'0x3bf8789855f2c6232df5891b267a4bc07378e6afd916da3aaae009fa3c4ea4ec' ,
+    wowok: "0xdc41a2bf843f25c079205f763b5664d503300590329b01772e227bf62adef4dd",
+    wowok_origin:'0xdc41a2bf843f25c079205f763b5664d503300590329b01772e227bf62adef4dd' ,
     base: '0x7efcdab72af2351e5915e34ad2ac8d4ea7f4f408e08138d3498af35a362db782',
-    wowok_object: '0x0fa6e64fce510530f54182e37eab52516eab0c42912d6a63fe750e8fd3cb2909',
-    entity_object: '0xaaebd7f77e7abac589731e761c78e4990797f9a4510cc78bb5d8c1fba6b0f919',
+    wowok_object: '0x346ad6492d083d7a345f233e4af16f451bbd2307cdf7b100faa3bc2a9c8dc8d9',
+    entity_object: '0xd2d1b91a348300915b3213c30310fbf2f112c6b2b273096ca78fd85f7c9b8217',
     treasury_cap:'0x538cf8f32d59f58c0450a3a97c1eeed3096f4ce63e07e0bdf343a5cc1464887c',
 }
 const MAINNET = {
@@ -324,7 +322,6 @@ export class Protocol {
     WowokFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.wowok}::${fn}`};
     TreasuryFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.treasury}::${fn}`};
     PaymentFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.payment}::${fn}`};
-    WithholdingFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.withholding}::${fn}`};
     GuardFn = (fn: any) => { return `${this.package.get('base')}::${MODULES.guard}::${fn}`};
     MintFn = (fn: any) => { return `${this.package.get('base')}::${MODULES.wowok}::${fn}`};
     
