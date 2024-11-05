@@ -26,6 +26,6 @@ export enum Errors {
 }
 
 export const ERROR = (error:Errors, info?:any) =>  {
-    const e = error + info ? (' ' + info) : '';
+    const e = error.toString() + (info ? (' ' + info) : '');
     throw e;
 }

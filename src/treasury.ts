@@ -155,7 +155,6 @@ export class Treasury {
 
         const for_obj = this.txb.pure.option('address', param.for_object ?? undefined);
         const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
-
         if (passport) {
             if (param.for_guard) {
                 return this.txb.moveCall({
@@ -196,19 +195,19 @@ export class Treasury {
         if (!Protocol.IsValidObjects([payment, received])) {
             ERROR(Errors.IsValidArray, 'receive.payment&received');
         }
-
+        const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         if (passport) {
             return this.txb.moveCall({
                 target:Protocol.Instance().TreasuryFn('receive_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(received), this.txb.object(payment), 
-                    Protocol.TXB_OBJECT(this.txb, this.permission)],
+                    this.txb.object(clock), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.token_type],
             })
         } else {
             return this.txb.moveCall({
                 target:Protocol.Instance().TreasuryFn('receive') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(received), this.txb.object(payment), 
-                    Protocol.TXB_OBJECT(this.txb, this.permission)],
+                    this.txb.object(clock), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.token_type],
             })
         }
