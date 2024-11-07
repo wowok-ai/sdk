@@ -298,14 +298,29 @@ export class Guard {
         [MODULES.treasury, 'Number of Flow Records', 1402, [], ValueType.TYPE_U64, 'Number of treasury transactions.', []], 
         [MODULES.treasury, 'Inflow Amount', 1403, [], ValueType.TYPE_U128, 'Treasury inflow amount.', []], 
         [MODULES.treasury, 'Outflow Amount', 1404, [], ValueType.TYPE_U128, 'Treasury outflow amount.', []], 
-        [MODULES.treasury, 'Has Payment', 1405, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Is there a payment in the Treasury flows?', ['payment address']], 
-        [MODULES.treasury, 'Has Deposit Guard', 1406, [], ValueType.TYPE_BOOL, 'Whether the deposit Guard set?', []], 
-        [MODULES.treasury, 'Deposit Guard', 1407, [], ValueType.TYPE_ADDRESS, 'Deposit Guard address.', []], 
-        [MODULES.treasury, 'Number of Withdraw Guards', 1408, [], ValueType.TYPE_U64, 'Number of withdraw guards.', []], 
-        [MODULES.treasury, 'Has Withdraw Guard', 1409, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Has a Withdraw Guard added?', ['guard address']], 
-        [MODULES.treasury, 'Withdrawal Amount with Guard', 1410, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'withdrawal amount corresponding the Guard.', ['guard address']], 
-        [MODULES.treasury, 'Has Payment with operation', 1411, [ValueType.TYPE_ADDRESS, ValueType.TYPE_U8], ValueType.TYPE_BOOL, 'Is there a payment with the operation in the Treasury flows?', ['payment address', 'operation']], 
-        [MODULES.treasury, 'Withdraw Mode', 1412, [], ValueType.TYPE_U8, 'Treasury withdrawal mode', []], 
+        [MODULES.treasury, 'Has Deposit Guard', 1405, [], ValueType.TYPE_BOOL, 'Whether the deposit Guard set?', []], 
+        [MODULES.treasury, 'Deposit Guard', 1406, [], ValueType.TYPE_ADDRESS, 'Deposit Guard address.', []], 
+        [MODULES.treasury, 'Number of Withdraw Guards', 1407, [], ValueType.TYPE_U64, 'Number of withdraw guards.', []], 
+        [MODULES.treasury, 'Has Withdraw Guard', 1408, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Has a Withdraw Guard added?', ['guard address']], 
+        [MODULES.treasury, 'Withdrawal Amount with Guard', 1409, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'withdrawal amount corresponding the Guard.', ['guard address']], 
+        [MODULES.treasury, 'Recent Time with Operation', 1410, [ValueType.TYPE_U8], ValueType.TYPE_U64, 'Time of the most recent fund operation.', ['operation']], 
+        [MODULES.treasury, 'Recent Signer with Operation', 1411, [ValueType.TYPE_U8], ValueType.TYPE_ADDRESS, 'Signer address of the most recent fund operation.', ['operation']], 
+        [MODULES.treasury, 'Recent Payment with Operation', 1412, [ValueType.TYPE_U8], ValueType.TYPE_ADDRESS, 'Payment address of the most recent fund operation.', ['operation']], 
+        [MODULES.treasury, 'Recent Amount with Operation', 1413, [ValueType.TYPE_U8], ValueType.TYPE_U64, 'Amount of the most recent fund operation.', ['operation']], 
+        [MODULES.treasury, 'Recent Time with Op/Pmt', 1414, [ValueType.TYPE_U8, ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'Time of the most recent fund operation with payment specified.', ['operation', 'payment address']], 
+        [MODULES.treasury, 'Recent Signer with Op&Pmt', 1415, [ValueType.TYPE_U8, ValueType.TYPE_ADDRESS], ValueType.TYPE_ADDRESS, 'Signer of the most recent fund operationwith payment specified.', ['operation', 'payment address']], 
+        [MODULES.treasury, 'Recent Amount with Op/Pmt', 1416, [ValueType.TYPE_U8, ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'Amount of the most recent fund operation with payment specified.', ['operation', 'payment address']], 
+        [MODULES.treasury, 'Recent Time with Op/Sgr', 1417, [ValueType.TYPE_U8, ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'Time of the most recent fund operation with signer specified.', ['operation', 'signer address']], 
+        [MODULES.treasury, 'Recent Payment with Op/Sgr', 1418, [ValueType.TYPE_U8, ValueType.TYPE_ADDRESS], ValueType.TYPE_ADDRESS, 'Payment of the most recent fund operation with singner specified.', ['operation', 'signer address']], 
+        [MODULES.treasury, 'Recent Amount with Op/Sgr', 1419, [ValueType.TYPE_U8, ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'Amount of the most recent fund operation with singer specified.', ['operation', 'signer address']], 
+        [MODULES.treasury, 'Recent Time with Op/Pmt/Sgr', 1420, [ValueType.TYPE_U8, ValueType.TYPE_ADDRESS, ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'Time of the most recent fund operation.', ['operation', 'payment address', 'singer address']], 
+        [MODULES.treasury, 'Recent Amount with Op/Pmt/Sgr', 1421, [ValueType.TYPE_U8, ValueType.TYPE_ADDRESS, ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'Amount of the most recent fund operation.', ['operation', 'payment address', 'singer address']], 
+        [MODULES.treasury, 'Has Operation', 1422, [ValueType.TYPE_U8], ValueType.TYPE_BOOL, 'Whether there was a fund operation?', ['operation']], 
+        [MODULES.treasury, 'Has Operation with Pmt', 1423, [ValueType.TYPE_U8, ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Whether there was a fund operation with payment specified?', ['operation', 'payment address']], 
+        [MODULES.treasury, 'Has Operation with Sgr', 1424, [ValueType.TYPE_U8, ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Whether there was a fund operation with singer specified?', ['operation', 'singer address']], 
+        [MODULES.treasury, 'Has Operation with Pmt/Sgr', 1425, [ValueType.TYPE_U8, ValueType.TYPE_ADDRESS, ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Whether there was a fund operation?', ['operation', 'payment address', 'singer address']], 
+        [MODULES.treasury, 'Operation at Least Times', 1426, [ValueType.TYPE_U8, ValueType.TYPE_U8], ValueType.TYPE_BOOL, 'Does it operate at least a certain number of times?', ['operation', 'at least times']], 
+        [MODULES.treasury, 'Operation at Least Times by a Signer', 1427, [ValueType.TYPE_U8, ValueType.TYPE_ADDRESS, ValueType.TYPE_U8], ValueType.TYPE_BOOL, 'Does it operate at least a certain number of times by a signer?', ['operation', 'signer address', 'at least times']], 
     ];
 
     static BoolCmd = Guard.QUERIES.filter(q => q[4] === ValueType.TYPE_BOOL);
@@ -490,7 +505,9 @@ export class GuardMaker {
 
     // object_address_from: string for static address; number as identifier  inconstant
     add_query(module:MODULES, query_name:string, object_address_from:string | number) : GuardMaker {        
-        let query_index = Guard.QUERIES.findIndex((q) => { return q[0] ==  module && q[1]  == query_name})
+        let query_index = Guard.QUERIES.findIndex((q) => { 
+            return q[0] ==  module && q[1]  == query_name
+        })
         if (query_index == -1)  {
             ERROR(Errors.InvalidParam, 'query_name:'+query_name);
         }
@@ -507,7 +524,7 @@ export class GuardMaker {
 
         let offset = this.type_validator.length - Guard.QUERIES[query_index][3].length;
         if (offset < 0) { 
-            ERROR(Errors.InvalidParam, 'query_name:'+query_name);
+            ERROR(Errors.InvalidParam, 'offset:'+query_name);
         }
 
         let types = this.type_validator.slice(offset);

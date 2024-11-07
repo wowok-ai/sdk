@@ -136,7 +136,8 @@ export class Treasury {
         }
     }
     
-    deposit(param:DepositParam, passport?:PassportObject) :TxbObject {
+    // return payment address
+    deposit(param:DepositParam, passport?:PassportObject) :TransactionResult {
         if (!Protocol.IsValidObjects([param.coin])) {
             ERROR(Errors.IsValidObjects, 'deposit.param.coin')
         }
@@ -191,7 +192,8 @@ export class Treasury {
         
     }
 
-    receive(payment:PaymentObject, received:ReceivedObject, passport?:PassportObject)  {
+    // return current balance
+    receive(payment:PaymentObject, received:ReceivedObject, passport?:PassportObject) : TransactionResult {
         if (!Protocol.IsValidObjects([payment, received])) {
             ERROR(Errors.IsValidArray, 'receive.payment&received');
         }
@@ -213,7 +215,8 @@ export class Treasury {
         }
     }
     
-    withdraw(param:WithdrawParam, passport?:PassportObject)  {
+    // return payment address
+    withdraw(param:WithdrawParam, passport?:PassportObject) : TransactionResult | undefined {
         if (param.items.length === 0) return undefined;
         if (!IsValidArray(param.items, (item:WithdrawItem) => IsValidU64(item.amount) && IsValidAddress(item.address))) {
             ERROR(Errors.IsValidArray, 'withdraw.param.items')
@@ -421,9 +424,10 @@ export class Treasury {
         return parseObjectType(chain_type, 'treasury::Treasury<')
     }
 
-    static OP_WITHDRAW = 0;
-    static OP_DEPOSIT = 1;
-    static OP_RECEIVE = 2;
+    static OP_WITHDRAW = 1;
+    static OP_DEPOSIT = 2;
+    static OP_RECEIVE = 4;
+    
     static MAX_WITHDRAW_GUARD_COUNT = 16;
 }
 
