@@ -213,11 +213,11 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    wowok: "0x065a43117883955796a07cb7e9dbe15513bcfc90b460fa5baac500d749103720",
-    wowok_origin:'0x065a43117883955796a07cb7e9dbe15513bcfc90b460fa5baac500d749103720' ,
+    wowok: "0x93a47e2e77b150258877b31a49d6e2dbda58c7840f14a99aeb658bddb3d0d021",
+    wowok_origin:'0x93a47e2e77b150258877b31a49d6e2dbda58c7840f14a99aeb658bddb3d0d021' ,
     base: '0x7efcdab72af2351e5915e34ad2ac8d4ea7f4f408e08138d3498af35a362db782',
-    wowok_object: '0x7756001e06e3d00ae8d5c88ab74c1089ddf68749bd13fd622a7b93bca3918919',
-    entity_object: '0x0cbdf1c0de60b7f4b5240d0efa1cc8bd98d18bb7fff36dc87c7170b761281819',
+    wowok_object: '0xdc4f31084f0f0ceb8c59feb78a361091fa84d54d562e28302f2b02b1d22e2905',
+    entity_object: '0xbf547b1185c458a2498baf7235ce9824740e4c2fce27440354f342f9ccc79de0',
     treasury_cap:'0x538cf8f32d59f58c0450a3a97c1eeed3096f4ce63e07e0bdf343a5cc1464887c',
 }
 const MAINNET = {

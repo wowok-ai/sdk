@@ -548,12 +548,14 @@ export class  Permission {
             let i = answer.items?.find((v)=>v.query == index); // index maybe string, so ==
             if (i) {
                 return {has:i.permission, guard:i.guard, owner:answer.owner};
-            }    
+            } else {
+                return {has:false, guard:undefined, owner:answer?.owner}
+            }   
         }
         if (bStrict) {
-            return {has:false, guard:undefined, owner:answer?.owner}
+            return {has:false, guard:undefined, owner:false}
         } 
-        return undefined
+        return undefined // basic: !== false ; otherwise: !
     }
 
     static MAX_ADMIN_COUNT = 64;
