@@ -543,12 +543,5 @@ export class Machine {
         })
     }
     static INITIAL_NODE_NAME = '';
-/*    static NODE_NAME_RESERVED = 'origin';
-    static IsNodeNameReserved = (name:string) => { 
-        return name.toLowerCase() === Machine.NODE_NAME_RESERVED
-    }*/
-    static SolveNodeName = (name:string) => {
-        return name ? name : '⚪';
-    }
     static OPERATOR_ORDER_PAYER = 'OrderPayer';
 }

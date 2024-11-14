@@ -1,6 +1,6 @@
 
 
-import { Protocol, LogicsInfo, GuardAddress, FnCallType, Data_Type, MODULES, ContextType, ValueType,  OperatorType, SER_VALUE} from './protocol';
+import { Protocol, LogicsInfo, GuardAddress, FnCallType, Data_Type, MODULES, ContextType, ValueType,  OperatorType, TxbObject, GuardObject} from './protocol';
 import { concatenate, array_equal } from './utils';
 import { IsValidDesription, Bcs, IsValidInt, IsValidAddress, FirstLetterUppercase, insertAtHead } from './utils';
 import { ERROR, Errors } from './exception';
@@ -23,7 +23,22 @@ export  interface Guard_Options {
 
 export class Guard {
     static MAX_INPUT_LENGTH = 10240;
-    static launch(txb:TransactionBlock, description:string, maker:GuardMaker) : GuardAddress  {
+    protected txb;
+    protected object : TxbObject;
+    get_object() { return this.object }
+
+    static From(txb:TransactionBlock,  object:TxbObject) : Guard {
+        let d = new Guard(txb)
+        d.object = Protocol.TXB_OBJECT(txb, object)
+        return d
+    }
+
+    private constructor(txb:TransactionBlock) {
+        this.txb = txb;
+        this.object =  '';
+    }
+
+    static New(txb:TransactionBlock, description:string, maker:GuardMaker) : Guard {
         if (!maker.IsReady()) {
             ERROR(Errors.InvalidParam, 'launch maker');
         }
@@ -50,7 +65,8 @@ export class Guard {
         let input = new  Uint8Array(bcs_input); // copy new uint8array to reserve!
 
         // reserve the  bytes for guard
-        let guard = txb.moveCall({
+        let g = new Guard(txb);
+        g.object = txb.moveCall({
             target: Protocol.Instance().GuardFn('new') as FnCallType,
             arguments: [txb.pure.string(description), txb.pure.vector('u8', [].slice.call(input.reverse()))],  
         });
@@ -60,20 +76,23 @@ export class Guard {
                 const n = new Uint8Array(1); n.set([v.type], 0);
                 txb.moveCall({
                     target:Protocol.Instance().GuardFn("constant_add") as FnCallType,
-                    arguments:[guard, txb.pure.u8(k), txb.pure.bool(true), txb.pure.vector('u8', [].slice.call(n)), txb.pure.bool(true)]
+                    arguments:[txb.object(g.object), txb.pure.u8(k), txb.pure.bool(true), txb.pure.vector('u8', [].slice.call(n)), txb.pure.bool(true)]
                 }) 
             } else {
                 const n = insertAtHead(v.value!, v.type);
                 txb.moveCall({
                     target:Protocol.Instance().GuardFn("constant_add") as FnCallType,
-                    arguments:[guard, txb.pure.u8(k), txb.pure.bool(false),  txb.pure.vector('u8', [].slice.call(n)), txb.pure.bool(true)]
+                    arguments:[txb.object(g.object), txb.pure.u8(k), txb.pure.bool(false),  txb.pure.vector('u8', [].slice.call(n)), txb.pure.bool(true)]
                 }) 
             }
         });
-    
-        return txb.moveCall({
+        return g
+    }
+
+    launch() : GuardAddress  {
+        return this.txb.moveCall({
             target:Protocol.Instance().GuardFn("create") as FnCallType,
-            arguments:[guard]
+            arguments:[this.txb.object(this.object)]
         });
     }
     
@@ -124,7 +143,7 @@ export class Guard {
         [MODULES.repository, 'Address Vector Data', 119, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_ADDRESS, 'Data for a field at an address and get address vector type data.', ['address', 'the field name']],       
         [MODULES.repository, 'Bool Vector Data', 120, [ValueType.TYPE_ADDRESS, ValueType.TYPE_STRING], ValueType.TYPE_VEC_BOOL, 'Data for a field at an address and get bool vector type data.', ['address', 'the field name']],            
         
-        [MODULES.entity, 'Contains Entity?', 200, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Is an entity already registered?', ['address']], 
+        [MODULES.entity, 'Has Entity', 200, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Is an entity already registered?', ['address']], 
         [MODULES.entity, 'Likes', 201, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'The number of likes for an address by other addresses.', ['address']], 
         [MODULES.entity, 'Dislikes', 202, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'The number of dislikes for an address by other addresses.', ['address']], 
         [MODULES.entity, 'Entity Info', 203, [ValueType.TYPE_ADDRESS], ValueType.TYPE_VEC_U8, 'Public information about an entity.', ['address']], 
