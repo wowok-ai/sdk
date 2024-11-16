@@ -1,3 +1,7 @@
+/*****************
+ * depreacted
+******************/
+
 import { TransactionArgument, Transaction as TransactionBlock, type TransactionResult, } from '@mysten/sui/transactions';
 import { FnCallType, GuardObject, PassportObject, PermissionObject, RewardAddress, Protocol, TxbObject, } from './protocol';
 import { array_unique, IsValidAddress, IsValidArgType, IsValidArray, IsValidDesription, IsValidU64, parseObjectType} from './utils';

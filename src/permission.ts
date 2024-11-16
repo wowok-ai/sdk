@@ -45,6 +45,7 @@ export enum PermissionIndex {
     service_customer_required = 222,
     //service_change_order_required_pubkey = 224,
     service_pause = 225,
+    service_treasury = 226,
 
     reward = 240,
     reward_refund = 241,
@@ -87,6 +88,17 @@ export enum PermissionIndex {
     treasury_withdraw_mode = 706,
     treasury_withdraw_guard = 707,
 
+    arbitration = 800,
+    arbitration_description = 801,
+    arbitration_fee = 802,
+    arbitration_voting_guard = 803,
+    arbitration_endpoint = 804,
+    arbitration_guard = 805,
+    arbitration_publish = 806,
+    arbitration_vote = 807,
+    arbitration_arbitration = 808,
+    arbitration_withdraw = 809,
+    
     user_defined_start = 1000,
 }
 
@@ -147,11 +159,12 @@ export const PermissionInfo : PermissionInfoType[] = [
     {index:PermissionIndex.service_buyer_guard, name:'Buyer Guard', description:'Set Guard of buying for Service', module: 'service'},
     {index:PermissionIndex.service_machine, name:'Machine', description:'Set Machine for Service', module: 'service'},
     {index:PermissionIndex.service_endpoint, name:'Endpoint', description:'Set Service endpoint', module: 'service'},
-    {index:PermissionIndex.service_publish, name:'Publish', description:'Publish Service', module: 'service'},
+    {index:PermissionIndex.service_publish, name:'Publish', description:'Allowing the creation of Order', module: 'service'},
     {index:PermissionIndex.service_clone, name:'Clone', description:'Clone Service', module: 'service'},
     {index:PermissionIndex.service_customer_required, name:'Buyer info', description:'Set Service buyer info required', module: 'service'},
     //{index:PermissionIndex.service_change_order_required_pubkey, name:'Order pubkey', description:'Update Serivce order pubkey', module: 'service'},
     {index:PermissionIndex.service_pause, name:'Pause', description:'Pause/Unpause Service', module: 'service'},
+    {index:PermissionIndex.service_treasury, name:'Treasury', description:'Externally withdrawable treasury for compensation or rewards', module: 'service'},
 
     {index:PermissionIndex.reward, name:'reward', description:'Launch new reward', module: 'reward'},
     {index:PermissionIndex.reward_refund, name:'Refund', description:'Refund from reward', module: 'reward'},
@@ -176,7 +189,7 @@ export const PermissionInfo : PermissionInfoType[] = [
     {index:PermissionIndex.machine_node, name: 'Node', description:'Set Machine nodes', module: 'machine'},
     {index:PermissionIndex.machine_endpoint, name: 'Endpoint', description:'Set Machine endpoint', module: 'machine'},
     {index:PermissionIndex.machine_pause, name: 'Pause', description:'Pause/Unpause Machine', module: 'machine'},
-    {index:PermissionIndex.machine_publish, name: 'Publish', description:'Publish Machine', module: 'machine'},
+    {index:PermissionIndex.machine_publish, name: 'Publish', description:'Allowing the creation of Progress', module: 'machine'},
 
     {index:PermissionIndex.progress, name: 'Progress', description:'Launch new Progress', module: 'progress'},
     {index:PermissionIndex.progress_namedOperator, name: 'Operator', description:'Set Progress operators', module: 'progress'},
@@ -192,6 +205,18 @@ export const PermissionInfo : PermissionInfoType[] = [
     {index:PermissionIndex.treasury_withdraw_guard, name: 'Withdraw Guard', description:'Add/Remove Treasury withdraw guard', module: 'treasury'},
     {index:PermissionIndex.treasury_withdraw_mode, name: 'Withdraw mode', description:'Set Treasury withdraw mode', module: 'treasury'},
     {index:PermissionIndex.treasury_deposit_guard, name: 'Deposit Guard', description:'Set Treasury deposit guard', module: 'treasury'},
+    {index:PermissionIndex.treasury_descritption, name: 'Description', description:'Set Treasury description', module: 'treasury'},
+
+    {index:PermissionIndex.arbitration, name: 'Arbitration', description:'Launch new Arbitration', module: 'arbitration'},
+    {index:PermissionIndex.arbitration_description, name: 'Description', description:'Set Arbitration description', module: 'arbitration'},
+    {index:PermissionIndex.arbitration_endpoint, name: 'Endpoint', description:'Set Arbitration endpoint', module: 'arbitration'},
+    {index:PermissionIndex.arbitration_fee, name: 'Fee', description:'Set Arbitration fee', module: 'arbitration'},
+    {index:PermissionIndex.arbitration_guard, name: 'Guard', description:'Set Guard to apply for arbitration', module: 'arbitration'},
+    {index:PermissionIndex.arbitration_arbitration, name: 'Arbitrate', description:'Determine the outcome of arbitration', module: 'arbitration'},
+    {index:PermissionIndex.arbitration_publish, name: 'Publish', description:'Allowing the creation of Arb', module: 'arbitration'},
+    {index:PermissionIndex.arbitration_voting_guard, name: 'Voting Guard', description:'Add/Remove voting Guard', module: 'arbitration'},
+    {index:PermissionIndex.arbitration_vote, name: 'Vote', description:'Vote on the application for arbitration', module: 'arbitration'},
+    {index:PermissionIndex.arbitration_withdraw, name: 'Withdraw', description:'Withdraw the arbitration fee', module: 'arbitration'},
 ]
 
 export type PermissionIndexType = PermissionIndex | number;

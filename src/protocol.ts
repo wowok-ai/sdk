@@ -24,6 +24,8 @@ export enum MODULES {
     wowok = 'wowok',
     treasury = 'treasury',
     payment = 'payment',
+    arbitration = 'arbitration',
+    arb = 'arb',
 }
 
 export type PermissionAddress = TransactionResult;
@@ -213,11 +215,11 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    wowok: "0x93a47e2e77b150258877b31a49d6e2dbda58c7840f14a99aeb658bddb3d0d021",
-    wowok_origin:'0x93a47e2e77b150258877b31a49d6e2dbda58c7840f14a99aeb658bddb3d0d021' ,
+    wowok: "0xd8909c47713ee1199f41caaccff1a822cd82512e0ec4f9e7af04e71d3db6cb4b",
+    wowok_origin:'0xd8909c47713ee1199f41caaccff1a822cd82512e0ec4f9e7af04e71d3db6cb4b' ,
     base: '0x7efcdab72af2351e5915e34ad2ac8d4ea7f4f408e08138d3498af35a362db782',
-    wowok_object: '0xdc4f31084f0f0ceb8c59feb78a361091fa84d54d562e28302f2b02b1d22e2905',
-    entity_object: '0xbf547b1185c458a2498baf7235ce9824740e4c2fce27440354f342f9ccc79de0',
+    wowok_object: '0xb1105b665e0bc583cb91e80c7ea17cb35f5f145ccda25145328db1c1b984ea1a',
+    entity_object: '0x9d5a8823ccdbc369097d74672d25ac2045bce9bfb993858441513469469a44d0',
     treasury_cap:'0x538cf8f32d59f58c0450a3a97c1eeed3096f4ce63e07e0bdf343a5cc1464887c',
 }
 const MAINNET = {

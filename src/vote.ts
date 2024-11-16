@@ -1,3 +1,8 @@
+
+/*****************
+ * depreacted 
+******************/
+
 import { FnCallType, PassportObject, PermissionObject, GuardObject, VoteAddress, Protocol, TxbObject} from './protocol';
 import { IsValidDesription, IsValidAddress, Bcs, array_unique, IsValidArray, IsValidName, IsValidU64, IsValidU256, IsValidU8 } from './utils';
 import { ERROR, Errors } from './exception';
