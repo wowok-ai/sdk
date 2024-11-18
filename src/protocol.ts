@@ -41,6 +41,8 @@ export type DemandAddress = TransactionResult;
 export type DemandObject = TransactionResult | string | TransactionArgument;
 export type ServiceObject = TransactionResult  | string | TransactionArgument;
 export type ServiceAddress = TransactionResult;
+export type ArbitrationObject = TransactionResult  | string | TransactionArgument;
+export type ArbitrationAddress = TransactionResult;
 export type ProgressObject = TransactionResult | string | TransactionArgument;
 export type ProgressAddress = TransactionResult;
 export type RewardObject = TransactionResult | string | TransactionArgument;
@@ -215,11 +217,11 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    wowok: "0xd8909c47713ee1199f41caaccff1a822cd82512e0ec4f9e7af04e71d3db6cb4b",
-    wowok_origin:'0xd8909c47713ee1199f41caaccff1a822cd82512e0ec4f9e7af04e71d3db6cb4b' ,
+    wowok: "0xda490ef2b5fbe85dd71058263c20dba54553066870ed17007ab8c648280a3f25",
+    wowok_origin:'0xda490ef2b5fbe85dd71058263c20dba54553066870ed17007ab8c648280a3f25' ,
     base: '0x7efcdab72af2351e5915e34ad2ac8d4ea7f4f408e08138d3498af35a362db782',
-    wowok_object: '0xb1105b665e0bc583cb91e80c7ea17cb35f5f145ccda25145328db1c1b984ea1a',
-    entity_object: '0x9d5a8823ccdbc369097d74672d25ac2045bce9bfb993858441513469469a44d0',
+    wowok_object: '0xd46099effd8ff2eb37cf4cb5bc21741dc496daa14bd6be3771a75e69aabd6e2a',
+    entity_object: '0x1d2f045a658122f3e030b8cde49f9c73a7c2f83442e0db5e520cd93b4b8d2a50',
     treasury_cap:'0x538cf8f32d59f58c0450a3a97c1eeed3096f4ce63e07e0bdf343a5cc1464887c',
 }
 const MAINNET = {
@@ -326,7 +328,9 @@ export class Protocol {
     PaymentFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.payment}::${fn}`};
     GuardFn = (fn: any) => { return `${this.package.get('base')}::${MODULES.guard}::${fn}`};
     MintFn = (fn: any) => { return `${this.package.get('base')}::${MODULES.wowok}::${fn}`};
-    
+    ArbitrationFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.arbitration}::${fn}`};
+    ArbFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.arb}::${fn}`};
+
     Query = async (objects: Query_Param[], options:SuiObjectDataOptions={showContent:true}) : Promise<SuiObjectResponse[]> => {
         const client =  new SuiClient({ url: this.NetworkUrl() });  
         const ids = objects.map((value) => value.objectid);

@@ -38,7 +38,8 @@
     "move language",
     "move",
     "treasury",
-    "payment"
+    "payment",
+    "arbitration"
   ],
   "author": "wowok",
   "license": "Apache-2.0",

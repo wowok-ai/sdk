@@ -80,7 +80,7 @@ export class Service {
         return s
     }
     static New(txb: TransactionBlock, token_type:string, permission:PermissionObject, description:string, 
-        payee_address:string, endpoint?:string, passport?:PassportObject) : Service {
+        payee_address:string, passport?:PassportObject) : Service {
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects)
         }
@@ -94,25 +94,20 @@ export class Service {
             ERROR(Errors.IsValidAddress, 'payee_address')
         }
 
-        if (endpoint && !IsValidEndpoint(endpoint)) {
-            ERROR(Errors.IsValidEndpoint)
-        }
-
         let pay_token_type = token_type;
         let s = new Service(txb, pay_token_type, permission);
-        let ep = txb.pure.option('string', endpoint ? endpoint : undefined);
         
 
         if (passport) {
             s.object = txb.moveCall({
                 target:Protocol.Instance().ServiceFn('new_with_passport') as FnCallType,
-                arguments:[passport, txb.pure.string(description), txb.pure.address(payee_address), ep, Protocol.TXB_OBJECT(txb, permission)],
+                arguments:[passport, txb.pure.string(description), txb.pure.address(payee_address), Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments:[pay_token_type],
             })
         } else {
             s.object = txb.moveCall({
                 target:Protocol.Instance().ServiceFn('new') as FnCallType,
-                arguments:[txb.pure.string(description), txb.pure.address(payee_address), ep, Protocol.TXB_OBJECT(txb, permission)],
+                arguments:[txb.pure.string(description), txb.pure.address(payee_address), Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments:[pay_token_type],
             })
         }
@@ -124,8 +119,8 @@ export class Service {
             target:Protocol.Instance().ServiceFn('create') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object)],
             typeArguments:[this.pay_token_type]
-    })
-}
+        })
+    }
     destroy() {
         this.txb.moveCall({
             target:Protocol.Instance().ServiceFn('destroy') as FnCallType,
