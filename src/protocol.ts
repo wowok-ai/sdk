@@ -43,28 +43,31 @@ export type ServiceObject = TransactionResult  | string | TransactionArgument;
 export type ServiceAddress = TransactionResult;
 export type ArbitrationObject = TransactionResult  | string | TransactionArgument;
 export type ArbitrationAddress = TransactionResult;
+export type ArbObject = TransactionResult  | string | TransactionArgument;
+export type ArbAddress = TransactionResult;
 export type ProgressObject = TransactionResult | string | TransactionArgument;
 export type ProgressAddress = TransactionResult;
-export type RewardObject = TransactionResult | string | TransactionArgument;
-export type RewardAddress = TransactionResult;
+export type TreasuryObject = TransactionResult | string | TransactionArgument;
+export type TreasuryAddress = TransactionResult;
+//export type RewardObject = TransactionResult | string | TransactionArgument;
+//export type RewardAddress = TransactionResult;
 export type OrderObject = TransactionResult | string | TransactionArgument;
 export type OrderAddress = TransactionResult;
 export type DiscountObject = TransactionResult | string | TransactionArgument;
 export type CoinObject = TransactionResult | string | TransactionArgument;
-export type VoteObject = TransactionResult | string | TransactionArgument;
-export type VoteAddress = TransactionResult;
+//export type VoteObject = TransactionResult | string | TransactionArgument;
+//export type VoteAddress = TransactionResult;
 export type ResourceObject = TransactionResult | string | TransactionArgument;
 export type ResourceAddress = TransactionResult;
 export type EntityObject = TransactionResult | string | TransactionArgument;
 export type EntityAddress = TransactionResult;
-export type TreasuryAddress = TransactionResult;
 export type PaymentObject = TransactionResult | string | TransactionArgument;
 export type PaymentAddress = TransactionResult;
 export type ReceivedObject = TransactionResult | string | TransactionArgument;
 export type CoinWrapperObject = TransactionResult;
 
 export type TxbObject = string | TransactionResult | TransactionArgument | GuardObject |  RepositoryObject | PermissionObject | MachineObject | PassportObject |
-    DemandObject | ServiceObject | RewardObject | OrderObject | DiscountObject | VoteObject | DemandObject | ResourceObject | EntityObject;
+    DemandObject | ServiceObject  | OrderObject | DiscountObject  | DemandObject | ResourceObject | EntityObject | ArbitrationObject | ArbObject | TreasuryObject;
 
 export type WowokObject = TransactionResult;
 export type FnCallType = `${string}::${string}::${string}`;
@@ -217,16 +220,21 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    wowok: "0xda490ef2b5fbe85dd71058263c20dba54553066870ed17007ab8c648280a3f25",
-    wowok_origin:'0xda490ef2b5fbe85dd71058263c20dba54553066870ed17007ab8c648280a3f25' ,
+    wowok: "0x10a543f1d692c9813d3dfebea75d9ead46a1927c4fbb2d6e646f1aaa3b9ee6bb",
+    wowok_origin:'0x10a543f1d692c9813d3dfebea75d9ead46a1927c4fbb2d6e646f1aaa3b9ee6bb' ,
     base: '0x7efcdab72af2351e5915e34ad2ac8d4ea7f4f408e08138d3498af35a362db782',
-    wowok_object: '0xd46099effd8ff2eb37cf4cb5bc21741dc496daa14bd6be3771a75e69aabd6e2a',
-    entity_object: '0x1d2f045a658122f3e030b8cde49f9c73a7c2f83442e0db5e520cd93b4b8d2a50',
+    base_origin: '0x7efcdab72af2351e5915e34ad2ac8d4ea7f4f408e08138d3498af35a362db782',
+
+    wowok_object: '0x08c8a98236e0f1dd233722391a8178336ea5615498fe2b459daa11e8d4a01367',
+    entity_object: '0x5fc1554d71c5f2fe3a3101200dd19a0e51869ddd6379fd7e8f8ef72339cfd021',
     treasury_cap:'0x538cf8f32d59f58c0450a3a97c1eeed3096f4ce63e07e0bdf343a5cc1464887c',
 }
 const MAINNET = {
     wowok: "",
+    wowok_origin:"",
     base:"",
+    base_origin:"",
+
     wowok_object: '',
     entity_object: '',
     treasury_cap:'',
@@ -274,6 +282,7 @@ export class Protocol {
                 this.package.set('wowok', TESTNET.wowok);
                 this.package.set('base', TESTNET.base);
                 this.package.set('wowok_origin', TESTNET.wowok_origin); //@ orgin package!!!
+                this.package.set('base_origin', TESTNET.base_origin);
                 this.wowok_object = TESTNET.wowok_object;
                 this.entity_object= TESTNET.entity_object;
                 this.treasury_cap = TESTNET.treasury_cap;
@@ -282,6 +291,8 @@ export class Protocol {
             case ENTRYPOINT.mainnet:
                 this.package.set('wowok', MAINNET.wowok);
                 this.package.set('base', MAINNET.base);
+                this.package.set('wowok_origin', MAINNET.wowok_origin); //@ orgin package!!!
+                this.package.set('base_origin', MAINNET.base_origin);
                 this.wowok_object = MAINNET.wowok_object;
                 this.entity_object= MAINNET.entity_object;
                 this.treasury_cap = MAINNET.treasury_cap;

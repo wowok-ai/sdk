@@ -12,7 +12,7 @@ export enum PermissionIndex {
     repository_policy_description = 105,
     repository_policy_permission = 106,
     repository_reference = 107,
-
+/*
     vote = 150,
     vote_description = 151,
     vote_reference = 152, 
@@ -23,7 +23,7 @@ export enum PermissionIndex {
     vote_lock_deadline = 159,
     vote_expand_deadline = 160,
     vote_lock_guard = 161,
-
+*/
     service = 200,
     service_description = 201,
     service_price = 202,
@@ -46,7 +46,7 @@ export enum PermissionIndex {
     //service_change_order_required_pubkey = 224,
     service_pause = 225,
     service_treasury = 226,
-
+/*
     reward = 240,
     reward_refund = 241,
     reward_expand_time = 242,
@@ -55,7 +55,7 @@ export enum PermissionIndex {
     reward_lock_guards = 246,
     reward_claim_repeatably = 247,
     reward_allow_claiming = 248,
-
+*/
     demand = 260,
     demand_refund = 261,
     demand_expand_time = 262,
@@ -94,7 +94,7 @@ export enum PermissionIndex {
     arbitration_voting_guard = 803,
     arbitration_endpoint = 804,
     arbitration_guard = 805,
-    arbitration_publish = 806,
+    arbitration_pause = 806,
     arbitration_vote = 807,
     arbitration_arbitration = 808,
     arbitration_withdraw = 809,
@@ -132,7 +132,7 @@ export const PermissionInfo : PermissionInfoType[] = [
     {index:PermissionIndex.repository_policy_description, name:'Policy Description', description:'Set Repository policy description', module: 'repository'},
     {index:PermissionIndex.repository_policy_permission, name:'Policy Permission', description:'Set Repository policy permission',  module: 'repository'},
     {index:PermissionIndex.repository_reference, name:'Reference', description:'Set Repository reference', module: 'repository'},
-
+/*
     {index:PermissionIndex.vote, name:'Vote', description:'Launch new Vote', module: 'vote'},
     {index:PermissionIndex.vote_description, name:'Description', description:'Set Vote description', module: 'vote'},
     {index:PermissionIndex.vote_reference, name:'Reference', description:'Set Vote reference', module: 'vote'},
@@ -143,7 +143,7 @@ export const PermissionInfo : PermissionInfoType[] = [
     {index:PermissionIndex.vote_lock_deadline, name:'Lock deadline', description:'Set Vote deadline immutable', module: 'vote'},
     {index:PermissionIndex.vote_expand_deadline, name:'Expand deadline', description:'Expand Vote deadline', module: 'vote'},
     {index:PermissionIndex.vote_lock_guard, name:'Lock Guard', description:'Set Vote guards immutable', module: 'vote'},
-
+*/
     {index:PermissionIndex.service, name:'Service', description:'Launch new Service', module: 'service'},
     {index:PermissionIndex.service_description, name:'Description', description:'Set Service description', module: 'service'},
     {index:PermissionIndex.service_price, name:'Price', description:'Set Service item price', module: 'service'},
@@ -165,7 +165,7 @@ export const PermissionInfo : PermissionInfoType[] = [
     //{index:PermissionIndex.service_change_order_required_pubkey, name:'Order pubkey', description:'Update Serivce order pubkey', module: 'service'},
     {index:PermissionIndex.service_pause, name:'Pause', description:'Pause/Unpause Service', module: 'service'},
     {index:PermissionIndex.service_treasury, name:'Treasury', description:'Externally withdrawable treasury for compensation or rewards', module: 'service'},
-
+/*
     {index:PermissionIndex.reward, name:'reward', description:'Launch new reward', module: 'reward'},
     {index:PermissionIndex.reward_refund, name:'Refund', description:'Refund from reward', module: 'reward'},
     {index:PermissionIndex.reward_expand_time, name:'Expand deadline', description:'Expand reward deadline', module: 'reward'},
@@ -174,7 +174,7 @@ export const PermissionInfo : PermissionInfoType[] = [
     {index:PermissionIndex.reward_lock_guards, name:'Lock Guard', description:'Set reward guard immutable', module: 'reward'},
     {index:PermissionIndex.reward_claim_repeatably, name:'Claim repeatably', description:'Allow claimming repeatably', module: 'reward'},
     {index:PermissionIndex.reward_allow_claiming, name:'Allow claiming', description:'Allow claiming', module: 'reward'},
-
+*/
     {index:PermissionIndex.demand, name:'Demand', description:'Launch new Demand', module: 'demand'},
     {index:PermissionIndex.demand_refund, name:'Refund', description:'Refund from Demand', module: 'demand'},
     {index:PermissionIndex.demand_expand_time, name:'Expand deadline', description:'Expand Demand deadline', module: 'demand'},
@@ -213,7 +213,7 @@ export const PermissionInfo : PermissionInfoType[] = [
     {index:PermissionIndex.arbitration_fee, name: 'Fee', description:'Set Arbitration fee', module: 'arbitration'},
     {index:PermissionIndex.arbitration_guard, name: 'Guard', description:'Set Guard to apply for arbitration', module: 'arbitration'},
     {index:PermissionIndex.arbitration_arbitration, name: 'Arbitrate', description:'Determine the outcome of arbitration', module: 'arbitration'},
-    {index:PermissionIndex.arbitration_publish, name: 'Publish', description:'Allowing the creation of Arb', module: 'arbitration'},
+    {index:PermissionIndex.arbitration_pause, name: 'Pause', description:'Allowing/forbidding the creation of Arb', module: 'arbitration'},
     {index:PermissionIndex.arbitration_voting_guard, name: 'Voting Guard', description:'Add/Remove voting Guard', module: 'arbitration'},
     {index:PermissionIndex.arbitration_vote, name: 'Vote', description:'Vote on the application for arbitration', module: 'arbitration'},
     {index:PermissionIndex.arbitration_withdraw, name: 'Withdraw', description:'Withdraw the arbitration fee', module: 'arbitration'},

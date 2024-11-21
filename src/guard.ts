@@ -1,7 +1,7 @@
 
 
 import { Protocol, LogicsInfo, GuardAddress, FnCallType, Data_Type, MODULES, ContextType, ValueType,  OperatorType, TxbObject, GuardObject} from './protocol';
-import { concatenate, array_equal } from './utils';
+import { concatenate, array_equal, ValueTypeConvert } from './utils';
 import { IsValidDesription, Bcs, IsValidInt, IsValidAddress, FirstLetterUppercase, insertAtHead } from './utils';
 import { ERROR, Errors } from './exception';
 import { Transaction as TransactionBlock } from '@mysten/sui/transactions';
@@ -195,7 +195,11 @@ export class Guard {
         [MODULES.order, 'Balance', 508, [], ValueType.TYPE_U64, 'The amount currently in the order.', []], 
         [MODULES.order, 'Refunded', 509, [], ValueType.TYPE_BOOL, 'Whether a refund has occurred?', []],
         [MODULES.order, 'Withdrawed', 510, [], ValueType.TYPE_BOOL, 'Whether a service provider withdrawal has occurred?', []],   
-     
+        [MODULES.order, 'Number of Agents', 511, [], ValueType.TYPE_U64, 'The number of agents for the order.', []], 
+        [MODULES.order, 'Has Agent', 512, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Whether an address is an order agent?', ['agent address']], 
+        [MODULES.order, 'Number of Disputes', 513, [], ValueType.TYPE_U64, 'Number of arbitrations for the order.', []],
+        [MODULES.order, 'Has Arb', 514, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Does the order contain an Arb for arbitration?', ['arb address']],   
+/* @Deprecated
         [MODULES.reward, 'Permission', 600, [], ValueType.TYPE_ADDRESS, 'Permission object address.', []],       
         [MODULES.reward, 'Rewards Remaining', 601, [], ValueType.TYPE_U64, 'Number of rewards to be claimed.', []],
         [MODULES.reward, 'Reward Count Supplied', 602, [], ValueType.TYPE_U64, 'Total rewards supplied.', []],   
@@ -210,9 +214,8 @@ export class Guard {
         [MODULES.reward, 'Portions by A Sponsor', 611, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'The portions of sponsorship reward pools for a certain address.', ['address']], 
         [MODULES.reward, 'Number of Sponsors', 612, [], ValueType.TYPE_U64, 'Number of sponsors in the sponsorship reward pool.', []],
         [MODULES.reward, 'Allow Repeated Claims', 613, [], ValueType.TYPE_BOOL, 'Whether to allow repeated claims?', []],  
-    
-        // , means that data fields and data outside the consensus policy definition are allowed to be written
-        // , means that only data fields and data defined by the consensus policy are allowed to be written.
+*/    
+
         [MODULES.machine, 'Permission', 700, [], ValueType.TYPE_ADDRESS, 'Permission object address.', []],
         [MODULES.machine, 'Paused', 701, [], ValueType.TYPE_BOOL, 'Pause the creation of new Progress?', []],
         [MODULES.machine, 'Published', 702, [], ValueType.TYPE_BOOL, 'Is it allowed to create Progress?', []],
@@ -258,7 +261,7 @@ export class Guard {
         [MODULES.wowok, 'Grantor Registration Time', 906, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'Registration time of a grantor.', ['address']], 
         [MODULES.wowok, 'Grantor Expired Time', 907, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'The expiration time of a grantor.', ['address']], 
         [MODULES.wowok, 'Grantee Object for Grantor', 908, [ValueType.TYPE_ADDRESS], ValueType.TYPE_ADDRESS, 'Grantee repository address of a grantor.', ['address']], 
-    
+/* @Deprecated
         [MODULES.vote, 'Permission', 1101, [], ValueType.TYPE_ADDRESS, 'Permission object address.', []],       
         [MODULES.vote, 'Be Voting', 1102, [], ValueType.TYPE_BOOL, 'Whether to start voting and options will not be changed?', []],
         [MODULES.vote, 'Deadline Locked', 1103, [], ValueType.TYPE_BOOL, 'Whether the deadline cannot be modified?', []],   
@@ -282,7 +285,7 @@ export class Guard {
         [MODULES.vote, 'Top1 Option by Votes', 1121, [], ValueType.TYPE_STRING, 'The content of the voting option ranked first by the number of votes.', []], 
         [MODULES.vote, 'Top1 Counts by Votes', 1122, [], ValueType.TYPE_U64, 'Number of votes for the top voting option by number of votes.', []], 
         [MODULES.vote, 'Voted Time by Address', 1113, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'The time of whether an address has been voted on.', ['adddress']], 
- 
+*/ 
         [MODULES.payment, 'Sender', 1200, [], ValueType.TYPE_ADDRESS, 'Payment originator address.', []], 
         [MODULES.payment, 'Total Amount', 1201, [], ValueType.TYPE_U128, "Payment amount.", []], 
         [MODULES.payment, 'Remark', 1202, [], ValueType.TYPE_STRING, 'Payment remark.', ['address']], 
@@ -297,22 +300,6 @@ export class Guard {
         [MODULES.payment, 'Is from Treasury', 1211, [], ValueType.TYPE_BOOL, 'Whether the payment comes from a Treasury?', []], 
         [MODULES.payment, 'Treasury Address', 1212, [], ValueType.TYPE_ADDRESS, 'The Treasury from which the payment comes.', []], 
         [MODULES.payment, 'Biz-ID', 1213, [], ValueType.TYPE_U64, 'Bisiness ID number of the payment.', []], 
-
-        [MODULES.reward, 'Amount', 1300, [], ValueType.TYPE_U64, 'Total amount deposited with reward.' , []], 
-        [MODULES.reward, 'Original Type Deposited', 1301, [], ValueType.TYPE_STRING, "Original type name of asserts deposited.", []], 
-        [MODULES.reward, 'Original Package', 1302, [], ValueType.TYPE_ADDRESS, 'Original package address of asserts deposited.', []], 
-        [MODULES.reward, 'Original Module', 1303, [], ValueType.TYPE_STRING, 'Original module name of asserts deposited.', []], 
-        [MODULES.reward, 'Type Deposited', 1304, [], ValueType.TYPE_STRING, 'Type name of asserts deposited.', []], 
-        [MODULES.reward, 'Package', 1305, [], ValueType.TYPE_ADDRESS, 'Package address of asserts deposited.', , []], 
-        [MODULES.reward, 'Module', 1306, [], ValueType.TYPE_STRING, 'Module name of asserts deposited.', []], 
-        [MODULES.reward, 'Balance', 1307, [], ValueType.TYPE_U64, 'The amount currently remaining in reward.', []], 
-        [MODULES.reward, 'Deposit Time', 1308, [], ValueType.TYPE_U64, 'Deposit time.', []], 
-        [MODULES.reward, 'Be Withdrawable', 1309, [], ValueType.TYPE_BOOL, 'Whether to allow amount withdrawal?' , []], 
-        [MODULES.reward, 'Be Deposited from', 1310, [], ValueType.TYPE_BOOL, 'Is the deposit from source set?', []], 
-        [MODULES.reward, 'Deposited from Object', 1311, [], ValueType.TYPE_ADDRESS, 'The source object set when depositing.', []], 
-        [MODULES.reward, 'Contains Guard', 1312, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Whether the guard for withdrawal is set up?', []], 
-        [MODULES.reward, 'Withdrawal percentage', 1313, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U8, 'The percentage of withdrawals corresponding to Guard.', ['address']], 
-        [MODULES.reward, 'Number of withdrawals', 1314, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'Number of withdrawals.'], 
 
         [MODULES.treasury, 'Permission', 1400, [], ValueType.TYPE_ADDRESS, 'Permission object address.', []], 
         [MODULES.treasury, 'Balance', 1401, [], ValueType.TYPE_U64, "Treasury balance.", []], 
@@ -344,12 +331,12 @@ export class Guard {
         [MODULES.treasury, 'Operation at Least Times by a Signer', 1427, [ValueType.TYPE_U8, ValueType.TYPE_ADDRESS, ValueType.TYPE_U8], ValueType.TYPE_BOOL, 'Does it operate at least a certain number of times by a signer?', ['operation', 'signer address', 'at least times']], 
     
         [MODULES.arbitration, 'Permission', 1500, [], ValueType.TYPE_ADDRESS, 'Permission object address.', []], 
-        [MODULES.arbitration, 'Published', 1501, [], ValueType.TYPE_BOOL, "Is it allowed to create Arb?", []], 
+        [MODULES.arbitration, 'Paused', 1501, [], ValueType.TYPE_BOOL, "Is it allowed to create Arb?", []], 
         [MODULES.arbitration, 'Fee', 1502, [], ValueType.TYPE_U64, 'Cost of arbitration.', []], 
         [MODULES.arbitration, 'Has Endpoint', 1503, [], ValueType.TYPE_BOOL, 'Is the endpoint set?', []], 
         [MODULES.arbitration, 'Endpoint', 1504, [], ValueType.TYPE_STRING, 'Endpoint url/ipfs.', []], 
-        [MODULES.arbitration, 'Has Guard', 1505, [], ValueType.TYPE_BOOL, 'Is there Guard set to apply for arbitration?', []], 
-        [MODULES.arbitration, 'Guard', 1506, [], ValueType.TYPE_ADDRESS, 'Guard to apply for arbitration.', []], 
+        [MODULES.arbitration, 'Has Customer Guard', 1505, [], ValueType.TYPE_BOOL, 'Is there Guard set to apply for arbitration?', []], 
+        [MODULES.arbitration, 'Customer Guard', 1506, [], ValueType.TYPE_ADDRESS, 'Guard to apply for arbitration.', []], 
         [MODULES.arbitration, 'Number of Voting Guard', 1507, [], ValueType.TYPE_U64, 'Number of voting guards.', []], 
         [MODULES.arbitration, 'Has Voting Guard', 1508, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Has the voting Guard added?', ['guard address']], 
         [MODULES.arbitration, 'Voting Weight', 1509, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'Voting weight of the voting Guard.', ['guard address']], 

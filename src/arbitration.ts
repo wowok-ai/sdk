@@ -1,33 +1,29 @@
-import { IsValidArray, IsValidPercent, IsValidName_AllowEmpty, parseObjectType, array_unique, IsValidTokenType, IsValidDesription, 
-    IsValidAddress, IsValidEndpoint, IsValidU64,
-    IsValidName, } from './utils'
-import { FnCallType, GuardObject, PassportObject, PermissionObject, RepositoryObject, MachineObject, ServiceAddress, 
-    ServiceObject, DiscountObject, OrderObject, OrderAddress, CoinObject, Protocol, ValueType,
-    TxbObject,
-    ArbitrationAddress} from './protocol';
+import { IsValidArray,  array_unique, IsValidTokenType, IsValidDesription, parseObjectType,
+    IsValidAddress, IsValidEndpoint, IsValidU64, IsValidName, } from './utils'
+import { FnCallType, GuardObject, PassportObject, PermissionObject, CoinObject, Protocol,
+    TxbObject, ArbitrationAddress, OrderObject, ArbObject} from './protocol';
 import { ERROR, Errors } from './exception';
 import { Transaction as TransactionBlock,  } from '@mysten/sui/transactions';
-import { SuiObjectData } from '@mysten/sui/client';
 
 export interface VotingGuard {
-    guard:string,
+    guard: GuardObject,
     voting_weight:string, // bigint
 }
 
 export interface Vote {
-    arb: string,
-    voting_guard?: string,
+    arb: ArbObject,
+    voting_guard?: GuardObject,
     agrees: number[],
 }
 
 export interface Feedback {
-    arb:string,
+    arb:ArbObject,
     feedback:string, 
     indemnity?:string,  // bigint
 }
 
 export interface Dispute {
-    order: string,
+    order: OrderObject,
     order_token_type: string,
     description: string,
     votable_proposition: string[],
@@ -175,7 +171,7 @@ export class Arbitration {
 
     add_voting_guard(guard: VotingGuard[], passport?:PassportObject) {
         if (guard.length === 0) return ;
-        if (!IsValidArray(guard, (g:VotingGuard) => IsValidAddress(g.guard) && IsValidU64(g.voting_weight))) {
+        if (!IsValidArray(guard, (g:VotingGuard) => Protocol.IsValidObjects([g.guard]) && IsValidU64(g.voting_weight))) {
             ERROR(Errors.IsValidArray, 'add_voting_guard.guard')
         }
         if (passport) {
@@ -273,30 +269,30 @@ export class Arbitration {
             }
         }
     }
-    publish(passport?:PassportObject) {
+    pause(pause:boolean, passport?:PassportObject) {
         if (passport) {
             this.txb.moveCall({
-                target:Protocol.Instance().ArbitrationFn('publish_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                target:Protocol.Instance().ArbitrationFn('pause_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.bool(pause), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
         } else {
             this.txb.moveCall({
-                target:Protocol.Instance().ArbitrationFn('publish') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                target:Protocol.Instance().ArbitrationFn('pause') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.bool(pause), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
         }
     }
     vote(param:Vote, passport?:PassportObject) {
-        if (param.voting_guard && !IsValidAddress(param.voting_guard)) {
-            ERROR(Errors.IsValidAddress, 'vote.param.voting_guard')
+        if (param.voting_guard && !Protocol.IsValidObjects([param.voting_guard])) {
+            ERROR(Errors.IsValidObjects, 'vote.param.voting_guard')
         }
         if (!IsValidArray(param.agrees, (v:number)=> IsValidU64(v) && v < Arbitration.MAX_PROPOSITION_COUNT)) {
             ERROR(Errors.IsValidArray, 'vote.param.agrees')
         }
-        if (!IsValidAddress(param.arb)) {
-            ERROR(Errors.IsValidAddress, 'vote.param.arb')
+        if (!Protocol.IsValidObjects([param.arb])) {
+            ERROR(Errors.IsValidObjects, 'vote.param.arb')
         }
 
         const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
@@ -331,8 +327,8 @@ export class Arbitration {
         if (!IsValidDesription(param.feedback)) {
             ERROR(Errors.IsValidDesription, 'arbitration.param.feedback')
         }
-        if (!IsValidAddress(param.arb)) {
-            ERROR(Errors.IsValidAddress, 'arbitration.param.arb')
+        if (!Protocol.IsValidObjects([param.arb])) {
+            ERROR(Errors.IsValidObjects, 'arbitration.param.arb')
         }
 
         if (param.indemnity && !IsValidU64(param.indemnity)) {
@@ -357,9 +353,9 @@ export class Arbitration {
         }
     }
 
-    withdraw_fee(arb:string, passport?:PassportObject) {
-        if (!IsValidAddress(arb)) {
-            ERROR(Errors.IsValidAddress, 'withdraw_fee.arb')
+    withdraw_fee(arb:ArbObject, passport?:PassportObject) {
+        if (!Protocol.IsValidObjects([arb])) {
+            ERROR(Errors.IsValidObjects, 'withdraw_fee.arb')
         }
         if (passport) {
             this.txb.moveCall({
@@ -379,8 +375,8 @@ export class Arbitration {
     }
 
     dispute(param:Dispute, passport?:PassportObject) {
-        if (!IsValidAddress(param.order)) {
-            ERROR(Errors.IsValidAddress, 'dispute.param.order')
+        if (!Protocol.IsValidObjects([param.order])) {
+            ERROR(Errors.IsValidObjects, 'dispute.param.order')
         }
         if (!IsValidTokenType(param.order_token_type)) {
             ERROR(Errors.IsValidTokenType, 'dispute.param.order_token_type')
@@ -397,14 +393,14 @@ export class Arbitration {
                 this.txb.moveCall({
                     target:Protocol.Instance().ArbitrationFn('dispute_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(param.order), this.txb.pure.string(param.description),
-                        this.txb.pure.vector('string', param.votable_proposition), this.txb.object(param.fee)],
+                        this.txb.pure.vector('string', array_unique(param.votable_proposition)), this.txb.object(param.fee)],
                     typeArguments:[this.pay_token_type, param.order_token_type]
                 })
             } else {
                 this.txb.moveCall({
                     target:Protocol.Instance().ArbitrationFn('free_dispute_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(param.order), this.txb.pure.string(param.description),
-                        this.txb.pure.vector('string', param.votable_proposition)],
+                        this.txb.pure.vector('string', array_unique(param.votable_proposition))],
                     typeArguments:[this.pay_token_type, param.order_token_type]
                 })
             }
@@ -413,20 +409,40 @@ export class Arbitration {
                 this.txb.moveCall({
                     target:Protocol.Instance().ArbitrationFn('dispute') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(param.order), this.txb.pure.string(param.description),
-                        this.txb.pure.vector('string', param.votable_proposition), this.txb.object(param.fee)],
+                        this.txb.pure.vector('string', array_unique(param.votable_proposition)), this.txb.object(param.fee)],
                     typeArguments:[this.pay_token_type, param.order_token_type]
                 })
             } else {
                 this.txb.moveCall({
                     target:Protocol.Instance().ArbitrationFn('free_dispute') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(param.order), this.txb.pure.string(param.description),
-                        this.txb.pure.vector('string', param.votable_proposition)],
+                        this.txb.pure.vector('string', array_unique(param.votable_proposition))],
                     typeArguments:[this.pay_token_type, param.order_token_type]
                 })
             }
         }
     }
 
+    change_permission(new_permission:PermissionObject) {
+        if (!Protocol.IsValidObjects([new_permission])) {
+            ERROR(Errors.IsValidObjects)
+        }
+
+        this.txb.moveCall({
+            target:Protocol.Instance().ArbitrationFn('permission_set') as FnCallType,
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission), Protocol.TXB_OBJECT(this.txb, new_permission)],
+            typeArguments:[this.pay_token_type]            
+        })    
+        this.permission = new_permission
+    }
+
+    static parseObjectType = (chain_type:string | undefined | null) : string =>  {
+        return parseObjectType(chain_type, 'arbitration::Arbitration<')
+    }
+
+    static parseArbObjectType = (chain_type:string | undefined | null) : string =>  {
+        return parseObjectType(chain_type, 'arb::Arb<')
+    }
     static MAX_PROPOSITION_COUNT = 16;
     static MAX_VOTING_GUARD_COUNT = 16;
 }

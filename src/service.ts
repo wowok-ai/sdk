@@ -2,7 +2,8 @@ import { IsValidArray, IsValidPercent, IsValidName_AllowEmpty, parseObjectType, 
     IsValidAddress, IsValidEndpoint, IsValidU64, } from './utils'
 import { FnCallType, GuardObject, PassportObject, PermissionObject, RepositoryObject, MachineObject, ServiceAddress, 
     ServiceObject, DiscountObject, OrderObject, OrderAddress, CoinObject, Protocol, ValueType,
-    TxbObject} from './protocol';
+    TxbObject,
+    TreasuryObject} from './protocol';
 import { ERROR, Errors } from './exception';
 import { Transaction as TransactionBlock,  } from '@mysten/sui/transactions';
 import { SuiObjectData } from '@mysten/sui/client';
@@ -1001,6 +1002,63 @@ export class Service {
         })    
     }
 
+    add_treasury(treasury_token_type:string, treasury:TreasuryObject, passport?:PassportObject) {
+        if (!Protocol.IsValidObjects([treasury])) {
+            ERROR(Errors.IsValidObjects, 'add_treasury.treasury')
+        }
+        if (!IsValidTokenType(treasury_token_type)) {
+            ERROR(Errors.IsValidTokenType, 'add_treasury.treasury_token_type')
+        }
+
+        if (passport) {
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('treasury_add_with_passport') as FnCallType,
+                arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(treasury), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                typeArguments:[this.pay_token_type, treasury_token_type]            
+            })                    
+        } else {
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('treasury_add') as FnCallType,
+                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(treasury), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                typeArguments:[this.pay_token_type, treasury_token_type]            
+            })                    
+        }
+    }
+
+    remove_treasury(treasury:string[], removeall?:boolean, passport?:PassportObject) {
+        if (!removeall && treasury.length === 0) return ;
+
+        if (passport) {
+            if (removeall) {
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('treasury_remove_all_with_passport') as FnCallType,
+                    arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                    typeArguments:[this.pay_token_type]            
+                })    
+            } else {
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('treasury_remove_with_passport') as FnCallType,
+                    arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', treasury), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                    typeArguments:[this.pay_token_type]            
+                })    
+            }
+        } else {
+            if (removeall) {
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('treasury_remove_all') as FnCallType,
+                    arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                    typeArguments:[this.pay_token_type]            
+                })    
+            } else {
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('treasury_remove') as FnCallType,
+                    arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', treasury), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                    typeArguments:[this.pay_token_type]            
+                })    
+            }
+        }
+    }
+
     change_permission(new_permission:PermissionObject) {
         if (!Protocol.IsValidObjects([new_permission])) {
             ERROR(Errors.IsValidObjects)
@@ -1014,12 +1072,19 @@ export class Service {
         this.permission = new_permission
     }
 
+    set_order_agent(order:OrderObject, agent:string[]) {
+        Service.SetOrderAgent(this.txb, this.pay_token_type, order, agent)
+    }
+    
     static MAX_DISCOUNT_COUNT_ONCE = 200;
     static MAX_DISCOUNT_RECEIVER_COUNT = 20;
     static MAX_GUARD_COUNT = 16;
     static MAX_REPOSITORY_COUNT = 32;
     static MAX_ITEM_NAME_LENGTH = 256;
-     
+    static MAX_TREASURY_COUNT= 8;
+    static MAX_ORDER_AGENT_COUNT = 8;
+    static MAX_ORDER_ARBS_COUNT = 8;
+
     static IsValidItemName(name:string) : boolean {
         if (!name) return false;
         return new TextEncoder().encode(name).length <= Service.MAX_ITEM_NAME_LENGTH;
@@ -1049,5 +1114,27 @@ export class Service {
         }).catch((e) => {
             console.log(e);
         })       
+    }
+
+    // The agent has the same order operation power as the order payer; The agent can only be set by the order payer.
+    static SetOrderAgent = (txb:TransactionBlock, order_token_type:string, order:OrderObject, agent:string[]) => {
+        if (!IsValidTokenType(order_token_type)) {
+            ERROR(Errors.IsValidTokenType, 'SetOrderAgent.order_token_type');
+        }
+        if (!Protocol.IsValidObjects([order])) {
+            ERROR(Errors.IsValidObjects, 'SetOrderAgent.order')
+        }
+        if (!IsValidArray(agent, IsValidAddress)) {
+            ERROR(Errors.IsValidArray, 'SetOrderAgent.agent')
+        }
+        if (array_unique(agent).length > Service.MAX_ORDER_AGENT_COUNT) {
+            ERROR(Errors.Fail, 'SetOrderAgent.agent count')
+        }
+
+        txb.moveCall({
+            target:Protocol.Instance().OrderFn('agent_set') as FnCallType,
+            arguments: [txb.object(order), txb.pure.vector('string', array_unique(agent))],
+            typeArguments:[order_token_type]            
+        })    
     }
 }
