@@ -1,7 +1,7 @@
 import { IsValidArray,  array_unique, IsValidTokenType, IsValidDesription, parseObjectType,
     IsValidAddress, IsValidEndpoint, IsValidU64, IsValidName, } from './utils'
 import { FnCallType, GuardObject, PassportObject, PermissionObject, CoinObject, Protocol,
-    TxbObject, ArbitrationAddress, OrderObject, ArbObject} from './protocol';
+    TxbObject, ArbitrationAddress, OrderObject, ArbObject, PaymentAddress, TreasuryObject} from './protocol';
 import { ERROR, Errors } from './exception';
 import { Transaction as TransactionBlock,  } from '@mysten/sui/transactions';
 
@@ -30,6 +30,14 @@ export interface Dispute {
     fee?: CoinObject,
 }
 
+export interface WithdrawFee {
+    treasury: TreasuryObject,
+    index: bigint,
+    remark: string,
+    for_object?: string,
+    for_guard?: GuardObject,
+}
+
 export class Arbitration {
     protected pay_token_type;
     protected permission;
@@ -52,8 +60,8 @@ export class Arbitration {
         return s
     }
     static New(txb: TransactionBlock, token_type:string, permission:PermissionObject, description:string, 
-        fee:bigint, passport?:PassportObject) : Arbitration {
-        if (!Protocol.IsValidObjects([permission])) {
+        fee:bigint, withdrawTreasury:TreasuryObject, passport?:PassportObject) : Arbitration {
+        if (!Protocol.IsValidObjects([permission, withdrawTreasury])) {
             ERROR(Errors.IsValidObjects)
         }
         if (!IsValidTokenType(token_type)) {
@@ -72,13 +80,13 @@ export class Arbitration {
         if (passport) {
             obj.object = txb.moveCall({
                 target:Protocol.Instance().ArbitrationFn('new_with_passport') as FnCallType,
-                arguments:[passport, txb.pure.string(description), txb.pure.u64(fee), Protocol.TXB_OBJECT(txb, permission)],
+                arguments:[passport, txb.pure.string(description), txb.pure.u64(fee), txb.object(withdrawTreasury), Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments:[pay_token_type],
             })
         } else {
             obj.object = txb.moveCall({
                 target:Protocol.Instance().ArbitrationFn('new') as FnCallType,
-                arguments:[txb.pure.string(description), txb.pure.u64(fee), Protocol.TXB_OBJECT(txb, permission)],
+                arguments:[txb.pure.string(description), txb.pure.u64(fee), txb.object(withdrawTreasury), Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments:[pay_token_type],
             })
         }
@@ -353,22 +361,78 @@ export class Arbitration {
         }
     }
 
-    withdraw_fee(arb:ArbObject, passport?:PassportObject) {
-        if (!Protocol.IsValidObjects([arb])) {
-            ERROR(Errors.IsValidObjects, 'withdraw_fee.arb')
+    withdraw_fee(arb:ArbObject, param:WithdrawFee,  passport?:PassportObject) : PaymentAddress {
+        if (!Protocol.IsValidObjects([arb, param.treasury])) {
+            ERROR(Errors.IsValidObjects, 'withdraw_fee.arb or treasury')
+        }
+        if (param?.for_guard && !Protocol.IsValidObjects([param.for_guard])) {
+            ERROR(Errors.IsValidObjects, 'withdraw_fee.param.for_guard')
+        }
+        if (param?.for_object && !IsValidAddress(param.for_object)) {
+            ERROR(Errors.IsValidAddress, 'withdraw_fee.param.for_object')
+        }
+        if (!IsValidDesription(param.remark)) {
+            ERROR(Errors.IsValidDesription, 'withdraw_fee.param.remark')
+        }
+        if (!IsValidU64(param.index)) {
+            ERROR(Errors.IsValidU64, 'withdraw_fee.param.index')
+        }
+        const for_obj = this.txb.pure.option('address', param.for_object ?  param.for_object : undefined);
+        const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
+
+        if (passport) {
+            if (param.for_guard) {
+                return this.txb.moveCall({
+                    target:Protocol.Instance().ArbitrationFn('withdraw_forGuard_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(arb), this.txb.object(param.treasury),
+                        for_obj, this.txb.object(param.for_guard), this.txb.pure.u64(param.index), this.txb.pure.string(param.remark), this.txb.object(clock), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission)],
+                    typeArguments:[this.pay_token_type]
+                }) 
+            } else {
+                return this.txb.moveCall({
+                    target:Protocol.Instance().ArbitrationFn('withdraw_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(arb), this.txb.object(param.treasury),
+                        for_obj, this.txb.pure.u64(param.index), this.txb.pure.string(param.remark), this.txb.object(clock), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                    typeArguments:[this.pay_token_type]
+                })                
+            }
+        } else {
+            if (param.for_guard) {
+                return this.txb.moveCall({
+                    target:Protocol.Instance().ArbitrationFn('withdraw_forGuard') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(arb), this.txb.object(param.treasury),
+                        for_obj, this.txb.object(param.for_guard), this.txb.pure.u64(param.index), this.txb.pure.string(param.remark), this.txb.object(clock), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission)],
+                    typeArguments:[this.pay_token_type]
+                }) 
+            } else {
+                return this.txb.moveCall({
+                    target:Protocol.Instance().ArbitrationFn('withdraw') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(arb), this.txb.object(param.treasury),
+                        for_obj, this.txb.pure.u64(param.index), this.txb.pure.string(param.remark), this.txb.object(clock), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                    typeArguments:[this.pay_token_type]
+                })                
+            }
+        }
+    }
+
+    set_withdrawTreasury(treasury:TreasuryObject, passport?:PassportObject) {
+        if (!Protocol.IsValidObjects([treasury])) {
+            ERROR(Errors.IsValidObjects, 'set_withdrawTreasury.treasury')
         }
         if (passport) {
             this.txb.moveCall({
-                target:Protocol.Instance().ArbitrationFn('withdraw_with_passport') as FnCallType,
+                target:Protocol.Instance().ArbitrationFn('withdraw_treasury_set_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
-                    this.txb.object(arb), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                    this.txb.object(treasury), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
         } else {
             this.txb.moveCall({
-                target:Protocol.Instance().ArbitrationFn('withdraw') as FnCallType,
+                target:Protocol.Instance().ArbitrationFn('withdraw_treasury_set') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
-                    this.txb.object(arb), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                    this.txb.object(treasury), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
         }
@@ -442,6 +506,10 @@ export class Arbitration {
 
     static parseArbObjectType = (chain_type:string | undefined | null) : string =>  {
         return parseObjectType(chain_type, 'arb::Arb<')
+    }
+
+    static queryArbVoted = () => {
+        
     }
     static MAX_PROPOSITION_COUNT = 16;
     static MAX_VOTING_GUARD_COUNT = 16;

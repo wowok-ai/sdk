@@ -98,6 +98,7 @@ export enum PermissionIndex {
     arbitration_vote = 807,
     arbitration_arbitration = 808,
     arbitration_withdraw = 809,
+    arbitration_treasury = 810,
     
     user_defined_start = 1000,
 }
@@ -217,6 +218,7 @@ export const PermissionInfo : PermissionInfoType[] = [
     {index:PermissionIndex.arbitration_voting_guard, name: 'Voting Guard', description:'Add/Remove voting Guard', module: 'arbitration'},
     {index:PermissionIndex.arbitration_vote, name: 'Vote', description:'Vote on the application for arbitration', module: 'arbitration'},
     {index:PermissionIndex.arbitration_withdraw, name: 'Withdraw', description:'Withdraw the arbitration fee', module: 'arbitration'},
+    {index:PermissionIndex.arbitration_treasury, name: 'Withdraw', description:'Set Treasury that fees was collected at the time of withdrawal', module: 'arbitration'},
 ]
 
 export type PermissionIndexType = PermissionIndex | number;

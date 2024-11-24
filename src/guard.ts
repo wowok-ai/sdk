@@ -340,6 +340,7 @@ export class Guard {
         [MODULES.arbitration, 'Number of Voting Guard', 1507, [], ValueType.TYPE_U64, 'Number of voting guards.', []], 
         [MODULES.arbitration, 'Has Voting Guard', 1508, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Has the voting Guard added?', ['guard address']], 
         [MODULES.arbitration, 'Voting Weight', 1509, [ValueType.TYPE_ADDRESS], ValueType.TYPE_U64, 'Voting weight of the voting Guard.', ['guard address']], 
+        [MODULES.arbitration, 'Treasury', 1510, [], ValueType.TYPE_ADDRESS, 'The address of the Treasury where fees was collected at the time of withdrawal.', []], 
 
         [MODULES.arb, 'Order', 1600, [], ValueType.TYPE_ADDRESS, 'Order under arbitration.', []], 
         [MODULES.arb, 'Arbitration', 1601, [], ValueType.TYPE_ADDRESS, "Arbitration object address.", []], 

@@ -154,7 +154,7 @@ export class Treasury {
             ERROR(Errors.InvalidParam, 'deposit.param.index')
         }
 
-        const for_obj = this.txb.pure.option('address', param.for_object ?? undefined);
+        const for_obj = this.txb.pure.option('address', param.for_object ? param.for_object: undefined);
         const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         if (passport) {
             if (param.for_guard) {
@@ -240,7 +240,7 @@ export class Treasury {
             ERROR(Errors.IsValidAddress, 'withdraw.param.withdraw_guard')
         }
 
-        const for_obj = this.txb.pure.option('address', param.for_object ?? undefined);
+        const for_obj = this.txb.pure.option('address', param.for_object ?  param.for_object : undefined);
         const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
 
         if (param.withdraw_guard && passport) { //@ dont need passport, use withdraw guard!
@@ -290,7 +290,6 @@ export class Treasury {
                         typeArguments:[this.token_type],
                     })
                 } else {
-                    console.log(param)
                     return this.txb.moveCall({
                         target:Protocol.Instance().TreasuryFn('withdraw') as FnCallType,
                         arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', param.items.map(v=>v.address)), 

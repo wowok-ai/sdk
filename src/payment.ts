@@ -50,7 +50,7 @@ export function create_payment(txb:TransactionBlock, pay_token_type:string, para
         })                
     } else {
         return txb.moveCall({
-            target:Protocol.Instance().PaymentFn('new') as FnCallType,
+            target:Protocol.Instance().PaymentFn('create') as FnCallType,
             arguments:[txb.pure.vector('address', param.receiver.map((i)=>i.address)), txb.makeMoveVec({elements:param.receiver.map((i)=>i.coin)}), 
                 obj, txb.pure.u64(param.business_index), txb.pure.string(param.business_remark), txb.object(clock)],
             typeArguments:[pay_token_type],
