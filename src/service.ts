@@ -3,7 +3,8 @@ import { IsValidArray, IsValidPercent, IsValidName_AllowEmpty, parseObjectType, 
 import { FnCallType, GuardObject, PassportObject, PermissionObject, RepositoryObject, MachineObject, ServiceAddress, 
     ServiceObject, DiscountObject, OrderObject, OrderAddress, CoinObject, Protocol, ValueType,
     TxbObject,
-    TreasuryObject} from './protocol';
+    TreasuryObject,
+    PaymentAddress} from './protocol';
 import { ERROR, Errors } from './exception';
 import { Transaction as TransactionBlock,  } from '@mysten/sui/transactions';
 import { SuiObjectData } from '@mysten/sui/client';
@@ -57,6 +58,14 @@ export type DicountDispatch = {
     count: bigint;
     discount: Service_Discount;
 }
+export interface WithdrawPayee {
+    withdraw_guard: GuardObject;
+    treasury: TreasuryObject,
+    index: bigint,
+    remark: string,
+    for_object?: string,
+    for_guard?: GuardObject,
+}
 
 export type handleDiscountObject = (owner:string, objects:(SuiObjectData|null|undefined)[]) => void;
 export class Service {
@@ -81,8 +90,8 @@ export class Service {
         return s
     }
     static New(txb: TransactionBlock, token_type:string, permission:PermissionObject, description:string, 
-        payee_address:string, passport?:PassportObject) : Service {
-        if (!Protocol.IsValidObjects([permission])) {
+        payee_treasury:TreasuryObject, passport?:PassportObject) : Service {
+        if (!Protocol.IsValidObjects([permission, payee_treasury])) {
             ERROR(Errors.IsValidObjects)
         }
         if (!IsValidTokenType(token_type)) {
@@ -90,9 +99,6 @@ export class Service {
         }
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription)
-        }
-        if (!IsValidAddress(payee_address)) {
-            ERROR(Errors.IsValidAddress, 'payee_address')
         }
 
         let pay_token_type = token_type;
@@ -102,13 +108,13 @@ export class Service {
         if (passport) {
             s.object = txb.moveCall({
                 target:Protocol.Instance().ServiceFn('new_with_passport') as FnCallType,
-                arguments:[passport, txb.pure.string(description), txb.pure.address(payee_address), Protocol.TXB_OBJECT(txb, permission)],
+                arguments:[passport, txb.pure.string(description), txb.object(payee_treasury), Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments:[pay_token_type],
             })
         } else {
             s.object = txb.moveCall({
                 target:Protocol.Instance().ServiceFn('new') as FnCallType,
-                arguments:[txb.pure.string(description), txb.pure.address(payee_address), Protocol.TXB_OBJECT(txb, permission)],
+                arguments:[txb.pure.string(description), txb.object(payee_treasury), Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments:[pay_token_type],
             })
         }
@@ -281,21 +287,21 @@ export class Service {
         }        
     }
 
-    set_payee(payee:string, passport?:PassportObject)  {
-        if (!IsValidAddress(payee)) {
-            ERROR(Errors.IsValidAddress, 'payee');
+    set_payee(payee:TreasuryObject, passport?:PassportObject)  {
+        if (!Protocol.IsValidObjects([payee])) {
+            ERROR(Errors.IsValidObjects, 'set_payee');
         }
         
         if (passport) {
             this.txb.moveCall({
                 target:Protocol.Instance().ServiceFn('payee_set_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(payee), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(payee), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
         } else {
             this.txb.moveCall({
                 target:Protocol.Instance().ServiceFn('payee_set') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(payee), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(payee), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
             })
         }
@@ -622,30 +628,44 @@ export class Service {
     }
 
     // support both withdraw guard and permission guard
-    withdraw(order:OrderObject, withdraw_guard?:string, passport?:PassportObject) {
-        if (!Protocol.IsValidObjects([order]))  {
-            ERROR(Errors.IsValidObjects, 'withdraw.order')
+    // withdraw_guard & passport must BOTH valid.
+    withdraw(order:OrderObject, param:WithdrawPayee, passport:PassportObject) : PaymentAddress {
+        if (!Protocol.IsValidObjects([order, param.treasury, param.withdraw_guard, passport]))  {
+            ERROR(Errors.IsValidObjects,)
         }
-        if (withdraw_guard && !IsValidAddress(withdraw_guard)) {
-            ERROR(Errors.IsValidAddress, 'withdraw.withdraw_guard')
+        if (param?.for_guard && !Protocol.IsValidObjects([param.for_guard])) {
+            ERROR(Errors.IsValidObjects, 'withdraw.param.for_guard')
         }
-        if (passport && !withdraw_guard) {
-            ERROR(Errors.InvalidParam, 'withdraw.passport need withdraw_guard')
+        if (param?.for_object && !IsValidAddress(param.for_object)) {
+            ERROR(Errors.IsValidAddress, 'withdraw.param.for_object')
         }
-        if (passport && withdraw_guard) {
-            this.txb.moveCall({
-                target:Protocol.Instance().ServiceFn('withdraw_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order), 
-                    this.txb.object(withdraw_guard), Protocol.TXB_OBJECT(this.txb, this.permission)],
+        if (!IsValidU64(param.index)) {
+            ERROR(Errors.IsValidU64, 'withdraw.param.index')
+        }
+        if (!IsValidDesription(param.remark)) {
+            ERROR(Errors.IsValidDesription, 'withdraw.param.remark')
+        }
+
+        const for_obj = this.txb.pure.option('address', param.for_object ?  param.for_object : undefined);
+        const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
+
+        if (param.for_guard) {
+            return this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('withdraw_forGuard_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order), this.txb.object(param.withdraw_guard), 
+                    this.txb.object(param.treasury), for_obj, this.txb.object(param.for_guard), this.txb.pure.u64(param.index), this.txb.pure.string(param.remark), 
+                    this.txb.object(clock), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
-            })        
+            })    
         } else {
-            this.txb.moveCall({
-                target:Protocol.Instance().ServiceFn('withdraw') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order), Protocol.TXB_OBJECT(this.txb, this.permission)],
+            return this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('withdraw_with_passport') as FnCallType,
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order), this.txb.object(param.withdraw_guard), 
+                    this.txb.object(param.treasury), for_obj, this.txb.pure.u64(param.index), this.txb.pure.string(param.remark), 
+                    this.txb.object(clock), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type]
-            })               
-        }
+            })    
+        }      
     }
 
     set_buy_guard(guard?:GuardObject, passport?:PassportObject) {
