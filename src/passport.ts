@@ -4,7 +4,7 @@ import { FnCallType, GuardObject, Protocol, ContextType, OperatorType, Data_Type
     ValueType, SER_VALUE, IsValidOperatorType } from './protocol';
 import { parse_object_type, array_unique, Bcs, ulebDecode, IsValidAddress, IsValidArray, insertAtHead, readOption, readOptionString } from './utils';
 import { ERROR, Errors } from './exception';
-import { Guard } from './guard';
+import { Guard, GuardMaker } from './guard';
 
 export type Guard_Query_Object = {
     target: FnCallType, // object fnCall
@@ -137,41 +137,33 @@ export class GuardParser {
                     current.ret_type = ValueType.TYPE_U256;
                 }
                 
-                if (stack.length < 2) ERROR(Errors.Fail, 'ResolveData: ' + current.type);
-                for (let i = 0; i < 2; ++i) {
-                    let p = stack.pop() as DeGuardData;
-                    if (!p.ret_type) ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' INVALID param type');
-                    if (p.ret_type != ValueType.TYPE_U8  && p.ret_type != ValueType.TYPE_U64 &&
-                        p.ret_type != ValueType.TYPE_U128 && p.ret_type != ValueType.TYPE_U256) {
-                            ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' INVALID param type');
-                    };
+                if (stack.length < current.value || current.value < 2) ERROR(Errors.Fail, 'ResolveData: ' + current.type);
+                for (let i = 0; i < current.value; ++i) {
+                    var p = stack.pop() as DeGuardData;
+                    if (!p.ret_type || !GuardMaker.match_u256(p.ret_type))  ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' INVALID param type');
                     current.child.push(p);
                 }
                 stack.push(current);
-                return;
+                return
             case OperatorType.TYPE_LOGIC_EQUAL:
                 current.ret_type = ValueType.TYPE_BOOL;
-                if (stack.length < 2) ERROR(Errors.Fail, 'ResolveData: ' + current.type);
-                var p1 = stack.pop() as DeGuardData; var p2 = stack.pop() as DeGuardData;
-                //console.log(p1); console.log(p2)
-                if (!p1.ret_type || !p2.ret_type) ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' INVALID param type');
-                if (p1.ret_type != p2.ret_type) ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' param type not match');
-
-                current.child.push(p1);
-                current.child.push(p2);
+                if (stack.length < current.value || current.value < 2) ERROR(Errors.Fail, 'ResolveData: ' + current.type);
+                var p0 = stack.pop() as DeGuardData;
+                for (let i = 1; i < current.value; ++i) {
+                    var p = stack.pop() as DeGuardData;
+                    if (!p.ret_type || (p.ret_type != p0.ret_type))  ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' INVALID param type');
+                    current.child.push(p);
+                }
                 stack.push(current);
-                return;
+                return
             case OperatorType.TYPE_LOGIC_HAS_SUBSTRING:
                 current.ret_type = ValueType.TYPE_BOOL;
-                if (stack.length < 2) ERROR(Errors.Fail, 'ResolveData: ' + current.type);
-                var p1 = stack.pop() as DeGuardData; var p2 = stack.pop() as DeGuardData;
-                if (!p1.ret_type || !p2.ret_type) ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' INVALID param type');
-                if (p1.ret_type != ValueType.TYPE_STRING || p2.ret_type != ValueType.TYPE_STRING) {
-                    ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' param type not match');
+                if (stack.length < current.value || current.value < 2) ERROR(Errors.Fail, 'ResolveData: ' + current.type);
+                for (let i = 0; i < current.value; ++i) {
+                    var p = stack.pop() as DeGuardData;
+                    if (!p.ret_type || (p.ret_type != ValueType.TYPE_STRING))  ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' INVALID param type');
+                    current.child.push(p);
                 }
-
-                current.child.push(p1);
-                current.child.push(p2);
                 stack.push(current);
                 return
             case OperatorType.TYPE_LOGIC_AND:
@@ -370,6 +362,9 @@ export class GuardParser {
                 case ContextType.TYPE_SIGNER:
                 case ContextType.TYPE_CLOCK:
                 case ContextType.TYPE_GUARD:
+                case OperatorType.TYPE_LOGIC_ALWAYS_TRUE:
+                case OperatorType.TYPE_LOGIC_NOT:
+                    break;
                 case OperatorType.TYPE_LOGIC_AS_U256_GREATER:
                 case OperatorType.TYPE_LOGIC_AS_U256_GREATER_EQUAL:
                 case OperatorType.TYPE_LOGIC_AS_U256_LESSER:
@@ -377,14 +372,11 @@ export class GuardParser {
                 case OperatorType.TYPE_LOGIC_AS_U256_EQUAL:
                 case OperatorType.TYPE_LOGIC_EQUAL:
                 case OperatorType.TYPE_LOGIC_HAS_SUBSTRING:
-                case OperatorType.TYPE_LOGIC_ALWAYS_TRUE:
-                case OperatorType.TYPE_LOGIC_NOT:
                 case OperatorType.TYPE_NUMBER_ADD:
                 case OperatorType.TYPE_NUMBER_DEVIDE:
                 case OperatorType.TYPE_NUMBER_MOD:
                 case OperatorType.TYPE_NUMBER_MULTIPLY:
                 case OperatorType.TYPE_NUMBER_SUBTRACT:
-                    break;    
                 case OperatorType.TYPE_LOGIC_AND: //@ with logics count
                 case OperatorType.TYPE_LOGIC_OR:
                     value = arr.shift()! as number; 

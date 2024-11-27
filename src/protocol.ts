@@ -94,17 +94,17 @@ export enum OperatorType {
 }       
 
 export const LogicsInfo = [
-    [OperatorType.TYPE_LOGIC_AS_U256_GREATER, 'Unsigned Integer >'],
-    [OperatorType.TYPE_LOGIC_AS_U256_GREATER_EQUAL, 'Unsigned Integer >='],
-    [OperatorType.TYPE_LOGIC_AS_U256_LESSER, 'Unsigned Integer <'],
-    [OperatorType.TYPE_LOGIC_AS_U256_LESSER_EQUAL, 'Unsigned Integer <='],
-    [OperatorType.TYPE_LOGIC_AS_U256_EQUAL, 'Unsigned Integer ='],
-    [OperatorType.TYPE_LOGIC_EQUAL, 'Equal'],
-    [OperatorType.TYPE_LOGIC_HAS_SUBSTRING, 'Sub String'],
-    [OperatorType.TYPE_LOGIC_ALWAYS_TRUE, 'Always True'], 
-    [OperatorType.TYPE_LOGIC_NOT, 'Not'],
-    [OperatorType.TYPE_LOGIC_AND, 'And'],
-    [OperatorType.TYPE_LOGIC_OR, 'Or'], 
+    [OperatorType.TYPE_LOGIC_AS_U256_GREATER, 'Unsigned Integer >', 'The first item > anything that follows'],
+    [OperatorType.TYPE_LOGIC_AS_U256_GREATER_EQUAL, 'Unsigned Integer >=', 'The first item >= anything that follows'],
+    [OperatorType.TYPE_LOGIC_AS_U256_LESSER, 'Unsigned Integer <', 'The first item < anything that follows'],
+    [OperatorType.TYPE_LOGIC_AS_U256_LESSER_EQUAL, 'Unsigned Integer <=', 'The first item <= anything that follows'],
+    [OperatorType.TYPE_LOGIC_AS_U256_EQUAL, 'Unsigned Integer =', 'The first item = anything that follows'],
+    [OperatorType.TYPE_LOGIC_EQUAL, 'Equal', 'Data and type are exactly equal for all items'],
+    [OperatorType.TYPE_LOGIC_HAS_SUBSTRING, 'Has Sub String', 'The first item contains anything that follows'],
+    [OperatorType.TYPE_LOGIC_ALWAYS_TRUE, 'Always True', 'Always True'], 
+    [OperatorType.TYPE_LOGIC_NOT, 'Not', 'Not operation'],
+    [OperatorType.TYPE_LOGIC_AND, 'And', 'All Items And operations'],
+    [OperatorType.TYPE_LOGIC_OR, 'Or', 'All Items Or operations'], 
 ];
 
 export enum ValueType {
@@ -165,6 +165,7 @@ export enum ContextType {
     TYPE_SIGNER  = 60,
     TYPE_CLOCK = 61,
     TYPE_GUARD = 62, // current guard address
+    TYPE_STACK_ADDRESS = 63, // object queried from current stack top
     TYPE_CONSTANT = 80,
 }
 interface ValueTypeString {
@@ -220,13 +221,13 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    wowok: "0xfa33358cf5f883038d124855567972241cd7036381fbc150a2208ab0e5939621",
-    wowok_origin:'0xfa33358cf5f883038d124855567972241cd7036381fbc150a2208ab0e5939621' ,
+    wowok: "0x95541edbae1f167f8679df2bbee57eafaf09cf81230094ffc196e78a0df200e4",
+    wowok_origin:'0x95541edbae1f167f8679df2bbee57eafaf09cf81230094ffc196e78a0df200e4' ,
     base: '0x7efcdab72af2351e5915e34ad2ac8d4ea7f4f408e08138d3498af35a362db782',
     base_origin: '0x7efcdab72af2351e5915e34ad2ac8d4ea7f4f408e08138d3498af35a362db782',
 
-    wowok_object: '0x459ed2fd2ad4aac9fd417d50584fae607ee557508dcb9b9f55722e0d18ed81ab',
-    entity_object: '0xfeb95d277598ebb8a358bfda3c62a32d7622de9af7ec3219e67c5749e020f12b',
+    wowok_object: '0x33917cc62420ba654a0d4a0325e4d31778b12b4f736812d7427904e9911abad3',
+    entity_object: '0xf6f8ee1a3bc19288ac1067f77eae6e72bd1887b35a0c7996635eee975d758901',
     treasury_cap:'0x538cf8f32d59f58c0450a3a97c1eeed3096f4ce63e07e0bdf343a5cc1464887c',
 }
 const MAINNET = {

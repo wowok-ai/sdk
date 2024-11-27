@@ -1,6 +1,6 @@
 
 
-import { Protocol, LogicsInfo, GuardAddress, FnCallType, Data_Type, MODULES, ContextType, ValueType,  OperatorType, TxbObject, GuardObject} from './protocol';
+import { Protocol, LogicsInfo, GuardAddress, FnCallType, Data_Type, MODULES, ContextType, ValueType,  OperatorType, TxbObject, GuardObject, IsValidOperatorType} from './protocol';
 import { concatenate, array_equal, ValueTypeConvert } from './utils';
 import { IsValidDesription, Bcs, IsValidInt, IsValidAddress, FirstLetterUppercase, insertAtHead } from './utils';
 import { ERROR, Errors } from './exception';
@@ -587,11 +587,11 @@ export class GuardMaker {
         return this;
     }
 
-    add_logic(type:OperatorType, logic_count:number=2) : GuardMaker {
+    add_logic(type:OperatorType, logic_count?:number) : GuardMaker {
         var e:any = LogicsInfo.find((v:any) => v[0] === type);
         if (e) { e=e[1] }
 
-        let splice_len = 2;
+        let splice_len = 2; let cur:any;
         let ret = ValueType.TYPE_BOOL;
         switch (type) {
             case OperatorType.TYPE_LOGIC_AS_U256_GREATER:
@@ -599,26 +599,28 @@ export class GuardMaker {
             case OperatorType.TYPE_LOGIC_AS_U256_LESSER:
             case OperatorType.TYPE_LOGIC_AS_U256_LESSER_EQUAL:
             case OperatorType.TYPE_LOGIC_AS_U256_EQUAL:
-                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length:' + e) }
-                if (!GuardMaker.match_u256(this.type_validator[this.type_validator.length - 1])) { ERROR(Errors.Fail, 'type_validator check:'+e) }
-                if (!GuardMaker.match_u256(this.type_validator[this.type_validator.length - 2])) { ERROR(Errors.Fail, 'type_validator check:'+e)  }
+                if (!logic_count || logic_count < 2) ERROR(Errors.Fail, 'logic param invalid:'+e);
+                splice_len = logic_count!;
+                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length:'+e) }
+                for (let i = 1; i <= splice_len; ++i) {
+                    if (!GuardMaker.match_u256(this.type_validator[this.type_validator.length - i])) { ERROR(Errors.Fail, 'type_validator check:'+e) }
+                }
                 break;
             case OperatorType.TYPE_LOGIC_EQUAL:
-                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length:' + e) }
-                if (GuardMaker.match_u256(this.type_validator[this.type_validator.length - 1]) && 
-                    GuardMaker.match_u256(this.type_validator[this.type_validator.length - 2])) {
-                    break;
-                } else if (this.type_validator[this.type_validator.length - 1] === this.type_validator[this.type_validator.length - 2]) {
-                    break;
-                } else {
-                    ERROR(Errors.Fail, 'type_validator check:' + e)  ;
+                if (!logic_count || logic_count < 2) ERROR(Errors.Fail, 'logic param invalid:'+e);
+                splice_len = logic_count!;
+                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length:'+e) }
+                cur = this.type_validator[this.type_validator.length - 1];
+                for (let i = 2; i <= splice_len; ++i) {
+                    if (this.type_validator[this.type_validator.length - i] !== cur) ERROR(Errors.Fail, 'type_validator check:' + e)  ;
                 }
                 break;
             case OperatorType.TYPE_LOGIC_HAS_SUBSTRING:
-                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length:' + e) }
-                if (this.type_validator[this.type_validator.length - 1] !== ValueType.TYPE_STRING || 
-                    this.type_validator[this.type_validator.length - 2] !== ValueType.TYPE_STRING) {
-                        ERROR(Errors.Fail, 'type_validator check:' + e)  ;
+                if (!logic_count || logic_count < 2) ERROR(Errors.Fail, 'logic param invalid:'+e);
+                splice_len = logic_count!;
+                if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length:'+e) }
+                for (let i = 1; i <= splice_len; ++i) {
+                    if (this.type_validator[this.type_validator.length - i] !== ValueType.TYPE_STRING) ERROR(Errors.Fail, 'type_validator check:' + e)  ;
                 }
                 break;
             case OperatorType.TYPE_LOGIC_NOT:
@@ -642,9 +644,12 @@ export class GuardMaker {
             case OperatorType.TYPE_NUMBER_MULTIPLY:
             case OperatorType.TYPE_NUMBER_SUBTRACT:
             case OperatorType.TYPE_NUMBER_MOD:
+                if (!logic_count || logic_count < 2) ERROR(Errors.Fail, 'logic param invalid:'+e);
+                splice_len = logic_count!;
                 if (this.type_validator.length < splice_len)  { ERROR(Errors.Fail, 'type_validator.length:'+e) }
-                if (!GuardMaker.IsNumberType(this.type_validator[this.type_validator.length -1])) { ERROR(Errors.Fail, 'type_validator check:'+e)  }
-                if (!GuardMaker.IsNumberType(this.type_validator[this.type_validator.length -2])) { ERROR(Errors.Fail, 'type_validator check:'+e)  }
+                for (let i = 1; i <= splice_len; ++i) {
+                    if(!GuardMaker.match_u256(this.type_validator[this.type_validator.length -1])) { ERROR(Errors.Fail, 'type_validator check:'+e)  }
+                }
                 ret = ValueType.TYPE_U256;
                 break;
             default:
@@ -652,16 +657,12 @@ export class GuardMaker {
         }
 
         this.data.push(Bcs.getInstance().ser(ValueType.TYPE_U8, type)); // TYPE 
-        if (type === OperatorType.TYPE_LOGIC_AND || type === OperatorType.TYPE_LOGIC_OR) {
+        if (GuardMaker.is_multi_input_op(type)) {
             this.data.push((Bcs.getInstance().ser(ValueType.TYPE_U8, logic_count))); //@ logics
         }    
         this.type_validator.splice(this.type_validator.length - splice_len); // delete type stack   
         this.type_validator.push(ret); // add bool to type stack
         return this;
-    }
-
-    static IsNumberType(type:Data_Type) : boolean {
-        return (type === ValueType.TYPE_U8 || type === ValueType.TYPE_U64 || type === ValueType.TYPE_U128 || type === ValueType.TYPE_U256)
     }
 
     hasIdentifier(id:number) : boolean {
@@ -719,6 +720,18 @@ export class GuardMaker {
 
     static match_u256(type:number) : boolean {
         return (type == ValueType.TYPE_U8 || type == ValueType.TYPE_U64 || type == ValueType.TYPE_U128 || type == ValueType.TYPE_U256);
+    }
+    static is_multi_input_op(type:number) : boolean {
+        return (type === OperatorType.TYPE_LOGIC_AS_U256_GREATER || 
+            type === OperatorType.TYPE_LOGIC_AS_U256_GREATER_EQUAL || 
+            type === OperatorType.TYPE_LOGIC_AS_U256_LESSER || 
+            type === OperatorType.TYPE_LOGIC_AS_U256_LESSER ||
+            type === OperatorType.TYPE_LOGIC_AS_U256_LESSER_EQUAL ||
+            type === OperatorType.TYPE_LOGIC_AS_U256_EQUAL ||
+            type === OperatorType.TYPE_LOGIC_EQUAL ||
+            type === OperatorType.TYPE_LOGIC_HAS_SUBSTRING ||
+            type === OperatorType.TYPE_LOGIC_AND ||
+            type === OperatorType.TYPE_LOGIC_OR)
     }
 }
 
