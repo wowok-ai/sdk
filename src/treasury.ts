@@ -88,14 +88,6 @@ export class Treasury {
         })
     }
     
-    destroy() {
-        this.txb.moveCall({
-            target:Protocol.Instance().TreasuryFn('destroy') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(this.txb, this.object)],
-            typeArguments:[this.token_type]
-        }) 
-    }
-    
     set_deposit_guard(guard?:string, passport?:PassportObject)  {
         if (guard && !IsValidAddress(guard)) {
             ERROR(Errors.IsValidAddress, 'set_deposit_guard.guard')

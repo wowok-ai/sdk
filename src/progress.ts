@@ -99,14 +99,6 @@ export class Progress {
         })   
     }
 
-    destroy()  {
-        
-        this.txb.moveCall({
-            target:Protocol.Instance().ProgressFn('destroy') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(this.txb, this.object)],
-        })   
-    }
-
     set_namedOperator(name:string, addresses:string[], passport?:PassportObject)  {
         if (!IsValidName(name)) {
             ERROR(Errors.IsValidName, 'name')

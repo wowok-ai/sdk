@@ -238,13 +238,6 @@ export class Machine {
             });
         } 
     }
-    
-    destroy() {
-        this.txb.moveCall({
-            target:Protocol.Instance().MachineFn('destroy') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(this.txb,  this.object)],
-        })  
-    }
 
     launch() : MachineAddress {
         return this.txb.moveCall({

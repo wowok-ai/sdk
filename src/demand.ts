@@ -67,14 +67,6 @@ export class Demand {
         })
     }
     
-    destroy() {
-        this.txb.moveCall({
-            target:Protocol.Instance().DemandFn('destroy') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(this.txb, this.object)],
-            typeArguments:[this.bounty_type]
-        }) 
-    }
-    
     refund(passport?:PassportObject)  {
         const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         if (passport) {
@@ -98,19 +90,18 @@ export class Demand {
         if (!IsValidU64(time)) {
             ERROR(Errors.IsValidUint, 'time');
         }
-        const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         if (passport) {
             this.txb.moveCall({
                 target:Protocol.Instance().DemandFn('time_expand_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.bool(minutes_duration),
-                    this.txb.pure.u64(time), this.txb.object(clock), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                    this.txb.pure.u64(time), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.bounty_type],
             })  
         } else {
             this.txb.moveCall({
                 target:Protocol.Instance().DemandFn('time_expand') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object),  this.txb.pure.bool(minutes_duration),
-                    this.txb.pure.u64(time), this.txb.object(clock), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                    this.txb.pure.u64(time), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.bounty_type],
             })          
         }

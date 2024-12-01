@@ -46,6 +46,7 @@ export enum PermissionIndex {
     //service_change_order_required_pubkey = 224,
     service_pause = 225,
     service_treasury = 226,
+    service_arbitration = 227,
 /*
     reward = 240,
     reward_refund = 241,
@@ -166,7 +167,9 @@ export const PermissionInfo : PermissionInfoType[] = [
     //{index:PermissionIndex.service_change_order_required_pubkey, name:'Order pubkey', description:'Update Serivce order pubkey', module: 'service'},
     {index:PermissionIndex.service_pause, name:'Pause', description:'Pause/Unpause Service', module: 'service'},
     {index:PermissionIndex.service_treasury, name:'Treasury', description:'Externally withdrawable treasury for compensation or rewards', module: 'service'},
-/*
+    {index:PermissionIndex.service_arbitration, name:'Arbitration', description:'Add/Remove arbitration that allows refunds from orders at any time based on arbitration results', module: 'service'},
+
+    /*
     {index:PermissionIndex.reward, name:'reward', description:'Launch new reward', module: 'reward'},
     {index:PermissionIndex.reward_refund, name:'Refund', description:'Refund from reward', module: 'reward'},
     {index:PermissionIndex.reward_expand_time, name:'Expand deadline', description:'Expand reward deadline', module: 'reward'},
@@ -267,12 +270,6 @@ export class  Permission {
         })
     }
 
-    destroy()  {
-        this.txb.moveCall({
-            target:Protocol.Instance().PermissionFn('destroy') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(this.txb, this.object)],
-        })  
-    }
     add_userdefine(index: number, name:string) {
         if (!Permission.IsValidUserDefinedIndex(index)) {
             ERROR(Errors.IsValidUserDefinedIndex, 'add_userdefine');

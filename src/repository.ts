@@ -82,14 +82,6 @@ export class Repository {
         })    
     }
 
-    destroy()  {
-        if (!Protocol.IsValidObjects([this.object])) return false;
-        this.txb.moveCall({
-            target:Protocol.Instance().RepositoryFn('destroy') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(this.txb, this.object)],
-        })   
-    }
-
     add_data(data:Repository_Policy_Data)  {
         if (!Repository.IsValidName(data.key)) {
             ERROR(Errors.IsValidName)

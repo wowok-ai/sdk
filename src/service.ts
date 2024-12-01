@@ -4,7 +4,9 @@ import { FnCallType, GuardObject, PassportObject, PermissionObject, RepositoryOb
     ServiceObject, DiscountObject, OrderObject, OrderAddress, CoinObject, Protocol, ValueType,
     TxbObject,
     TreasuryObject,
-    PaymentAddress} from './protocol';
+    PaymentAddress,
+    ArbObject,
+    ArbitrationObject} from './protocol';
 import { ERROR, Errors } from './exception';
 import { Transaction as TransactionBlock,  } from '@mysten/sui/transactions';
 import { SuiObjectData } from '@mysten/sui/client';
@@ -67,6 +69,7 @@ export interface WithdrawPayee {
     for_guard?: GuardObject,
 }
 
+
 export type handleDiscountObject = (owner:string, objects:(SuiObjectData|null|undefined)[]) => void;
 export class Service {
     protected pay_token_type;
@@ -127,13 +130,6 @@ export class Service {
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object)],
             typeArguments:[this.pay_token_type]
         })
-    }
-    destroy() {
-        this.txb.moveCall({
-            target:Protocol.Instance().ServiceFn('destroy') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(this.txb, this.object)],
-            typeArguments:[this.pay_token_type]
-        })   
     }
 
     set_description(description:string, passport?:PassportObject)  {
@@ -306,7 +302,7 @@ export class Service {
             })
         }
     }
-    repository_add(repository:RepositoryObject, passport?:PassportObject) {
+    add_repository(repository:RepositoryObject, passport?:PassportObject) {
         if (!Protocol.IsValidObjects([repository])) {
             ERROR(Errors.IsValidObjects, 'repository_add');
         }
@@ -325,7 +321,7 @@ export class Service {
             })  
         }
     }
-    repository_remove(repository_address:string[], removeall?:boolean, passport?:PassportObject) {
+    remove_repository(repository_address:string[], removeall?:boolean, passport?:PassportObject) {
         if (!removeall && repository_address.length===0)  return;
         
         if (!IsValidArray(repository_address, IsValidAddress)) {
@@ -364,7 +360,64 @@ export class Service {
             }
         }
     }
-
+    add_arbitration(arbitraion:ArbitrationObject, passport?:PassportObject) {
+        if (!Protocol.IsValidObjects([arbitraion])) {
+            ERROR(Errors.IsValidObjects, 'arbitration_add');
+        }
+        
+        if (passport) {
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('arbitration_add_with_passport') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, arbitraion), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                typeArguments:[this.pay_token_type]
+            })
+        } else {
+            this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('repository_add') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, arbitraion), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                typeArguments:[this.pay_token_type]
+            })  
+        }
+    }
+    remove_arbitration(address:string[], removeall?:boolean, passport?:PassportObject) {
+        if (!removeall && address.length===0)  return;
+        
+        if (!IsValidArray(address, IsValidAddress)) {
+            ERROR(Errors.IsValidArray,  'arbitration_remove.address');
+        }
+        
+        if (passport) {
+            if (removeall) {
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('arbitration_remove_all_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                    typeArguments:[this.pay_token_type]
+                })
+            } else {
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('arbitration_remove_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(address!)), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission)],
+                    typeArguments:[this.pay_token_type]
+                })                    
+            }
+        } else {
+            if (removeall) {
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('arbitration_remove_all') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                    typeArguments:[this.pay_token_type]
+                })
+            } else {
+                this.txb.moveCall({
+                    target:Protocol.Instance().ServiceFn('arbitration_remove') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(address!)), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission)],
+                    typeArguments:[this.pay_token_type]
+                })                       
+            }
+        }
+    }
     add_withdraw_guards(guards:Service_Guard_Percent[], passport?:PassportObject) {
         if (guards.length === 0) return;
 
@@ -890,20 +943,37 @@ export class Service {
         }    
     }
 
-    refund(order:OrderObject, refund_guard?:string, passport?:PassportObject) {
+    refund_withArb(order:OrderObject, arb:ArbObject, arb_type:string) {
+        if (!Protocol.IsValidObjects([order, arb])) {
+            ERROR(Errors.IsValidObjects, 'refund_withArb.order or arb')
+        }
+        if (!IsValidTokenType(arb_type)) {
+            ERROR(Errors.IsValidTokenType, 'refund_withArb.arb_type')
+        }
+        const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
+        this.txb.moveCall({
+            target:Protocol.Instance().ServiceFn('refund_with_arb') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order), this.txb.object(arb), this.txb.object(clock)],
+            typeArguments:[this.pay_token_type, arb_type]
+            })     
+    }
+
+    refund(order:OrderObject, refund_guard?:GuardObject, passport?:PassportObject) {
         if (!Protocol.IsValidObjects([order])) {
             ERROR(Errors.IsValidObjects, 'refund.order')
         }
-        if (refund_guard && !IsValidAddress(refund_guard)) {
-            ERROR(Errors.IsValidAddress, 'refund.refund_guard')
+        if (refund_guard && !Protocol.IsValidObjects([refund_guard])) {
+            ERROR(Errors.IsValidObjects, 'refund.refund_guard')
         }
         if (passport && !refund_guard) {
             ERROR(Errors.InvalidParam, 'refund.passport need refund_guard')
         }
+        const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         if (passport && refund_guard) {
             this.txb.moveCall({
             target:Protocol.Instance().ServiceFn('refund_with_passport') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order), this.txb.object(refund_guard), passport],
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order), this.txb.object(refund_guard), 
+                passport, this.txb.object(clock)],
             typeArguments:[this.pay_token_type]
             })               
         } else {
@@ -1104,6 +1174,7 @@ export class Service {
     static MAX_TREASURY_COUNT= 8;
     static MAX_ORDER_AGENT_COUNT = 8;
     static MAX_ORDER_ARBS_COUNT = 8;
+    static MAX_ARBITRATION_COUNT = 8;
 
     static IsValidItemName(name:string) : boolean {
         if (!name) return false;

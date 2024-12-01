@@ -23,6 +23,8 @@ export  interface Guard_Options {
 
 export class Guard {
     static MAX_INPUT_LENGTH = 10240;
+//    static MAX_PAYLOADS_LENGTH = 4096;
+    
     protected txb;
     protected object : TxbObject;
     get_object() { return this.object }
@@ -96,13 +98,6 @@ export class Guard {
         });
     }
     
-    static signer_guard(txb: TransactionBlock) : GuardAddress {
-        return txb.moveCall({
-            target: Protocol.Instance().GuardFn('signer_guard') as FnCallType,
-            arguments: []
-        }); 
-    }
-    
     static everyone_guard(txb:TransactionBlock) : GuardAddress {
         return txb.moveCall({
             target: Protocol.Instance().GuardFn('everyone_guard') as FnCallType,
@@ -151,7 +146,6 @@ export class Guard {
         [MODULES.entity, 'Entity Resource', 205, [ValueType.TYPE_ADDRESS], ValueType.TYPE_ADDRESS, 'The address of a resource object created by an entity.', ['address']], 
 
         [MODULES.demand, 'Permission', 300, [], ValueType.TYPE_ADDRESS, 'Permission object address.', []],       
-        [MODULES.demand, 'Has Deadline', 301, [], ValueType.TYPE_BOOL, 'Whether to set the expiration time of presenting?', []],
         [MODULES.demand, 'Deadline', 302, [], ValueType.TYPE_U64, 'The expiration time of presenting.', []],   
         [MODULES.demand, 'Bounty Count', 303, [], ValueType.TYPE_U64, 'Number of Bounties.', []],   
         [MODULES.demand, 'Has Guard', 304, [], ValueType.TYPE_BOOL, 'Whether the present guard is set?', []],       
@@ -183,6 +177,8 @@ export class Guard {
         [MODULES.service, 'Required Info', 418, [], ValueType.TYPE_VEC_STRING, 'Names of the required information item that needs to be provided by the customer.', []],  
         [MODULES.service, 'Number of Treasuries', 419, [], ValueType.TYPE_U64, 'The number of treasuries that can be externally withdrawn for purposes such as compensation or incentives.', []],   
         [MODULES.service, 'Contains Treasury', 420, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Does it contain externally withdrawable Treasury for purposes such as compensation or incentives?', ['treasury address']],  
+        [MODULES.service, 'Number of Arbitrations', 421, [], ValueType.TYPE_U64, 'The number of arbitrations that allows a refund to be made from the order at any time based on the arbitration result.', []],   
+        [MODULES.service, 'Contains Arbitration', 422, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Does it contain an arbitration that allows a refund to be made from the order at any time based on the arbitration result.?', ['arbitration address']],  
 
         [MODULES.order, 'Amount', 500, [], ValueType.TYPE_U64, 'Order amount.', []],       
         [MODULES.order, 'Payer', 501, [], ValueType.TYPE_ADDRESS, 'Order payer.', []],
@@ -193,8 +189,8 @@ export class Guard {
         [MODULES.order, 'Discount Used', 506, [], ValueType.TYPE_BOOL, 'Discount coupon used for this order?', []],   
         [MODULES.order, 'Discount', 507, [], ValueType.TYPE_ADDRESS, 'Discount address that already used.', []], 
         [MODULES.order, 'Balance', 508, [], ValueType.TYPE_U64, 'The amount currently in the order.', []], 
-        [MODULES.order, 'Refunded', 509, [], ValueType.TYPE_BOOL, 'Whether a refund has occurred?', []],
-        [MODULES.order, 'Withdrawed', 510, [], ValueType.TYPE_BOOL, 'Whether a service provider withdrawal has occurred?', []],   
+//        [MODULES.order, 'Refunded', 509, [], ValueType.TYPE_BOOL, 'Whether a refund has occurred?', []],
+//        [MODULES.order, 'Withdrawed', 510, [], ValueType.TYPE_BOOL, 'Whether a service provider withdrawal has occurred?', []],   
         [MODULES.order, 'Number of Agents', 511, [], ValueType.TYPE_U64, 'The number of agents for the order.', []], 
         [MODULES.order, 'Has Agent', 512, [ValueType.TYPE_ADDRESS], ValueType.TYPE_BOOL, 'Whether an address is an order agent?', ['agent address']], 
         [MODULES.order, 'Number of Disputes', 513, [], ValueType.TYPE_U64, 'Number of arbitrations for the order.', []],
@@ -587,7 +583,7 @@ export class GuardMaker {
         return this;
     }
 
-    add_logic(type:OperatorType, logic_count?:number) : GuardMaker {
+    add_logic(type:OperatorType, logic_count:number=2) : GuardMaker {
         var e:any = LogicsInfo.find((v:any) => v[0] === type);
         if (e) { e=e[1] }
 
