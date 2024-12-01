@@ -360,22 +360,24 @@ export class Service {
             }
         }
     }
-    add_arbitration(arbitraion:ArbitrationObject, passport?:PassportObject) {
+    add_arbitration(arbitraion:ArbitrationObject, arbitraion_token_type:string, passport?:PassportObject) {
         if (!Protocol.IsValidObjects([arbitraion])) {
-            ERROR(Errors.IsValidObjects, 'arbitration_add');
+            ERROR(Errors.IsValidObjects, 'add_arbitration.arbitraion');
         }
-        
+        if (!IsValidTokenType(arbitraion_token_type)) {
+            ERROR(Errors.IsValidTokenType, 'add_arbitration.arbitraion_token_type')
+        }
         if (passport) {
             this.txb.moveCall({
                 target:Protocol.Instance().ServiceFn('arbitration_add_with_passport') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, arbitraion), Protocol.TXB_OBJECT(this.txb, this.permission)],
-                typeArguments:[this.pay_token_type]
+                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, arbitraion), Protocol.TXB_OBJECT(this.txb, this.permission)],
+                typeArguments:[this.pay_token_type, arbitraion_token_type]
             })
         } else {
             this.txb.moveCall({
-                target:Protocol.Instance().ServiceFn('repository_add') as FnCallType,
+                target:Protocol.Instance().ServiceFn('arbitration_add') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, arbitraion), Protocol.TXB_OBJECT(this.txb, this.permission)],
-                typeArguments:[this.pay_token_type]
+                typeArguments:[this.pay_token_type, arbitraion_token_type]
             })  
         }
     }
@@ -383,7 +385,7 @@ export class Service {
         if (!removeall && address.length===0)  return;
         
         if (!IsValidArray(address, IsValidAddress)) {
-            ERROR(Errors.IsValidArray,  'arbitration_remove.address');
+            ERROR(Errors.IsValidArray,  'remove_arbitration.address');
         }
         
         if (passport) {
