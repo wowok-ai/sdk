@@ -1,7 +1,8 @@
 import { IsValidArray,  array_unique, IsValidTokenType, IsValidDesription, parseObjectType,
     IsValidAddress, IsValidEndpoint, IsValidU64, IsValidName, } from './utils'
 import { FnCallType, GuardObject, PassportObject, PermissionObject, CoinObject, Protocol,
-    TxbObject, ArbitrationAddress, OrderObject, ArbObject, PaymentAddress, TreasuryObject} from './protocol';
+    TxbObject, ArbitrationAddress, OrderObject, ArbObject, PaymentAddress, TreasuryObject,
+    ArbAddress} from './protocol';
 import { ERROR, Errors } from './exception';
 import { Transaction as TransactionBlock,  } from '@mysten/sui/transactions';
 
@@ -438,7 +439,7 @@ export class Arbitration {
         }
     }
 
-    dispute(param:Dispute, passport?:PassportObject) {
+    dispute(param:Dispute, passport?:PassportObject) : ArbAddress {
         if (!Protocol.IsValidObjects([param.order])) {
             ERROR(Errors.IsValidObjects, 'dispute.param.order')
         }
@@ -454,14 +455,14 @@ export class Arbitration {
 
         if (passport) {
             if (param.fee) {
-                this.txb.moveCall({
+                return this.txb.moveCall({
                     target:Protocol.Instance().ArbitrationFn('dispute_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(param.order), this.txb.pure.string(param.description),
                         this.txb.pure.vector('string', array_unique(param.votable_proposition)), this.txb.object(param.fee)],
                     typeArguments:[this.pay_token_type, param.order_token_type]
                 })
             } else {
-                this.txb.moveCall({
+                return this.txb.moveCall({
                     target:Protocol.Instance().ArbitrationFn('free_dispute_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(param.order), this.txb.pure.string(param.description),
                         this.txb.pure.vector('string', array_unique(param.votable_proposition))],
@@ -470,14 +471,14 @@ export class Arbitration {
             }
         } else {
             if (param.fee) {
-                this.txb.moveCall({
+                return this.txb.moveCall({
                     target:Protocol.Instance().ArbitrationFn('dispute') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(param.order), this.txb.pure.string(param.description),
                         this.txb.pure.vector('string', array_unique(param.votable_proposition)), this.txb.object(param.fee)],
                     typeArguments:[this.pay_token_type, param.order_token_type]
                 })
             } else {
-                this.txb.moveCall({
+                return this.txb.moveCall({
                     target:Protocol.Instance().ArbitrationFn('free_dispute') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.object(param.order), this.txb.pure.string(param.description),
                         this.txb.pure.vector('string', array_unique(param.votable_proposition))],
