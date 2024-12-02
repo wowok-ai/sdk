@@ -727,10 +727,12 @@ export class GuardMaker {
             type === OperatorType.TYPE_LOGIC_EQUAL ||
             type === OperatorType.TYPE_LOGIC_HAS_SUBSTRING ||
             type === OperatorType.TYPE_LOGIC_AND ||
-            type === OperatorType.TYPE_LOGIC_OR)
+            type === OperatorType.TYPE_LOGIC_OR || 
+            type === OperatorType.TYPE_NUMBER_ADD ||
+            type === OperatorType.TYPE_NUMBER_DEVIDE ||
+            type === OperatorType.TYPE_NUMBER_MULTIPLY ||
+            type === OperatorType.TYPE_NUMBER_SUBTRACT ||
+            type === OperatorType.TYPE_NUMBER_MOD)
     }
 }
-
-
-
 

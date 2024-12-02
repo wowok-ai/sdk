@@ -67,7 +67,6 @@ export class GuardParser {
         // console.log(constants)
         
         let inputs : DeGuardInput[] = GuardParser.parse_bcs(constants, guard_input_bytes);
-
         // console.log(data);
         if (!inputs || inputs.length == 0) ERROR(Errors.Fail, 'GuardObject: data parsed error');
         let stack: DeGuardData[] = [];
@@ -149,6 +148,7 @@ export class GuardParser {
                 current.ret_type = ValueType.TYPE_BOOL;
                 if (stack.length < current.value || current.value < 2) ERROR(Errors.Fail, 'ResolveData: ' + current.type);
                 var p0 = stack.pop() as DeGuardData;
+                current.child.push(p0);
                 for (let i = 1; i < current.value; ++i) {
                     var p = stack.pop() as DeGuardData;
                     if (!p.ret_type || (p.ret_type != p0.ret_type))  ERROR(Errors.Fail, 'ResolveData: ' + current.type + ' INVALID param type');
@@ -184,7 +184,7 @@ export class GuardParser {
                 current.ret_type = r[4];
 
                 if (stack.length < r[3].length) ERROR(Errors.Fail, 'OperateParamCount: cmd param lost ' + current.type);
-                r[3].forEach((e:number) => {
+                r[3].forEach((e:number) => {    
                     let d = stack.pop() as DeGuardData;
                     if (!d?.ret_type || d.ret_type != e) {
                         ERROR(Errors.Fail, 'OperateParamCount: cmd param not match ' + current.type);
