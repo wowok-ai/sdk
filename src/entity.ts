@@ -2,7 +2,7 @@ import { Protocol, FnCallType, TxbObject, ResourceAddress, PermissionObject, Res
 import { IsValidDesription, IsValidAddress, IsValidName, isValidHttpUrl, Bcs, IsValidArray,  } from './utils';
 import { ERROR, Errors } from './exception';
 import { Resource } from './resource';
-import { type TransactionResult, Transaction as TransactionBlock } from '@mysten/sui/transactions';
+import { Transaction as TransactionBlock } from '@mysten/sui/transactions';
 
 export interface Safer {
     name: string;
@@ -80,7 +80,7 @@ export class Entity {
     }
 
     update(info: Entity_Info) {
-        if (!IsValidName(info.name)) ERROR(Errors.IsValidName, 'update');
+        if (info?.name && !IsValidName(info.name)) ERROR(Errors.IsValidName, 'update');
         if (info?.description && !IsValidDesription(info.description)) ERROR(Errors.IsValidDesription, 'update');
         if (info?.avatar && !isValidHttpUrl(info.avatar)) ERROR(Errors.isValidHttpUrl, 'update:avatar');
         if (info?.twitter && !IsValidName(info.twitter)) ERROR(Errors.IsValidName, 'update:twitter');
