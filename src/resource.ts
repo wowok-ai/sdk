@@ -47,14 +47,13 @@ export class Resource {
         });
     }
     add(name:string, object:string[] | TransactionResult[])  {
-        if (object.length === 0) return ;
-        var bString = false;
-
+        var bString = true;
         if (!IsValidName(name)) ERROR(Errors.IsValidName, 'add.name');
         if (!IsValidArray(object, (item:any) => {
             if (typeof(item) === 'string') {
-                bString = true;
                 return IsValidAddress(item)
+            } else {
+                bString = false;
             }
             return true;
         })) {

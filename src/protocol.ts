@@ -221,7 +221,7 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    wowok: "0x5cfe867c71e4e65bbe3a1214567926a5fef8b4206f7f219bb7446bd9630f528f",
+    wowok: "0xd36b203d88f99d8b76b8f870de848e45fed72b31e0732bbfc2445b7c058bc999",
     wowok_origin:'0x5cfe867c71e4e65bbe3a1214567926a5fef8b4206f7f219bb7446bd9630f528f' ,
     base: '0xcabc5d750dfacb78550b812531598e02fd83650a0ea804fe48767ecca9e46b51',
     base_origin: '0xcabc5d750dfacb78550b812531598e02fd83650a0ea804fe48767ecca9e46b51',
