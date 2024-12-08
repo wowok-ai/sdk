@@ -6,7 +6,8 @@ import { FnCallType, GuardObject, PassportObject, PermissionObject, RepositoryOb
     TreasuryObject,
     PaymentAddress,
     ArbObject,
-    ArbitrationObject} from './protocol';
+    ArbitrationObject,
+    ProgressObject} from './protocol';
 import { ERROR, Errors } from './exception';
 import { Transaction as TransactionBlock,  } from '@mysten/sui/transactions';
 import { SuiObjectData } from '@mysten/sui/client';
@@ -1164,10 +1165,12 @@ export class Service {
         this.permission = new_permission
     }
 
-    set_order_agent(order:OrderObject, agent:string[]) {
-        Service.SetOrderAgent(this.txb, this.pay_token_type, order, agent)
+    set_order_agent(order:OrderObject, agent:string[], orderProgress?:ProgressObject) {
+        Service.SetOrderAgent(this.txb, this.pay_token_type, order, agent, orderProgress)
     }
-    
+    change_order_payer(order:OrderObject, new_addr:string) {
+        Service.ChangeOrderPayer(this.txb, this.pay_token_type, order, new_addr)
+    }
     static MAX_DISCOUNT_COUNT_ONCE = 200;
     static MAX_DISCOUNT_RECEIVER_COUNT = 20;
     static MAX_GUARD_COUNT = 16;
@@ -1210,7 +1213,7 @@ export class Service {
     }
 
     // The agent has the same order operation power as the order payer; The agent can only be set by the order payer.
-    static SetOrderAgent = (txb:TransactionBlock, order_token_type:string, order:OrderObject, agent:string[]) => {
+    static SetOrderAgent = (txb:TransactionBlock, order_token_type:string, order:OrderObject, agent:string[], order_progress?:ProgressObject) => {
         if (!IsValidTokenType(order_token_type)) {
             ERROR(Errors.IsValidTokenType, 'SetOrderAgent.order_token_type');
         }
@@ -1224,10 +1227,34 @@ export class Service {
             ERROR(Errors.Fail, 'SetOrderAgent.agent count')
         }
 
+        if (order_progress) {
+            txb.moveCall({
+                target:Protocol.Instance().OrderFn('agent_set_with_progress') as FnCallType,
+                arguments: [txb.object(order), txb.pure.vector('address', array_unique(agent)), txb.object(order_progress)],
+                typeArguments:[order_token_type]            
+            })  
+        } else {
+            txb.moveCall({
+                target:Protocol.Instance().OrderFn('agent_set') as FnCallType,
+                arguments: [txb.object(order), txb.pure.vector('address', array_unique(agent))],
+                typeArguments:[order_token_type]            
+            })  
+        }
+    }
+    static ChangeOrderPayer = (txb:TransactionBlock, order_token_type:string, order:OrderObject, new_addr:string) => {
+        if (!IsValidTokenType(order_token_type)) {
+            ERROR(Errors.IsValidTokenType, 'ChangeOrderPayer.order_token_type');
+        }
+        if (!Protocol.IsValidObjects([order])) {
+            ERROR(Errors.IsValidObjects, 'ChangeOrderPayer.order')
+        }
+        if (!IsValidAddress(new_addr)) {
+            ERROR(Errors.IsValidAddress, 'ChangeOrderPayer.new_addr')
+        }
         txb.moveCall({
-            target:Protocol.Instance().OrderFn('agent_set') as FnCallType,
-            arguments: [txb.object(order), txb.pure.vector('string', array_unique(agent))],
+            target:Protocol.Instance().OrderFn('payer_change') as FnCallType,
+            arguments: [txb.object(order), txb.pure.address(new_addr)],
             typeArguments:[order_token_type]            
-        })    
+        })  
     }
 }
