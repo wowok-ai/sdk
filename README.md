@@ -16,7 +16,7 @@ $ npm i wowok
 ```
 
 ### Examples 
-##### [An airdrop collection system for different behaviors, allowing three collection mechanisms:](https://github.com/wowok-ai/sdk-examples/tree/main/airdrop)
+#### [An airdrop collection system for different behaviors, allowing three collection mechanisms:](https://github.com/wowok-ai/sdk-examples/tree/main/airdrop)
 * New users can claim 300 tokens
 * Each user can claim 100 tokens per day
 * After 10 claims, each user can claim 200 tokens per day
