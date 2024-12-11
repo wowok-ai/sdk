@@ -41,7 +41,7 @@ export type Service_Buy_RequiredInfo = {
 }
 export type Customer_RequiredInfo = {
     customer_pubkey: string;
-    customer_info_crypt: string[];
+    customer_info_crypt: string;
 }
 export enum BuyRequiredEnum {
     address = 'address',
@@ -994,14 +994,14 @@ export class Service {
         }
 
         if (!Protocol.IsValidObjects([order])) {
-            ERROR(Errors.IsValidObjects, 'order')
+            ERROR(Errors.IsValidObjects, 'update_order_required_info.order')
         }
         
         this.txb.moveCall({
             target:Protocol.Instance().ServiceFn('order_required_info_update') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, order), 
                 this.txb.pure.string(customer_info_crypto.customer_pubkey), 
-                this.txb.pure.vector('string', customer_info_crypto.customer_info_crypt)],
+                this.txb.pure.string(customer_info_crypto.customer_info_crypt)],
             typeArguments:[this.pay_token_type]
         })    
     }
@@ -1021,7 +1021,7 @@ export class Service {
             names.push(v.item)
         })
         if (!bValid) {
-            ERROR(Errors.InvalidParam, 'buy_items 2')
+            ERROR(Errors.InvalidParam, 'buy_items invalid')
         }
 
         let name:string[] = []; let price:bigint[] = [];    let stock:bigint[] = []; let order;
