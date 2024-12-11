@@ -1,5 +1,6 @@
 import { IsValidArray, IsValidPercent, IsValidName_AllowEmpty, parseObjectType, array_unique, IsValidTokenType, IsValidDesription, 
-    IsValidAddress, IsValidEndpoint, IsValidU64, } from './utils'
+    IsValidAddress, IsValidEndpoint, IsValidU64,
+    IsValidName, } from './utils'
 import { FnCallType, GuardObject, PassportObject, PermissionObject, RepositoryObject, MachineObject, ServiceAddress, 
     ServiceObject, DiscountObject, OrderObject, OrderAddress, CoinObject, Protocol, ValueType,
     TxbObject,
@@ -841,9 +842,18 @@ export class Service {
         }  
     }
 
-    set_customer_required(pubkey:string, customer_required: BuyRequiredEnum[], passport?:PassportObject) {
+    set_customer_required(pubkey:string, customer_required: (BuyRequiredEnum | string)[], passport?:PassportObject) {
         if(customer_required.length > 0 && !pubkey) {
-            ERROR(Errors.InvalidParam, 'pubkey')
+            ERROR(Errors.InvalidParam, 'set_customer_required')
+        }
+        if(pubkey.length > Service.MAX_PUBKEY_SIZE) {
+            ERROR(Errors.InvalidParam, 'set_customer_required.pubkey')
+        }
+        if(customer_required.length > Service.MAX_REQUIRES_COUNT) {
+            ERROR(Errors.InvalidParam, 'set_customer_required.customer_required')
+        }
+        if(!IsValidArray(customer_required, IsValidName)) {
+            ERROR(Errors.IsValidArray, 'set_customer_required.customer_required')
         }
 
         let req = array_unique(customer_required) as string[];
@@ -1180,6 +1190,8 @@ export class Service {
     static MAX_ORDER_AGENT_COUNT = 8;
     static MAX_ORDER_ARBS_COUNT = 8;
     static MAX_ARBITRATION_COUNT = 8;
+    static MAX_REQUIRES_COUNT = 16;
+    static MAX_PUBKEY_SIZE = 3000;
 
     static IsValidItemName(name:string) : boolean {
         if (!name) return false;
