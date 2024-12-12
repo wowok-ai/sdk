@@ -12,8 +12,9 @@ X: [https://x.com/Wowok_Ai](https://x.com/Wowok_Ai)
 ### Installation
 
 ```
-$ npm i wowok
+$ npm i wowok@latest
 ```
+The protocol address may change due to protocol upgrade. Please update the SDK to the latest version.
 
 ### Examples 
 #### [An airdrop collection system for different behaviors, allowing three collection mechanisms:](https://github.com/wowok-ai/sdk-examples/tree/main/airdrop)
