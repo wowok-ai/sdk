@@ -21,6 +21,14 @@ export  interface Guard_Options {
     group?: string;
 }
 
+export interface GuardAnswer {
+    txb: TransactionBlock;
+    err?: string;
+    identifiers: number[];
+}
+
+export type OnQueryAnswer = (answer: GuardAnswer) => void;
+
 export class Guard {
     static MAX_INPUT_LENGTH = 10240;
 //    static MAX_PAYLOADS_LENGTH = 4096;
@@ -104,6 +112,27 @@ export class Guard {
             arguments: []
         }); 
     }
+
+    static QueryAddressIdentifiers(guard:GuardObject, onQueryAnswer:OnQueryAnswer, sender:string) {    
+        const txb = new TransactionBlock();
+        txb.moveCall({
+            target: Protocol.Instance().GuardFn('query_address_identifiers') as FnCallType,
+            arguments: [txb.object(guard)]
+        })
+
+        Protocol.Client().devInspectTransactionBlock({sender:sender, transactionBlock:txb}).then((res) => {
+            if (res.results && res.results[0]?.returnValues && res.results[0]?.returnValues?.length !== 1 )  {
+                onQueryAnswer({err:'not match', txb:txb, identifiers:[]});
+                return 
+            }
+            const identifiers = Bcs.getInstance().de('vector<u8>', Uint8Array.from((res.results as any)[0].returnValues[0][0]));
+            onQueryAnswer({identifiers:identifiers, txb:txb});
+        }).catch((e) => {
+            console.log(e);
+            onQueryAnswer({err:e, txb:txb, identifiers:[]});
+        })
+    }
+
     static QUERIES:any[] = [ 
         // module, 'name', 'id', [input], output
         [MODULES.permission, 'Owner', 1, [], ValueType.TYPE_ADDRESS, "Owner's address."],
