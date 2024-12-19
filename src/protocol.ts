@@ -229,6 +229,7 @@ const TESTNET = {
     wowok_object: '0xa6057ffe4d7ec2c0fc0be6361460f9e705e29e94ee856e5b09d1b19b44108022',
     entity_object: '0x155bfce91711af83a9e7b313f057ed6759dc06cfe52ec5993b2b85eab79623ea',
     treasury_cap:'0xf3eb0e39d7435112c127d5f2130f8bf40ed4250756902b6c21df5140205bdf82',
+    oracle_object:'0x47f66d215ead881dac290979ffb1cacd1673284fb219e95cf75e46ee0ea84cac',
 }
 const MAINNET = {
     wowok: "",
@@ -239,6 +240,7 @@ const MAINNET = {
     wowok_object: '',
     entity_object: '',
     treasury_cap:'',
+    oracle_object:'',
 }
 
 export interface CoinTypeInfo {
@@ -254,6 +256,7 @@ export class Protocol {
     protected wowok_object = '';
     protected entity_object = '';
     protected treasury_cap = '';
+    protected oracle_object = '';
     protected graphql = '';
     protected txb: TransactionBlock | undefined;
     static _instance: any;
@@ -288,6 +291,7 @@ export class Protocol {
                 this.entity_object= TESTNET.entity_object;
                 this.treasury_cap = TESTNET.treasury_cap;
                 this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
+                this.oracle_object = TESTNET.oracle_object;
                 break;
             case ENTRYPOINT.mainnet:
                 this.package.set('wowok', MAINNET.wowok);
@@ -298,6 +302,7 @@ export class Protocol {
                 this.entity_object= MAINNET.entity_object;
                 this.treasury_cap = MAINNET.treasury_cap;
                 this.graphql = 'https://sui-mainnet.mystenlabs.com/graphql';
+                this.oracle_object = MAINNET.oracle_object;
                 break;
         };
     }
@@ -307,6 +312,7 @@ export class Protocol {
 
     WowokObject(): string { return this.wowok_object }
     EntityObject(): string { return this.entity_object }
+    OracleObject(): string { return this.oracle_object }
     TreasuryCap() : string { return this.treasury_cap }
     GraphqlUrl() : string { return this.graphql }
     
@@ -339,7 +345,7 @@ export class Protocol {
     TreasuryFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.treasury}::${fn}`};
     PaymentFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.payment}::${fn}`};
     GuardFn = (fn: any) => { return `${this.package.get('base')}::${MODULES.guard}::${fn}`};
-    MintFn = (fn: any) => { return `${this.package.get('base')}::${MODULES.wowok}::${fn}`};
+    BaseWowokFn = (fn: any) => { return `${this.package.get('base')}::${MODULES.wowok}::${fn}`};
     ArbitrationFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.arbitration}::${fn}`};
     ArbFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.arb}::${fn}`};
 
