@@ -1,4 +1,4 @@
-import { Protocol, FnCallType, TxbObject, ResourceAddress, PermissionObject} from './protocol';
+import { Protocol, FnCallType, TxbObject, ResourceAddress, PermissionObject, RepositoryAddress} from './protocol';
 import { IsValidDesription, IsValidAddress, IsValidName, IsValidArray, IsValidU64,  } from './utils';
 import { ERROR, Errors } from './exception';
 import { Transaction as TransactionBlock} from '@mysten/sui/transactions';
@@ -57,10 +57,10 @@ export class Wowok {
                 this.txb.pure.address(recipient)]
         })
     }
-    oracle(description: string, permission: PermissionObject) {
+    oracle(description: string, permission: PermissionObject) : RepositoryAddress  {
         if (!IsValidDesription(description)) ERROR(Errors.IsValidDesription, 'oracle.description');
         if (!Protocol.IsValidObjects([permission])) ERROR(Errors.IsValidObjects, 'oracle.permission');
-        this.txb.moveCall({
+        return this.txb.moveCall({
             target:Protocol.Instance().WowokFn('oracle_repository') as FnCallType, //@ base package
             arguments:[Protocol.TXB_OBJECT(this.txb, Protocol.Instance().OracleObject()), this.txb.pure.string(description), 
                 this.txb.object(permission)]

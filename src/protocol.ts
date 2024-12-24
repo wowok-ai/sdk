@@ -221,15 +221,15 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    wowok: "0x55d89b02397f9086c1025380d5b92d3bb0daa906341a6173c5943045b83c10fa",
-    wowok_origin:'0x55d89b02397f9086c1025380d5b92d3bb0daa906341a6173c5943045b83c10fa' ,
-    base: '0xf02b247c28b38a1484fbac51b165fea3e70da6c5ca41256ed3c7e1b746fc7173',
-    base_origin: '0xf02b247c28b38a1484fbac51b165fea3e70da6c5ca41256ed3c7e1b746fc7173',
+    wowok: "0x66f08884668a7b18b34ce0ae91cfb7bdab284d4dbbc28ad3fb009df50f88e11e",
+    wowok_origin:'0x66f08884668a7b18b34ce0ae91cfb7bdab284d4dbbc28ad3fb009df50f88e11e' ,
+    base: '0x3960658ad695c829bd62a083a8a92f94f04404ae3ea6b13bbc72e5780cfeec4c',
+    base_origin: '0x3960658ad695c829bd62a083a8a92f94f04404ae3ea6b13bbc72e5780cfeec4c',
 
-    wowok_object: '0xa6057ffe4d7ec2c0fc0be6361460f9e705e29e94ee856e5b09d1b19b44108022',
-    entity_object: '0x155bfce91711af83a9e7b313f057ed6759dc06cfe52ec5993b2b85eab79623ea',
-    treasury_cap:'0xf3eb0e39d7435112c127d5f2130f8bf40ed4250756902b6c21df5140205bdf82',
-    oracle_object:'0x47f66d215ead881dac290979ffb1cacd1673284fb219e95cf75e46ee0ea84cac',
+    wowok_object: '0xa51c94e11a4693e63b77cc6577a2deb0e4eed1cc6a1fbc3971b35edafc72eaed',
+    entity_object: '0x5f45ec58ed208c7b1b5d427fa77bbc64ad2256203aa6f11961b9417a7eeca053',
+    treasury_cap:'0xc1f614972987e8839584710c0a8b9f284745e667f2e19594c0ffa09ca5e59721',
+    oracle_object:'0x57c89a7ba9f2aaf784a5325da111989f157939a14df15bb9698de0a46285d746',
 }
 const MAINNET = {
     wowok: "",
