@@ -516,9 +516,9 @@ export class  Permission {
         })   
     }
 
-    QueryPermissions(permission:string, address_queried:string, permissions:PermissionIndexType[]|'all', onPermissionAnswer:OnPermissionAnswer, sender?:string) {
+    QueryPermissions(permission:string, address_queried:string, permissions:PermissionIndexType[], onPermissionAnswer:OnPermissionAnswer, sender?:string) {
         //@ be the same txb
-        if (permissions === 'all') {
+        if (permission.length === 0) {
             this.query_permissions_all(address_queried);
         } else {
             this.query_permissions(address_queried, permissions);
@@ -533,7 +533,7 @@ export class  Permission {
             if (perm === Permission.PERMISSION_ADMIN || perm === Permission.PERMISSION_OWNER_AND_ADMIN) {
                 onPermissionAnswer({who:address_queried, admin:true, owner:perm%2===1, items:[], object:permission})
             } else {
-                if (permissions === 'all') {
+                if (permissions.length === 0) {
                     const perms = Bcs.getInstance().de('vector<u64>', Uint8Array.from((res.results as any)[0].returnValues[1][0]));
                     const guards = Bcs.getInstance().de_guards(Uint8Array.from((res.results as any)[0].returnValues[2][0]));
                     const items: PermissionAnswerItem[] = [];
