@@ -493,7 +493,7 @@ export class  Permission {
             ERROR(Errors.InvalidParam, 'query_permissions');
         }
 
-        if (permissions.length === 0 || permissions.length > Permission.MAX_QUERY_COUNT) {
+        if (permissions.length > Permission.MAX_QUERY_COUNT) {
             ERROR(Errors.InvalidParam, 'permissions count');
         }
 

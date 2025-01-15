@@ -10,6 +10,11 @@ export enum Repository_Policy_Mode {
     POLICY_MODE_STRICT = 1,
 }
 
+export enum Repository_Type {
+    NORMAL = 0,
+    WOWOK_GRANTEE = 1,
+    WOWOK_ORACLE = 2
+}
 export interface RepData {
     id: string;
     name: string;
@@ -51,7 +56,7 @@ export class Repository {
         return r
     }
     static New(txb:TransactionBlock, permission:PermissionObject, description:string, 
-        policy_mode: Repository_Policy_Mode, passport?:PassportObject) : Repository {
+        policy_mode: Repository_Policy_Mode=Repository_Policy_Mode.POLICY_MODE_FREE, passport?:PassportObject) : Repository {
         if (!Protocol.IsValidObjects([permission])) {
             ERROR(Errors.IsValidObjects, 'permission')
         }
@@ -380,10 +385,6 @@ export class Repository {
     static MAX_KEY_LENGTH = 128;
     static MAX_VALUE_LENGTH = 204800;
     static MAX_REFERENCE_COUNT = 100;
-
-    static TYPE_NORMAL = 0;
-    static TYPE_WOWOK_GRANTEE = 1;
-    static TYPE_WOWOK_ORACLE = 2;
 
     static IsValidName = (key:string)  => {
         return key.length <= Repository.MAX_KEY_LENGTH && key.length != 0;

@@ -4,7 +4,7 @@ import { FnCallType, Protocol, PassportObject, PermissionObject, TreasuryAddress
 import { IsValidDesription, IsValidU64, IsValidAddress, IsValidArgType, IsValidArray, parseObjectType} from './utils'
 import { Errors, ERROR}  from './exception'
 
-export enum WithdrawMode {
+export enum Treasury_WithdrawMode {
     PERMISSION = 0,
     GUARD_ONLY_AND_IMMUTABLE = 1,
     BOTH_PERMISSION_AND_GUARD = 2,
@@ -315,7 +315,7 @@ export class Treasury {
         }
     }
     
-    set_withdraw_mode(mode: WithdrawMode, passport?: PassportObject)  {
+    set_withdraw_mode(mode: Treasury_WithdrawMode, passport?: PassportObject)  {
         if (passport) {
             this.txb.moveCall({
                 target:Protocol.Instance().TreasuryFn('withdraw_mode_set_with_passport') as FnCallType,
