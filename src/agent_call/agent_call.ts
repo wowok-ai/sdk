@@ -4,15 +4,15 @@
  */
 
 import { Transaction as TransactionBlock,  } from '@mysten/sui/transactions';
-import { Protocol, } from './protocol';
-import { Bcs, IsValidAddress, IsValidArgType, IsValidU64, parseObjectType, IsValidU8 } from './utils'
-import { Errors, ERROR}  from './exception'
+import { Protocol, } from '../protocol';
+import { Bcs, IsValidAddress, IsValidArgType, IsValidU64, parseObjectType, IsValidU8 } from '../utils'
+import { Errors, ERROR}  from '../exception'
 import { MultiGetObjectsParams } from '@mysten/sui/client';
-import { Permission, PermissionIndex } from './permission';
+import { Permission, PermissionIndex } from '../permission';
 import { BCS } from '@mysten/bcs';
-import { PermissionAnswerItem, PermissionIndexType } from './permission';
-import { Entity } from './entity';
-import { Repository_Policy_Mode } from './repository';
+import { PermissionAnswerItem, PermissionIndexType } from '../permission';
+import { Entity } from '../entity';
+import { Repository_Policy_Mode } from '../repository';
 export interface AgentFuncParameter {
     type: 'string' | 'number' | 'boolean' | 'struct' ;
     name: string;

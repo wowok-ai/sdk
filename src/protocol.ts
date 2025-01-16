@@ -14,10 +14,8 @@ export enum MODULES {
     permission = 'permission',
     passport = 'passport',
     guard = 'guard',
-    vote = 'vote',
     demand = 'demand',
     order = 'order',
-    reward = 'reward',
     service = 'service',
     resource = 'resource',
     entity = 'entity',
@@ -221,15 +219,15 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    wowok: "0x66f08884668a7b18b34ce0ae91cfb7bdab284d4dbbc28ad3fb009df50f88e11e",
-    wowok_origin:'0x66f08884668a7b18b34ce0ae91cfb7bdab284d4dbbc28ad3fb009df50f88e11e' ,
-    base: '0x3960658ad695c829bd62a083a8a92f94f04404ae3ea6b13bbc72e5780cfeec4c',
-    base_origin: '0x3960658ad695c829bd62a083a8a92f94f04404ae3ea6b13bbc72e5780cfeec4c',
+    wowok: "0x7bb3672fb818b362703a2f2e0804c4cea6b5a23dc79920217088374450300f45",
+    wowok_origin:'0x7bb3672fb818b362703a2f2e0804c4cea6b5a23dc79920217088374450300f45' ,
+    base: '0x75eae2a5c8e9bcee76ff8f684bcc38e49a26530526ef8c32703dc0b4a4281f93',
+    base_origin: '0x75eae2a5c8e9bcee76ff8f684bcc38e49a26530526ef8c32703dc0b4a4281f93',
 
-    wowok_object: '0xa51c94e11a4693e63b77cc6577a2deb0e4eed1cc6a1fbc3971b35edafc72eaed',
-    entity_object: '0x5f45ec58ed208c7b1b5d427fa77bbc64ad2256203aa6f11961b9417a7eeca053',
-    treasury_cap:'0xc1f614972987e8839584710c0a8b9f284745e667f2e19594c0ffa09ca5e59721',
-    oracle_object:'0x57c89a7ba9f2aaf784a5325da111989f157939a14df15bb9698de0a46285d746',
+    wowok_object: '0x6f0b0c6d1d6b02e8589064c0c40d6aed105c5cc5ffece509111a8d308e3eb188',
+    entity_object: '0x42a28bf08b8373cc460b001eab9d9cd91c4285855bea0dc40116237de79870b8',
+    treasury_cap:'0x9f415c863f0c26103e70fc4a739fea479ff20544057a3c5665db16c0b8650f7c',
+    oracle_object:'0x6c7d9b8ab0e9d21291e0128ca3e0d550b30f375f1e008381f2fbeef6753e6dcf',
 }
 const MAINNET = {
     wowok: "",
@@ -334,10 +332,8 @@ export class Protocol {
     RepositoryFn = (fn:any) => { return `${this.package.get('wowok')}::${MODULES.repository}::${fn}`};
     PermissionFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.permission}::${fn}`};
     PassportFn = (fn:any) => { return `${this.package.get('wowok')}::${MODULES.passport}::${fn}`};
-    VoteFn = (fn:any) => { return `${this.package.get('wowok')}::${MODULES.vote}::${fn}`};
     DemandFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.demand}::${fn}`};
     OrderFn = (fn:any) => { return `${this.package.get('wowok')}::${MODULES.order}::${fn}`};
-    RewardFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.reward}::${fn}`};
     ServiceFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.service}::${fn}`};
     ResourceFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.resource}::${fn}`};
     EntityFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.entity}::${fn}`};
@@ -476,9 +472,9 @@ export class Protocol {
         { let i = (key === MODULES.guard ? this.package.get('base') : this.package.get('wowok')) + '::' + key + '::';  return i + capitalize(key); })
     WOWOK_OBJECTS_PREFIX_TYPE = () => (Object.keys(MODULES) as Array<keyof typeof MODULES>).map((key) => 
         { return (key === MODULES.guard ? this.package.get('base') : this.package.get('wowok'))  + '::' + key + '::'; })
-    private hasPackage(pack:string) : boolean {
+    hasPackage(pack:string) : boolean {
         for (let value of this.package.values()) {
-            if (value === pack) {
+            if (pack.includes(value)) {
                 return true;
             }
         } return false;

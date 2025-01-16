@@ -4,10 +4,11 @@
  */
 
 import { Protocol } from '../protocol';
-import { Treasury_WithdrawMode } from '../treasury';
-import { Repository_Type, Repository_Policy_Mode } from '../repository';
-import { Service_Discount_Type } from '../service';
-
+import { Treasury_WithdrawMode, Treasury_Operation } from '../treasury';
+import { Repository_Type, Repository_Policy_Mode, Repository_Policy } from '../repository';
+import { Service_Discount_Type, Service_Sale } from '../service';
+import { Machine_Node, Machine } from '../machine';
+import { Progress, History } from '../progress';
 export interface ObjectBase {
     object: string;
     type?: string;
@@ -23,6 +24,11 @@ export interface ObjectPermission extends ObjectBase {
     biz_permission: {id:number; name:string}[];
 }
 
+export interface PermissionTable_Entity extends ObjectBase {
+    entity: string;
+    permission: {id:number; guard?:string|null}[];
+}
+
 export interface ObjectDemand extends ObjectBase {
     permission: string;
     guard?: {object:string; service_id_in_guard?:number|null} | null;
@@ -33,6 +39,12 @@ export interface ObjectDemand extends ObjectBase {
     bounty: {object:string; balance:string; type:string}[];
 }
 
+export interface DemandTable_Presenter extends ObjectBase {
+    service: string;
+    presenter: string;
+    recommendation: string;
+}
+
 export interface ObjectMachine extends ObjectBase {
     permission: string;
     bPaused: boolean;
@@ -41,6 +53,10 @@ export interface ObjectMachine extends ObjectBase {
     description: string;
     endpoint?: string | null;
     node_count: number;
+}
+
+export interface MachineTable_Node extends ObjectBase {
+    node: Machine_Node;
 }
 
 export interface ObjectProgressHolder {
@@ -70,11 +86,8 @@ export interface ObjectProgress extends ObjectBase {
     namedOperator: {name:string, operator:string[]}[];
 }
 
-export interface ObjectServiceItem {
-    price: string;
-    name: string;
-    stock: string;
-    endpoint?: string | null;
+export interface ProgressTable_History extends ObjectBase {
+    history: History;
 }
 
 export interface ObjectService extends ObjectBase {
@@ -95,6 +108,9 @@ export interface ObjectService extends ObjectBase {
     customer_required_info?: {pubkey:string; required_info:string[]};
 }
 
+export interface ServiceTable_Sale extends ObjectBase {
+    item: Service_Sale;
+}
 export interface ObjectOrder extends ObjectBase {
     service: string;
     amount: string;
@@ -105,7 +121,7 @@ export interface ObjectOrder extends ObjectBase {
     progress?: string | null;
     discount?: string | null;
     required_info?: {pubkey:string; msg_encrypted:string};
-    item: ObjectServiceItem[];
+    item: Service_Sale[];
 }
 
 export interface ObjectTreasury extends ObjectBase {
@@ -119,7 +135,14 @@ export interface ObjectTreasury extends ObjectBase {
     balance: string;
     history_count: number;
 }
-
+export interface TreasuryTable_History extends ObjectBase {
+    id: number,
+    operation: Treasury_Operation,
+    signer: string,
+    payment: string,
+    amount: string,
+    time: string,
+}
 export interface ObjectArbitration extends ObjectBase {
     permission: string;
     description: string;
@@ -142,16 +165,26 @@ export interface ObjectArb extends ObjectBase {
     proposition: {proposition:string, votes:string};
     voted_count: number;
 }
+export interface ArbTable_Vote extends ObjectBase {
+    singer: string;
+    vote: number[];
+    weight: string;
+    time: string;
+}
 export interface ObjectRepository extends ObjectBase {
     permission: string;
     description: string;
     policy_mode: Repository_Policy_Mode;
     rep_type: Repository_Type;
     reference: string[];
-    policy_count: number;
+    policy: Repository_Policy[];
     data_count: number;
 }
-
+export interface RepositoryTable_Data extends ObjectBase {
+    address: string;
+    key: string;
+    data: Uint8Array;
+}
 export interface ObjectPayment extends ObjectBase {
     amount: string;
     for_guard?: string | null;
@@ -258,6 +291,7 @@ export class OBJECT_QUERY {
         if (query.objects.length > 0) {
             const res = await Protocol.Client().multiGetObjects({ids:query.objects, 
                 options:{showContent:query.showContent, showType:query.showType, showOwner:query.showOwner}});
+            console.log(JSON.stringify(res))
             return {objects:res.map(v=>this.data2object(v?.data))}                
         } 
         return {objects:[]}
@@ -280,12 +314,13 @@ export class OBJECT_QUERY {
     private static data2object = (data?:any) : ObjectBase => {
         const content = (data?.content as any)?.fields;
         const id = data?.objectId ?? (content?.id?.id ?? undefined);
-        const type_raw = data?.type ?? (data?.content?.type ?? undefined);
+        const type_raw:string | undefined = data?.type ?? (data?.content?.type ?? undefined);
         const version = data?.version ?? undefined;
         const owner = data?.owner ?? undefined;
-        const type = type_raw ? Protocol.Instance().object_name_from_type_repr(type_raw) : undefined;
+        const type:string | undefined = type_raw ? Protocol.Instance().object_name_from_type_repr(type_raw) : undefined;
 
-        switch(type) {
+        if (type) {
+            switch(type) {
             case 'Permission':
                 return {object:id, type:type, type_raw:type_raw, owner:owner, version:version,
                     builder: content?.builder ??'', admin:content?.admin, description:content?.description??'',
@@ -392,8 +427,11 @@ export class OBJECT_QUERY {
                 return {
                     object:id, type:type, type_raw:type_raw, owner:owner, version:version,
                     permission:content?.permission, description:content?.description, policy_mode:content?.policy_mode,
-                    policy_count:parseInt(content?.policies?.fields?.size), data_count:parseInt(content?.data?.fields?.size),
-                    reference:content?.reference, rep_type:content?.type, 
+                    data_count:parseInt(content?.data?.fields?.size), reference:content?.reference, rep_type:content?.type, 
+                    policy:content?.policies?.fields?.contents?.map((v:any) => {
+                        return {key:v?.fields?.key, description:v?.fields?.value?.fields?.description, 
+                          permissionIndex:v?.fields?.value?.fields?.permission_index, dataType:v?.fields?.value?.fields?.value_type}
+                      })
                 } as ObjectRepository;  
             case 'Payment':
                 return {
@@ -419,6 +457,61 @@ export class OBJECT_QUERY {
                         return {id:v?.fields?.identifier, bWitness:v?.fields?.bWitness, value:Uint8Array.from(v?.fields?.value)}
                     })
                 } as ObjectGuard;   
+            }
+        } 
+        
+        const start = type_raw?.indexOf('0x2::dynamic_field::Field<');
+        if (start === 0) {
+            const end = type_raw?.substring('0x2::dynamic_field::Field<'.length);
+            if(end && Protocol.Instance().hasPackage(end)) {
+                if (end.includes('::demand::Tips>')) {
+                    return {
+                        object:id, type:'DemandTable_Presenter', type_raw:type_raw, owner:owner, version:version,
+                        service:content?.name, presenter:content?.value?.fields?.who, recommendation:content?.value?.fields?.tips
+                    } as DemandTable_Presenter;
+                } else if (end.includes('::machine::NodePair>>>')) {
+                    return {
+                        object:id, type:'MachineTable_Node', type_raw:type_raw, owner:owner, version:version,
+                        node:{name:content?.name, pairs:Machine.rpc_de_pair(content?.value)}
+                    } as MachineTable_Node;
+                } else if (end.includes('::progress::History>')) {
+                    return {
+                        object:id, type:'ProgressTable_History', type_raw:type_raw, owner:owner, version:version,
+                        history:Progress.rpc_de_history(content)
+                    } as ProgressTable_History;
+                } else if (end.includes('::service::Sale>')) {
+                    return {
+                        object:id, type:'ServiceTable_Sale', type_raw:type_raw, owner:owner, version:version,
+                        item:{item:content?.name, stock:content?.value?.fields?.stock, price:content?.value?.fields?.price,
+                            endpoint:content?.value?.fields?.endpoint
+                        }
+                    } as ServiceTable_Sale;
+                } else if (end.includes('::treasury::Record>')) {
+                    return {
+                        object:id, type:'TreasuryTable_History', type_raw:type_raw, owner:owner, version:version,
+                        id: content?.name, payment:content?.value?.fields?.payment, signer:content?.value?.fields?.signer,
+                        operation: content?.value?.fields?.op, amount: content?.value?.fields?.amount, time:content?.value?.fields?.time
+                    } as TreasuryTable_History;
+                } else if (end.includes('::arb::Voted>')) {
+                    return {
+                        object:id, type:'ArbTable_Vote', type_raw:type_raw, owner:owner, version:version,
+                        singer:content?.name, vote:content?.value?.fields?.agrees, time: content?.value?.fields?.time,
+                        weight:content?.value?.fields?.weight
+                    } as ArbTable_Vote;
+                } else if (end.includes('::permission::Perm>>')) {
+                    return {
+                        object:id, type:'ArbTable_Vote', type_raw:type_raw, owner:owner, version:version,
+                        entity:content?.name, permission:content?.value?.map((v:any) => {
+                            return {id:v?.fields.index, guard:v?.fields.guard}
+                        })
+                    } as PermissionTable_Entity;
+                } else if (end.includes('::repository::DataKey')) {
+                    return {
+                        object:id, type:'ArbTable_Vote', type_raw:type_raw, owner:owner, version:version,
+                        address:content?.name?.fields?.id, key:content?.name?.fields?.key, data:Uint8Array.from(content?.value)
+                    } as RepositoryTable_Data;
+                }
+            }
         }
         return {object:id, type:type, type_raw:type_raw, owner:owner, version:version}
     }

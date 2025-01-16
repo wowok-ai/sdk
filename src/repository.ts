@@ -26,8 +26,8 @@ export interface RepData {
 export type Repository_Policy = {
     key:string;
     description: string;
-    data_type: RepositoryValueType;
-    permission?: PermissionIndexType; // PermissionIndex like, must be geater than 1000
+    dataType: RepositoryValueType;
+    permissionIndex?: PermissionIndexType | null; // PermissionIndex like, must be geater than 1000
 }
 export type Repository_Policy_Data = {
     key: string;
@@ -218,14 +218,14 @@ export class Repository {
         }
 
         policies.forEach((policy) => {
-            let permission_index = this.txb.pure.option('u64', policy?.permission ? policy?.permission : undefined);
+            let permission_index = this.txb.pure.option('u64', policy?.permissionIndex ? policy?.permissionIndex : undefined);
             if (passport) {
                 this.txb.moveCall({
                     target:Protocol.Instance().RepositoryFn('policy_add_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
                         this.txb.pure.string(policy.key), 
                         this.txb.pure.string(policy.description),
-                        permission_index, this.txb.pure.u8(policy.data_type),
+                        permission_index, this.txb.pure.u8(policy.dataType),
                         Protocol.TXB_OBJECT(this.txb, this.permission)]
                 })              
             } else {
@@ -234,7 +234,7 @@ export class Repository {
                     arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
                         this.txb.pure.string(policy.key), 
                         this.txb.pure.string(policy.description),
-                        permission_index, this.txb.pure.u8(policy.data_type),
+                        permission_index, this.txb.pure.u8(policy.dataType),
                         Protocol.TXB_OBJECT(this.txb, this.permission)]
                 })  
             }
@@ -381,7 +381,7 @@ export class Repository {
         this.permission = new_permission  
     }
 
-    static MAX_POLICY_COUNT = 200;
+    static MAX_POLICY_COUNT = 120;
     static MAX_KEY_LENGTH = 128;
     static MAX_VALUE_LENGTH = 204800;
     static MAX_REFERENCE_COUNT = 100;

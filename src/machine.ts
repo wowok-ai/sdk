@@ -487,27 +487,30 @@ export class Machine {
     static rpc_de_nodes(fields: any) : Machine_Node[] {
         const machine_nodes:Machine_Node[] = [];
         fields.forEach((n:any) => {
-            let pairs:Machine_Node_Pair[] = [];
-            n.data.content.fields.value.fields.value.fields.contents.forEach((p:any) => {
-                let forwards:Machine_Forward[] = [];
-                p.fields.value.fields.forwards.fields.contents.forEach((f:any) => {
-                    let forward_name = f.fields.key;
-                    let forward_weight = f.fields.value.fields.weight;
-                    let forward_guard = f.fields.value.fields.guard;
-                    let forward_namedOperator = f.fields.value.fields.namedOperator;
-                    let forward_permission_index = f.fields.value.fields.permission_index;
-                    forwards.push({name:forward_name, namedOperator:forward_namedOperator, permission:forward_permission_index,
-                        weight:forward_weight, guard:forward_guard?forward_guard:'', suppliers:f.fields.value.fields.suppliers.fields.contents.map((v:any) => {
-                            return {object:v.fields.key, bOptional:v.fields.value, pay_token_type:''}
-                        })}); //@ NOTICE...
-                });
-                pairs.push({prior_node:p.fields.key, threshold:p.fields.value.fields.threshold, forwards:forwards});
-            });
-            machine_nodes.push({name:n.data.content.fields.name, pairs:pairs});    
+            machine_nodes.push({name:n.data.content.fields.name, pairs:Machine.rpc_de_pair(n?.data.content.fields.value)});    
         });
         return machine_nodes;
     }
 
+    static rpc_de_pair(data:any) : Machine_Node_Pair[] {
+        let pairs:Machine_Node_Pair[] = [];
+        data.fields.value.fields.contents.forEach((p:any) => {
+            let forwards:Machine_Forward[] = [];
+            p.fields.value.fields.forwards.fields.contents.forEach((f:any) => {
+                let forward_name = f.fields.key;
+                let forward_weight = f.fields.value.fields.weight;
+                let forward_guard = f.fields.value.fields.guard;
+                let forward_namedOperator = f.fields.value.fields.namedOperator;
+                let forward_permission_index = f.fields.value.fields.permission_index;
+                forwards.push({name:forward_name, namedOperator:forward_namedOperator, permission:forward_permission_index,
+                    weight:forward_weight, guard:forward_guard?forward_guard:'', suppliers:f.fields.value.fields.suppliers.fields.contents.map((v:any) => {
+                        return {object:v.fields.key, bOptional:v.fields.value, pay_token_type:''}
+                    })}); //@ NOTICE...
+            });
+            pairs.push({prior_node:p.fields.key, threshold:p.fields.value.fields.threshold, forwards:forwards});
+        });
+        return pairs
+    }
     static namedOperators(nodes:Machine_Node[]) : string[] {
         let ret: string[] = [];
         nodes.forEach((v)=> {

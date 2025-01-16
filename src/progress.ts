@@ -35,9 +35,10 @@ export interface Holder {
     who?:string;
     deliverable: Deliverable;
     accomplished:boolean;
+    time: string;
 }
 export interface Session {
-    id?:number; // for parent progress's history
+    id?: number; // sid
     next_node: string;
     holders: Holder[];
     weights: number;
@@ -46,6 +47,13 @@ export interface Session {
     bComplete?: boolean;
 }
 
+export interface History {
+    id: number;  // sid
+    node: string;
+    next_node: string;
+    time: string;
+    sessions: Session[];
+}
 export class Progress {
     protected permission ;
     protected machine;
@@ -327,9 +335,8 @@ export class Progress {
         session?.fields?.contents?.forEach((v:any) => {
             var s:Session = {next_node: v.fields.key, holders:[], weights:v.fields.value.fields.weights, threshold:v.fields.value.fields.threshold};
             v.fields.value.fields.forwards.fields.contents.forEach((i:any) => {
-              s.holders.push({forward:i.fields.key, accomplished:i.fields.value.fields.accomplished, 
-                who:i.fields.value.fields.who, deliverable:{msg:i.fields.value.fields.msg, 
-                    orders:i.fields.value.fields.orders ?? []},
+              s.holders.push({forward:i.fields.key, accomplished:i.fields.value.fields.accomplished, time:i.fields.value.fields.time,
+                who:i.fields.value.fields.who, deliverable:{msg:i.fields.value.fields.msg, orders:i.fields.value.fields.orders ?? []},
               })
             })
             sessions.push(s);
@@ -337,23 +344,16 @@ export class Progress {
         return sessions;
     }
 
-    static rpc_de_history = (fields: any) : Session[] => {
-        let sessions : Session[] = [];
-        fields?.forEach((v:any) => {
-          const next_node = v.data.content.fields.value.fields.next_node;
-          v.data.content.fields.value.fields.session.fields.contents.forEach((i:any) => {
-            var s:Session = {id:v.data.content.fields.name,
-                node:v.data.content.fields.value.fields.node, next_node: i.fields.key, holders:[], 
-              weights:i.fields.value.fields.weights, threshold:i.fields.value.fields.threshold, bComplete:i.fields.key === next_node};
-              i.fields.value.fields.forwards.fields.contents.forEach((k:any) => {
-              s.holders.push({forward:k.fields.key, who:k.fields.value.fields.who, accomplished:k.fields.value.fields.accomplished,
-                deliverable:{msg:k.fields.value.fields.msg, 
-                    orders:k.fields.value.fields.orders ?? []}});
-            })
-            sessions.push(s);
-          })
+    static rpc_de_histories = (fields: any) : History[] => {
+        return fields?.map((v:any) => {
+          return Progress.rpc_de_history(v?.data?.content?.fields)
         })
-        return sessions;
+    }
+
+    static rpc_de_history = (data: any) : History => {
+        return {id:parseInt(data?.name), node:data?.value?.fields?.node, next_node:data?.value?.fields?.next_node, 
+            sessions:Progress.rpc_de_sessions(data?.value.fields?.session), time: data?.value?.fields?.time
+          }
     }
 
     static MAX_NAMED_OPERATOR_COUNT = 20;

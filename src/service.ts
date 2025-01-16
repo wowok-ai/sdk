@@ -18,10 +18,10 @@ export type Service_Guard_Percent = {
     percent: number;
 }
 export type Service_Sale = {
-    item:string;
-    price:bigint;
-    stock:bigint;
-    endpoint?:string;
+    item: string;
+    price: string;
+    stock: string;
+    endpoint?:string | null;
 }
 export enum Service_Discount_Type {
     ratio = 0, // -off%
@@ -581,7 +581,7 @@ export class Service {
             ERROR(Errors.InvalidParam, 'add_sales')
         }
         
-        let names: string[]  = []; let price: bigint[] = []; let stock: bigint[] = []; let endpoint: string[] = [];
+        let names: string[]  = []; let price: string[] = []; let stock: string[] = []; let endpoint: string[] = [];
         sales.forEach((s) => {
             if (s.endpoint && !IsValidEndpoint(s.endpoint)) {
                 ERROR(Errors.IsValidEndpoint, 'add_sales')

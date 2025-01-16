@@ -487,23 +487,6 @@ export class  Permission {
         });        
     }
 
-    // query some permissions for address
-    query_permissions(address_queried:string, permissions:PermissionIndexType[]) {
-        if (!IsValidAddress(address_queried)) {
-            ERROR(Errors.InvalidParam, 'query_permissions');
-        }
-
-        if (permissions.length > Permission.MAX_QUERY_COUNT) {
-            ERROR(Errors.InvalidParam, 'permissions count');
-        }
-
-        this.txb.moveCall({
-            target:Protocol.Instance().PermissionFn('query_permissions') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address_queried), 
-                this.txb.pure.vector('u64', permissions)]
-        })   
-    }
-
     // query all permissions for address
     query_permissions_all(address_queried:string) {
         if (!IsValidAddress(address_queried)) {
@@ -516,13 +499,9 @@ export class  Permission {
         })   
     }
 
-    QueryPermissions(permission:string, address_queried:string, permissions:PermissionIndexType[], onPermissionAnswer:OnPermissionAnswer, sender?:string) {
+    QueryPermissions(permission:string, address_queried:string, onPermissionAnswer:OnPermissionAnswer, sender?:string) {
         //@ be the same txb
-        if (permission.length === 0) {
-            this.query_permissions_all(address_queried);
-        } else {
-            this.query_permissions(address_queried, permissions);
-        }
+        this.query_permissions_all(address_queried);
 
         Protocol.Client().devInspectTransactionBlock({sender:sender ?? address_queried, transactionBlock:this.txb}).then((res) => {
             if (res.results && res.results[0].returnValues && res.results[0].returnValues.length !== 3 )  {
@@ -533,32 +512,13 @@ export class  Permission {
             if (perm === Permission.PERMISSION_ADMIN || perm === Permission.PERMISSION_OWNER_AND_ADMIN) {
                 onPermissionAnswer({who:address_queried, admin:true, owner:perm%2===1, items:[], object:permission})
             } else {
-                if (permissions.length === 0) {
-                    const perms = Bcs.getInstance().de('vector<u64>', Uint8Array.from((res.results as any)[0].returnValues[1][0]));
-                    const guards = Bcs.getInstance().de_guards(Uint8Array.from((res.results as any)[0].returnValues[2][0]));
-                    const items: PermissionAnswerItem[] = [];
-                    for(let i = 0; i < perms.length; ++i) {
-                        items.push({query:perms[i], permission:true, guard:guards[i] ? ('0x'+guards[i]) : undefined})
-                    }
-                    onPermissionAnswer({who:address_queried, admin:false, owner:perm%2===1, items:items, object:permission});  
-                } else {
-                    const perms = Bcs.getInstance().de('vector<u8>', Uint8Array.from((res.results as any)[0].returnValues[1][0]));
-                    const guards = Bcs.getInstance().de('vector<address>', Uint8Array.from((res.results as any)[0].returnValues[2][0]));
-                    if (perms.length !== permissions.length) {
-                        onPermissionAnswer({who:address_queried, object:permission});
-                        return
-                    }
-
-                    const items: PermissionAnswerItem[] = (permissions as PermissionIndexType[]).map((v, index) => {
-                        const p = perms[index] === Permission.PERMISSION_QUERY_NONE ? false : true;
-                        let g : any = undefined;
-                        if (p && perms[index] < guards.length) {
-                            g = '0x' + guards[perms[index] as number];
-                        }
-                        return {query:v, permission:p, guard:g} 
-                    })
-                    onPermissionAnswer({who:address_queried, admin:false, owner:perm%2===1, items:items, object:permission});                    
+                const perms = Bcs.getInstance().de('vector<u64>', Uint8Array.from((res.results as any)[0].returnValues[1][0]));
+                const guards = Bcs.getInstance().de_guards(Uint8Array.from((res.results as any)[0].returnValues[2][0]));
+                const items: PermissionAnswerItem[] = [];
+                for(let i = 0; i < perms.length; ++i) {
+                    items.push({query:perms[i], permission:true, guard:guards[i] ? ('0x'+guards[i]) : undefined})
                 }
+                onPermissionAnswer({who:address_queried, admin:false, owner:perm%2===1, items:items, object:permission});  
             }
         }).catch((e) => {
             console.log(e);
@@ -586,9 +546,7 @@ export class  Permission {
     static MAX_ENTITY_COUNT = 2000;
     static MAX_PERMISSION_INDEX_COUNT = 200;
     static MAX_PERSONAL_PERMISSION_COUNT = 200; 
-    static MAX_QUERY_COUNT = 250; // 
-    static PERMISSION_QUERY_NONE = 255;
-    static PERMISSION_QUERY_HAS = 254;
+    
     static PERMISSION_NORMAL = 0;
     static PERMISSION_OWNER = 1;
     static PERMISSION_ADMIN = 2;

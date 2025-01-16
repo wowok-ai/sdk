@@ -10,7 +10,11 @@ export enum Treasury_WithdrawMode {
     BOTH_PERMISSION_AND_GUARD = 2,
 }
 
-
+export enum Treasury_Operation {
+    WITHDRAW = 1,
+    DEPOSIT = 2,
+    RECEIVE = 4,
+}
 export interface DepositParam {
     coin: CoinObject,
     index: bigint,
@@ -414,10 +418,6 @@ export class Treasury {
     static parseObjectType = (chain_type:string) : string =>  {
         return parseObjectType(chain_type, 'treasury::Treasury<')
     }
-
-    static OP_WITHDRAW = 1;
-    static OP_DEPOSIT = 2;
-    static OP_RECEIVE = 4;
     
     static MAX_WITHDRAW_GUARD_COUNT = 16;
 }
