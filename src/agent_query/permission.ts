@@ -1,6 +1,6 @@
 /**
- * Provide a JSON query interface for AI
- * 
+ * Provides permission lookup for an address: 
+ * not only the permission table, but also the administrator or Builder identity.
  */
 
 import { Transaction as TransactionBlock,  } from '@mysten/sui/transactions';
@@ -9,25 +9,25 @@ import { Bcs, IsValidAddress} from '../utils'
 import { Errors, ERROR}  from '../exception'
 import { Permission } from '../permission';
 import { BCS } from '@mysten/bcs';
-import { PermissionAnswerItem, PermissionIndexType, PermissionAnswer } from '../permission';
+import { PermissionAnswerItem, PermissionAnswer } from '../permission';
 
 export interface PermissionQuery {
     permission_object: string;
     address: string;
 }
 
-export class PERMISSION_QUERY {
+export namespace PERMISSION_QUERY {
     /*json: PermissionQuery; return PermissionAnswer */
-    static permission_json = async (json:string) : Promise<string> => {
+    export const permission_json = async (json:string) : Promise<string> => {
         try {
             const q : PermissionQuery = JSON.parse(json);
-            return JSON.stringify(await PERMISSION_QUERY.permission(q));
+            return JSON.stringify({data:await permission(q)});
         } catch (e) {
             return JSON.stringify({error:e});
         }
     }
 
-    static permission = async (query:PermissionQuery) : Promise<PermissionAnswer> => {
+    export const permission = async (query:PermissionQuery) : Promise<PermissionAnswer> => {
         if (!IsValidAddress(query.permission_object)) {
             ERROR(Errors.IsValidAddress, 'permission.permission_object');
         }

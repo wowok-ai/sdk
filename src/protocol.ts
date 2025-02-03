@@ -163,7 +163,7 @@ export enum ContextType {
     TYPE_SIGNER  = 60,
     TYPE_CLOCK = 61,
     TYPE_GUARD = 62, // current guard address
-    TYPE_STACK_ADDRESS = 63, // object queried from current stack top
+    //TYPE_STACK_ADDRESS = 63, // object queried from current stack top
     TYPE_CONSTANT = 80,
 }
 interface ValueTypeString {
@@ -219,13 +219,13 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    wowok: "0x7bb3672fb818b362703a2f2e0804c4cea6b5a23dc79920217088374450300f45",
-    wowok_origin:'0x7bb3672fb818b362703a2f2e0804c4cea6b5a23dc79920217088374450300f45' ,
+    wowok: "0x5091944f647fdcd1a5a90016933a9eac13b2c1dc41291d1ce31ed7a0cd664a02",
+    wowok_origin:'0x5091944f647fdcd1a5a90016933a9eac13b2c1dc41291d1ce31ed7a0cd664a02' ,
     base: '0x75eae2a5c8e9bcee76ff8f684bcc38e49a26530526ef8c32703dc0b4a4281f93',
     base_origin: '0x75eae2a5c8e9bcee76ff8f684bcc38e49a26530526ef8c32703dc0b4a4281f93',
 
-    wowok_object: '0x6f0b0c6d1d6b02e8589064c0c40d6aed105c5cc5ffece509111a8d308e3eb188',
-    entity_object: '0x42a28bf08b8373cc460b001eab9d9cd91c4285855bea0dc40116237de79870b8',
+    wowok_object: '0x6cfe6ee9f53b33eed11a6d4d1e09fb43278f222ced15aef7246243ecadf3c00f',
+    entity_object: '0x5469d38103ab78f91222338b489b512f9de86932edde064f7d2d77a6e78cf7a9',
     treasury_cap:'0x9f415c863f0c26103e70fc4a739fea479ff20544057a3c5665db16c0b8650f7c',
     oracle_object:'0x6c7d9b8ab0e9d21291e0128ca3e0d550b30f375f1e008381f2fbeef6753e6dcf',
 }
@@ -272,7 +272,8 @@ export class Protocol {
     static Client() : SuiClient {
         return  new SuiClient({ url: Protocol.Instance().NetworkUrl() });  
     }
-
+    
+    client() { return new SuiClient({url: this.NetworkUrl() })}
     UseNetwork(network:ENTRYPOINT=ENTRYPOINT.testnet) {
         this.network = network;
         switch(network) {

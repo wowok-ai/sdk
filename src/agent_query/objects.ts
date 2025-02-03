@@ -1,5 +1,5 @@
 /**
- * Provide a JSON query interface for AI
+ * Provide a query interface for AI
  * 
  */
 
@@ -9,9 +9,14 @@ import { Repository_Type, Repository_Policy_Mode, Repository_Policy } from '../r
 import { Service_Discount_Type, Service_Sale } from '../service';
 import { Machine_Node, Machine } from '../machine';
 import { Progress, History } from '../progress';
+import { ERROR, Errors } from '../exception';
+import { IsValidAddress, Bcs } from '../utils';
 export interface ObjectBase {
     object: string;
-    type?: string;
+    type?: string | 'Demand' | 'Progress' | 'Service' | 'Machine' | 'Order' | 'Treasury' | 'Arbitration' | 'Arb' | 'Payment' | 'Guard' |
+        'Entity' | 'Permission' | 'Resource' | 'Repository' | 'TableItem_ProgressHistory' | 'TableItem_PermissionEntity' | 
+        'TableItem_DemandPresenter' | 'TableItem_MachineNode' | 'TableItem_ServiceSale' | 'TableItem_TreasuryHistory' | 'TableItem_ArbVote' |
+        'TableItem_RepositoryData' | 'TableItem_ResourceMark';
     type_raw?: string;
     owner?: any;
     version?: string;
@@ -24,7 +29,7 @@ export interface ObjectPermission extends ObjectBase {
     biz_permission: {id:number; name:string}[];
 }
 
-export interface PermissionTable_Entity extends ObjectBase {
+export interface TableItem_PermissionEntity extends ObjectBase {
     entity: string;
     permission: {id:number; guard?:string|null}[];
 }
@@ -39,7 +44,7 @@ export interface ObjectDemand extends ObjectBase {
     bounty: {object:string; balance:string; type:string}[];
 }
 
-export interface DemandTable_Presenter extends ObjectBase {
+export interface TableItem_DemandPresenter extends ObjectBase {
     service: string;
     presenter: string;
     recommendation: string;
@@ -55,7 +60,7 @@ export interface ObjectMachine extends ObjectBase {
     node_count: number;
 }
 
-export interface MachineTable_Node extends ObjectBase {
+export interface TableItem_MachineNode extends ObjectBase {
     node: Machine_Node;
 }
 
@@ -86,7 +91,7 @@ export interface ObjectProgress extends ObjectBase {
     namedOperator: {name:string, operator:string[]}[];
 }
 
-export interface ProgressTable_History extends ObjectBase {
+export interface TableItem_ProgressHistory extends ObjectBase {
     history: History;
 }
 
@@ -108,7 +113,7 @@ export interface ObjectService extends ObjectBase {
     customer_required_info?: {pubkey:string; required_info:string[]};
 }
 
-export interface ServiceTable_Sale extends ObjectBase {
+export interface TableItem_ServiceSale extends ObjectBase {
     item: Service_Sale;
 }
 export interface ObjectOrder extends ObjectBase {
@@ -135,7 +140,7 @@ export interface ObjectTreasury extends ObjectBase {
     balance: string;
     history_count: number;
 }
-export interface TreasuryTable_History extends ObjectBase {
+export interface TableItem_TreasuryHistory extends ObjectBase {
     id: number,
     operation: Treasury_Operation,
     signer: string,
@@ -165,7 +170,7 @@ export interface ObjectArb extends ObjectBase {
     proposition: {proposition:string, votes:string};
     voted_count: number;
 }
-export interface ArbTable_Vote extends ObjectBase {
+export interface TableItem_ArbVote extends ObjectBase {
     singer: string;
     vote: number[];
     weight: string;
@@ -180,7 +185,7 @@ export interface ObjectRepository extends ObjectBase {
     policy: Repository_Policy[];
     data_count: number;
 }
-export interface RepositoryTable_Data extends ObjectBase {
+export interface TableItem_RepositoryData extends ObjectBase {
     address: string;
     key: string;
     data: Uint8Array;
@@ -211,6 +216,37 @@ export interface ObjectGuard extends ObjectBase {
     input: Uint8Array;
     identifier: {id:number; bWitness:boolean; value:Uint8Array}[];
 }
+export interface ObjectEntity extends ObjectBase {
+    address: string; 
+    like: number;
+    dislike: number;
+
+    name?: string;
+    description?: string;
+    avatar?: string;
+    x?: string;
+    discord?: string;
+
+    homepage?: string;
+    resource_object?: string | null;
+    lastActive_digest?: string; 
+}
+
+export interface ObjectResouorce_Tag {
+    object: string;
+    nick_name: string;
+    tags: string[];
+}
+
+export interface ObjectResouorce extends ObjectBase {
+    marks_count: number;
+    tags: ObjectResouorce_Tag[];
+}
+
+export interface TableItem_ResourceMark extends ObjectBase {
+    mark_name: string;
+    objects: string[];
+}
 
 export interface ObjectsQuery {
     objects: string[];
@@ -218,7 +254,6 @@ export interface ObjectsQuery {
     showContent?: boolean;
     showOwner?: boolean;
 }
-
 export interface ObjectsAnswer {
     objects?: ObjectBase[];
     error?: string;
@@ -229,89 +264,122 @@ export interface TableQuery {
     cursor?: string | null | undefined;
     limit?: number | null | undefined;
 }
-
+export interface TableAnswerItem {
+    key: {type:string; value:unknown};
+    object: string;
+    version: string;
+}
 export interface TableAnswer {
-    items: TableItem[];
+    items: TableAnswerItem[];
     nextCursor: string | null;
     hasNextPage: boolean;
 }
 
-export interface TableItemQuery {
+interface TableItemQuery {
     parent: string;
-    name: {type:string; value:string};
-}
-export interface TableItemAnwser {
-    object: string;
-    type?: string;
-    version?: string;
-    owner?: any;
+    key: {type:string, value:unknown};
 }
 
-export interface TableItem {
-    name: {type:string; value:string};
-    object: string;
-    version: string;
-    error?: string;
-}
-
-export const PermissionTable_Type = 'address';
-
-export class OBJECT_QUERY {
+export namespace OBJECT_QUERY {
     /* json: ObjectsQuery string */
-    static objects_json = async (json:string) : Promise<string> => {
+    export const objects_json = async (json:string) : Promise<string> => {
         try {
             const q : ObjectsQuery = JSON.parse(json);
-            return JSON.stringify(await OBJECT_QUERY.objects(q));
+            return JSON.stringify({data:await objects(q)});
         } catch (e) {
             return JSON.stringify({error:e?.toString()})
         }
     }
 
     /* json: TableQuery string */
-    static table_json = async (json:string) : Promise<string> => {
+    export const table_json = async (json:string) : Promise<string> => {
         try {
             const q : TableQuery = JSON.parse(json);
-            return JSON.stringify(await OBJECT_QUERY.table(q));
+            return JSON.stringify({data:await table(q)});
         } catch (e) {
             return JSON.stringify({error:e?.toString()})
         }
     }
 
-    /* json: TableQuery string*/
-    static tableItem_json = async (json:string) : Promise<string> => {
-        try {
-            const q : TableItemQuery = JSON.parse(json);
-            return JSON.stringify(await OBJECT_QUERY.tableItem(q));
-        } catch (e) {
-            return JSON.stringify({error:e?.toString()})
-        }
-    }
-
-    static objects = async (query: ObjectsQuery) : Promise<ObjectsAnswer> => {
+    export const objects = async (query: ObjectsQuery) : Promise<ObjectsAnswer> => {
         if (query.objects.length > 0) {
             const res = await Protocol.Client().multiGetObjects({ids:query.objects, 
                 options:{showContent:query.showContent, showType:query.showType, showOwner:query.showOwner}});
             console.log(JSON.stringify(res))
-            return {objects:res.map(v=>this.data2object(v?.data))}                
+            return {objects:res.map(v=>data2object(v?.data))}                
         } 
         return {objects:[]}
     }
+    export const entity = async (address:string) : Promise<ObjectEntity> => {
+        if (!IsValidAddress(address))  ERROR(Errors.IsValidAddress, 'entity.address')
+        const res = await Protocol.Client().getDynamicFieldObject({parentId:Protocol.Instance().EntityObject(), name:{type:'address', value:address}});
+        return data2object(res?.data) as ObjectEntity
+    }
 
-    static table = async (query:TableQuery) : Promise<TableAnswer> => {
+    export const table = async (query:TableQuery) : Promise<TableAnswer> => {
         const res = await Protocol.Client().getDynamicFields({parentId:query.parent, cursor:query.cursor, limit:query.limit});
         return {items:res?.data?.map(v=>{
-            return {object:v.objectId, type:v.type, version:v.version, name:{
-                type:v.name.type, value:v.name.value?.toString() ?? ''
+            return {object:v.objectId, type:v.type, version:v.version, key:{
+                type:v.name.type, value:v.name.value
             }} 
         }), nextCursor:res.nextCursor, hasNextPage:res.hasNextPage}
     }
     
-    static tableItem = async (query:TableItemQuery) : Promise<TableItemAnwser> => {
-        const res = await Protocol.Client().getDynamicFieldObject({parentId:query.parent, name:{type:query.name.type, value:query.name.value}});
-        return {object:res.data?.objectId ??'', version:res.data?.version, owner:res.data?.owner}
+    export const queryTableItem_DemandPresenter = async (demand_object:string | ObjectDemand, address:string) : Promise<ObjectBase> => {
+        return await tableItem(tableItemQuery_byAddress(demand_object, address))
+    }
+    export const queryTableItem_PermissionEntity = async (permission_object:string | ObjectDemand, address:string) : Promise<ObjectBase> => {
+        return await tableItem(tableItemQuery_byAddress(permission_object, address))
+    }
+    export const queryTableItem_ArbVote = async (arb_object:string | ObjectDemand, address:string) : Promise<ObjectBase> => {
+        return await tableItem(tableItemQuery_byAddress(arb_object, address))
+    }
+    export const tableItemQuery_MachineNode = async (machine_object:string | ObjectMachine, name:string) : Promise<ObjectBase> => {
+        return await tableItem(tableItemQuery_byString(machine_object, name))
+    }
+    export const tableItemQuery_ServiceSale = async (service_object:string | ObjectService, name:string) : Promise<ObjectBase> => {
+        return await tableItem(tableItemQuery_byString(service_object, name))
+    }
+    export const tableItemQuery_ProgressHistory = async (progress_object:string | ObjectProgress, index:BigInt) : Promise<ObjectBase> => {
+        return await tableItem(tableItemQuery_byU64(progress_object, index))
+    }
+    export const tableItemQuery_TreasuryHistory = async (treasury_object:string | ObjectTreasury, index:BigInt) : Promise<ObjectBase> => {
+        return await tableItem(tableItemQuery_byU64(treasury_object, index))
+    }
+    export const tableItemQuery_RepositoryData = async (repository_object:string | ObjectRepository, address:string, name:string) : Promise<ObjectBase> => {
+        if (typeof(repository_object) !== 'string') {
+            repository_object = repository_object.object;
+        }
+        return await tableItem({parent:repository_object, key:{type:Protocol.Instance().Package('wowok')+'::repository::DataKey', value:{id:address, key:name}}})
+    }
+    export const tableItemQuery_ResourceMark = async (resource_object:string | ObjectResouorce, name:string) : Promise<ObjectBase> => {
+        return await tableItem(tableItemQuery_byString(resource_object, name))
     }
 
-    private static data2object = (data?:any) : ObjectBase => {
+    function tableItemQuery_byAddress(parent:string | ObjectDemand | ObjectPermission | ObjectArb, address:string) : TableItemQuery {
+        if (typeof(parent) !== 'string') {
+            parent = parent.object;
+        }
+        return {parent:parent, key:{type:'address', value:address}};
+    }
+    function tableItemQuery_byString(parent:string | ObjectMachine | ObjectService | ObjectResouorce, name:string) : TableItemQuery  {
+        if (typeof(parent) !== 'string') {
+            parent = parent.object;
+        }
+        return {parent:parent, key:{type:'0x1::string::String', value:name}};
+    }
+    function tableItemQuery_byU64 (parent:string | ObjectProgress | ObjectTreasury, index:BigInt) : TableItemQuery {
+        if (typeof(parent) !== 'string') {
+            parent = parent.object;
+        }
+        return {parent:parent, key:{type:'u64', value:index}};
+    }
+    const tableItem = async (query:TableItemQuery) : Promise<ObjectBase> => {
+        const res = await Protocol.Client().getDynamicFieldObject({parentId:query.parent, name:{type:query.key.type, value:query.key.value}});
+        return data2object(res?.data)
+    }
+
+    function data2object(data?:any) : ObjectBase {
         const content = (data?.content as any)?.fields;
         const id = data?.objectId ?? (content?.id?.id ?? undefined);
         const type_raw:string | undefined = data?.type ?? (data?.content?.type ?? undefined);
@@ -456,7 +524,15 @@ export class OBJECT_QUERY {
                     identifier:content?.constants?.map((v:any) => {
                         return {id:v?.fields?.identifier, bWitness:v?.fields?.bWitness, value:Uint8Array.from(v?.fields?.value)}
                     })
-                } as ObjectGuard;   
+                } as ObjectGuard;  
+            case 'Resource' :
+                return {
+                    object:id, type:type, type_raw:type_raw, owner:owner, version:version,
+                    marks_count:parseInt(content?.marks?.fields?.size),
+                    tags:content?.tags?.map((v:any) => {
+                        return {object:v?.fields?.object, nick_name:v?.fields?.nick, tags:v?.fields?.tags}
+                    })
+                } as ObjectResouorce;   
             }
         } 
         
@@ -468,48 +544,62 @@ export class OBJECT_QUERY {
                     return {
                         object:id, type:'DemandTable_Presenter', type_raw:type_raw, owner:owner, version:version,
                         service:content?.name, presenter:content?.value?.fields?.who, recommendation:content?.value?.fields?.tips
-                    } as DemandTable_Presenter;
+                    } as TableItem_DemandPresenter;
                 } else if (end.includes('::machine::NodePair>>>')) {
                     return {
                         object:id, type:'MachineTable_Node', type_raw:type_raw, owner:owner, version:version,
                         node:{name:content?.name, pairs:Machine.rpc_de_pair(content?.value)}
-                    } as MachineTable_Node;
+                    } as TableItem_MachineNode;
                 } else if (end.includes('::progress::History>')) {
                     return {
                         object:id, type:'ProgressTable_History', type_raw:type_raw, owner:owner, version:version,
                         history:Progress.rpc_de_history(content)
-                    } as ProgressTable_History;
+                    } as TableItem_ProgressHistory;
                 } else if (end.includes('::service::Sale>')) {
                     return {
                         object:id, type:'ServiceTable_Sale', type_raw:type_raw, owner:owner, version:version,
                         item:{item:content?.name, stock:content?.value?.fields?.stock, price:content?.value?.fields?.price,
                             endpoint:content?.value?.fields?.endpoint
                         }
-                    } as ServiceTable_Sale;
+                    } as TableItem_ServiceSale;
                 } else if (end.includes('::treasury::Record>')) {
                     return {
                         object:id, type:'TreasuryTable_History', type_raw:type_raw, owner:owner, version:version,
                         id: content?.name, payment:content?.value?.fields?.payment, signer:content?.value?.fields?.signer,
                         operation: content?.value?.fields?.op, amount: content?.value?.fields?.amount, time:content?.value?.fields?.time
-                    } as TreasuryTable_History;
+                    } as TableItem_TreasuryHistory;
                 } else if (end.includes('::arb::Voted>')) {
                     return {
                         object:id, type:'ArbTable_Vote', type_raw:type_raw, owner:owner, version:version,
                         singer:content?.name, vote:content?.value?.fields?.agrees, time: content?.value?.fields?.time,
                         weight:content?.value?.fields?.weight
-                    } as ArbTable_Vote;
+                    } as TableItem_ArbVote;
                 } else if (end.includes('::permission::Perm>>')) {
                     return {
-                        object:id, type:'ArbTable_Vote', type_raw:type_raw, owner:owner, version:version,
+                        object:id, type:'TableItem_PermissionEntity', type_raw:type_raw, owner:owner, version:version,
                         entity:content?.name, permission:content?.value?.map((v:any) => {
                             return {id:v?.fields.index, guard:v?.fields.guard}
                         })
-                    } as PermissionTable_Entity;
+                    } as TableItem_PermissionEntity;
                 } else if (end.includes('::repository::DataKey')) {
                     return {
-                        object:id, type:'ArbTable_Vote', type_raw:type_raw, owner:owner, version:version,
+                        object:id, type:'TableItem_RepositoryData', type_raw:type_raw, owner:owner, version:version,
                         address:content?.name?.fields?.id, key:content?.name?.fields?.key, data:Uint8Array.from(content?.value)
-                    } as RepositoryTable_Data;
+                    } as TableItem_RepositoryData;
+                } else if (end.includes('::entity::Ent>')) {
+                    const info = Bcs.getInstance().de_entInfo(Uint8Array.from(content?.value?.fields?.avatar));
+                    return {
+                        object:id, type:'Entity', type_raw:type_raw, owner:owner, version:version,
+                        address:content?.name, like:content?.value?.fields?.like, dislike:content?.value?.fields?.dislike, 
+                        resource_object: content?.value?.fields?.resource, lastActive_digest: data?.previousTransaction,
+                        homepage:info?.homepage, name:info?.name, avatar:info?.avatar, x:info?.twitter, discord:info?.discord, 
+                        description:info?.description
+                    } as ObjectEntity;
+                } else if (end.includes('::resource::Addresses>')) {
+                    return {
+                        object:id, type:'Entity', type_raw:type_raw, owner:owner, version:version,
+                        mark_name:content?.name, objects:content?.value?.fields?.addresses
+                    } as TableItem_ResourceMark;
                 }
             }
         }

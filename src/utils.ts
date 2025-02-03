@@ -323,7 +323,7 @@ export class Bcs {
         return this.bcs.de('EntStruct', Uint8Array.from(struct_vec));
     }    
     de_entInfo(data:Uint8Array | undefined) : any {
-        if (!data || data.length === 0) return ''
+        if (!data || data.length === 0) return undefined
         let r = this.bcs.de('PersonalInfo', data);
         r.name = new TextDecoder().decode(Uint8Array.from(r.name));
         r.description = new TextDecoder().decode(Uint8Array.from(r.description));

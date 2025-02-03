@@ -1,10 +1,10 @@
 /**
- * Provide a JSON call interface for AI
+ * Provide a call interface for AI
  * 
  */
 
 import { Transaction as TransactionBlock,  } from '@mysten/sui/transactions';
-import { Protocol, } from '../protocol';
+import { DemandObject, PermissionObject, Protocol, ServiceObject, } from '../protocol';
 import { Bcs, IsValidAddress, IsValidArgType, IsValidU64, parseObjectType, IsValidU8 } from '../utils'
 import { Errors, ERROR}  from '../exception'
 import { MultiGetObjectsParams } from '@mysten/sui/client';
@@ -13,22 +13,27 @@ import { BCS } from '@mysten/bcs';
 import { PermissionAnswerItem, PermissionIndexType } from '../permission';
 import { Entity } from '../entity';
 import { Repository_Policy_Mode } from '../repository';
+import { LargeNumberLike } from 'crypto';
+
+export type FUNC_TYPE = string | number | boolean | 'DemandObject' | 'PermissionObject';
 export interface AgentFuncParameter {
-    type: 'string' | 'number' | 'boolean' | 'struct' ;
     name: string;
-    description: string;
+    description?: string;
     required: boolean;
+    type: FUNC_TYPE;
+    value?: FUNC_TYPE;
 }
 
 export interface AgentFuncReturn {
-    type: 'string' | 'number' | 'boolean' | 'struct' ;
+    type: DemandObject ;
     name: string;
     description: string;
 }
+
 export interface AgentFunc {
     name: string;
-    description: string;
-    module: string;
+    description?: string;
+    module?: string;
     permissionIndex: number;
     parameter: AgentFuncParameter[];
     return?: AgentFuncReturn;
@@ -36,12 +41,12 @@ export interface AgentFunc {
 
 export const AGENT_FUNC: AgentFunc[] = [
     {permissionIndex:PermissionIndex.repository, name:'Repository', description:'Launch new Repository', module: 'repository', parameter:[
-        {type:'string', name:'permission', description:'permission', required:true},
-        {type:'number', name:'mode', description:'mode', required:false}, 
+        {type: 'PermissionObject' , name:'permission', description:'Permission address or object', required:true},
+        {type: '"Relax mode" or  "Strict mode"', name:'mode', description:'Relax mode: Allows entry of data other than policy. Used for informal, non-consensus situations.\nStrict mode: Prohibits entry of data beyond policy. Used in formal, fully consensus contexts.', required:false}, 
     ]},
     {permissionIndex:PermissionIndex.repository_description, name:'Description', description:'Set Repository description', module: 'repository', parameter:[
-        {type:'string', name:'object', description:'object', required:true},
-        {type:'string', name:'description', description:'description', required:true},
+        {type:'DemandObject', name:'demand', description:'Demand address or object', required:true},
+        {type:'string', name:'description', description:'Demand description', required:true},
     ]},
     {permissionIndex:PermissionIndex.repository_policy_mode, name:'Policy mode', description:'Set Repository policy mode', module: 'repository', parameter:[]},
     {permissionIndex:PermissionIndex.repository_policies, name:'Policy', description:'Add/Remove/Edit Repository policy', module: 'repository', parameter:[]},
@@ -115,6 +120,6 @@ export const AGENT_FUNC: AgentFunc[] = [
     {permissionIndex:PermissionIndex.arbitration_withdraw, name: 'Withdraw', description:'Withdraw the arbitration fee', module: 'arbitration', parameter:[]},
     {permissionIndex:PermissionIndex.arbitration_treasury, name: 'Withdraw', description:'Set Treasury that fees was collected at the time of withdrawal', module: 'arbitration', parameter:[]},
 ]
-export class AgentCall {
+export namespace Call {
     
 }
