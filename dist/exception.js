@@ -1,4 +1,7 @@
-export var Errors;
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ERROR = exports.Errors = void 0;
+var Errors;
 (function (Errors) {
     Errors["IsValidDesription"] = "invalid description";
     Errors["IsValidName"] = "invalid name";
@@ -24,8 +27,9 @@ export var Errors;
     Errors["IsValidUserDefinedIndex"] = "invalid user defined permission index";
     Errors["bcsTypeInvalid"] = "invalid bcs type";
     Errors["IsValidServiceItemName"] = "invalid service item name";
-})(Errors || (Errors = {}));
-export const ERROR = (error, info) => {
-    const e = error.toString() + (info ? (' ' + info) : '');
+})(Errors || (exports.Errors = Errors = {}));
+var ERROR = function (error, info) {
+    var e = error.toString() + (info ? (' ' + info) : '');
     throw e;
 };
+exports.ERROR = ERROR;

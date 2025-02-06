@@ -1,8 +1,11 @@
-import { Protocol } from './protocol';
-import { array_unique, IsValidAddress, IsValidArray, IsValidDesription, Bcs, IsValidName, IsValidU64 } from './utils';
-import { ERROR, Errors } from './exception';
-import { BCS } from '@mysten/bcs';
-export var PermissionIndex;
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Permission = exports.PermissionInfo = exports.PermissionIndex = void 0;
+var protocol_1 = require("./protocol");
+var utils_1 = require("./utils");
+var exception_1 = require("./exception");
+var bcs_1 = require("@mysten/bcs");
+var PermissionIndex;
 (function (PermissionIndex) {
     PermissionIndex[PermissionIndex["repository"] = 100] = "repository";
     PermissionIndex[PermissionIndex["repository_description"] = 101] = "repository_description";
@@ -96,8 +99,8 @@ export var PermissionIndex;
     PermissionIndex[PermissionIndex["arbitration_withdraw"] = 809] = "arbitration_withdraw";
     PermissionIndex[PermissionIndex["arbitration_treasury"] = 810] = "arbitration_treasury";
     PermissionIndex[PermissionIndex["user_defined_start"] = 1000] = "user_defined_start";
-})(PermissionIndex || (PermissionIndex = {}));
-export const PermissionInfo = [
+})(PermissionIndex || (exports.PermissionIndex = PermissionIndex = {}));
+exports.PermissionInfo = [
     { index: PermissionIndex.repository, name: 'Repository', description: 'Launch new Repository', module: 'repository' },
     { index: PermissionIndex.repository_description, name: 'Description', description: 'Set Repository description', module: 'repository' },
     { index: PermissionIndex.repository_policy_mode, name: 'Policy mode', description: 'Set Repository policy mode', module: 'repository' },
@@ -189,301 +192,303 @@ export const PermissionInfo = [
     { index: PermissionIndex.arbitration_withdraw, name: 'Withdraw', description: 'Withdraw the arbitration fee', module: 'arbitration' },
     { index: PermissionIndex.arbitration_treasury, name: 'Withdraw', description: 'Set Treasury that fees was collected at the time of withdrawal', module: 'arbitration' },
 ];
-export class Permission {
-    txb;
-    object;
-    get_object() { return this.object; }
-    constructor(txb) {
+var Permission = /** @class */ (function () {
+    function Permission(txb) {
         this.txb = txb;
         this.object = '';
     }
-    static From(txb, object) {
-        let p = new Permission(txb);
-        p.object = Protocol.TXB_OBJECT(txb, object);
+    Permission.prototype.get_object = function () { return this.object; };
+    Permission.From = function (txb, object) {
+        var p = new Permission(txb);
+        p.object = protocol_1.Protocol.TXB_OBJECT(txb, object);
         return p;
-    }
-    static New(txb, description) {
-        if (!IsValidDesription(description)) {
-            ERROR(Errors.IsValidDesription);
+    };
+    Permission.New = function (txb, description) {
+        if (!(0, utils_1.IsValidDesription)(description)) {
+            (0, exception_1.ERROR)(exception_1.Errors.IsValidDesription);
         }
-        let p = new Permission(txb);
+        var p = new Permission(txb);
         p.object = txb.moveCall({
-            target: Protocol.Instance().PermissionFn('new'),
+            target: protocol_1.Protocol.Instance().PermissionFn('new'),
             arguments: [txb.pure.string(description)]
         });
         return p;
-    }
-    launch() {
+    };
+    Permission.prototype.launch = function () {
         return this.txb.moveCall({
-            target: Protocol.Instance().PermissionFn('create'),
-            arguments: [Protocol.TXB_OBJECT(this.txb, this.object)]
+            target: protocol_1.Protocol.Instance().PermissionFn('create'),
+            arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object)]
         });
-    }
-    add_userdefine(index, name) {
+    };
+    Permission.prototype.add_userdefine = function (index, name) {
         if (!Permission.IsValidUserDefinedIndex(index)) {
-            ERROR(Errors.IsValidUserDefinedIndex, 'add_userdefine');
+            (0, exception_1.ERROR)(exception_1.Errors.IsValidUserDefinedIndex, 'add_userdefine');
         }
-        if (!IsValidName(name)) {
-            ERROR(Errors.IsValidName, 'add_userdefine');
+        if (!(0, utils_1.IsValidName)(name)) {
+            (0, exception_1.ERROR)(exception_1.Errors.IsValidName, 'add_userdefine');
         }
         this.txb.moveCall({
-            target: Protocol.Instance().PermissionFn('user_define_add'),
-            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u64(index), this.txb.pure.string(name)]
+            target: protocol_1.Protocol.Instance().PermissionFn('user_define_add'),
+            arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u64(index), this.txb.pure.string(name)]
         });
-    }
-    remove_userdefine(index) {
+    };
+    Permission.prototype.remove_userdefine = function (index) {
         if (!Permission.IsValidUserDefinedIndex(index)) {
-            ERROR(Errors.IsValidUserDefinedIndex, 'add_userdefine');
+            (0, exception_1.ERROR)(exception_1.Errors.IsValidUserDefinedIndex, 'add_userdefine');
         }
         this.txb.moveCall({
-            target: Protocol.Instance().PermissionFn('user_define_remove'),
-            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u64(index)]
+            target: protocol_1.Protocol.Instance().PermissionFn('user_define_remove'),
+            arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u64(index)]
         });
-    }
-    change_entity(old_entity, new_entity) {
-        if (!IsValidAddress(old_entity) || !IsValidAddress(new_entity)) {
-            ERROR(Errors.IsValidAddress, 'change_entity');
+    };
+    Permission.prototype.change_entity = function (old_entity, new_entity) {
+        if (!(0, utils_1.IsValidAddress)(old_entity) || !(0, utils_1.IsValidAddress)(new_entity)) {
+            (0, exception_1.ERROR)(exception_1.Errors.IsValidAddress, 'change_entity');
         }
         this.txb.moveCall({
-            target: Protocol.Instance().PermissionFn('change_entity'),
-            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(old_entity),
+            target: protocol_1.Protocol.Instance().PermissionFn('change_entity'),
+            arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(old_entity),
                 this.txb.pure.address(new_entity)]
         });
-    }
-    add_entity2(entities, index) {
+    };
+    Permission.prototype.add_entity2 = function (entities, index) {
         if (entities.length === 0)
             return;
-        if (!IsValidArray(entities, IsValidAddress)) {
-            ERROR(Errors.IsValidArray, 'add_entity2');
+        if (!(0, utils_1.IsValidArray)(entities, utils_1.IsValidAddress)) {
+            (0, exception_1.ERROR)(exception_1.Errors.IsValidArray, 'add_entity2');
         }
         if (index !== undefined) {
             this.txb.moveCall({
-                target: Protocol.Instance().PermissionFn('add_with_index'),
-                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u64(index),
-                    this.txb.pure.vector('address', array_unique(entities))]
+                target: protocol_1.Protocol.Instance().PermissionFn('add_with_index'),
+                arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u64(index),
+                    this.txb.pure.vector('address', (0, utils_1.array_unique)(entities))]
             });
         }
         else {
             this.txb.moveCall({
-                target: Protocol.Instance().PermissionFn('add'),
-                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(entities))]
+                target: protocol_1.Protocol.Instance().PermissionFn('add'),
+                arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', (0, utils_1.array_unique)(entities))]
             });
         }
-    }
-    add_entity(entities) {
+    };
+    Permission.prototype.add_entity = function (entities) {
+        var _this = this;
         if (entities.length === 0)
             return;
-        let bValid = true;
-        let e = entities.forEach((v) => {
-            if (!IsValidAddress(v.entity_address))
+        var bValid = true;
+        var e = entities.forEach(function (v) {
+            if (!(0, utils_1.IsValidAddress)(v.entity_address))
                 bValid = false;
-            v.permissions.forEach((p) => {
+            v.permissions.forEach(function (p) {
                 if (!Permission.IsValidPermissionIndex(p.index))
                     bValid = false;
-                if (p?.guard && !Protocol.IsValidObjects([p.guard]))
+                if ((p === null || p === void 0 ? void 0 : p.guard) && !protocol_1.Protocol.IsValidObjects([p.guard]))
                     bValid = false;
             });
         });
         if (!bValid) {
-            ERROR(Errors.InvalidParam, 'entities');
+            (0, exception_1.ERROR)(exception_1.Errors.InvalidParam, 'entities');
         }
-        let guards = [];
-        for (let i = 0; i < entities.length; i++) {
-            let entity = entities[i];
-            let indexes = [];
-            for (let j = 0; j < entity.permissions.length; j++) {
-                let index = entity.permissions[j];
+        var guards = [];
+        for (var i = 0; i < entities.length; i++) {
+            var entity = entities[i];
+            var indexes = [];
+            for (var j = 0; j < entity.permissions.length; j++) {
+                var index = entity.permissions[j];
                 if (!Permission.IsValidPermissionIndex(index.index)) {
                     continue;
                 }
                 if (!indexes.includes(index.index)) {
                     indexes.push(index.index);
-                    if (index?.guard) {
+                    if (index === null || index === void 0 ? void 0 : index.guard) {
                         guards.push({ entity_address: entity.entity_address, index: index.index, guard: index.guard });
                     }
                 }
             }
             if (indexes.length > 0) {
                 this.txb.moveCall({
-                    target: Protocol.Instance().PermissionFn('add_batch'),
-                    arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity.entity_address),
+                    target: protocol_1.Protocol.Instance().PermissionFn('add_batch'),
+                    arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity.entity_address),
                         this.txb.pure.vector('u64', indexes)]
                 });
             }
         }
         // set guards
-        guards.forEach(({ entity_address, index, guard }) => {
-            this.txb.moveCall({
-                target: Protocol.Instance().PermissionFn('guard_set'),
-                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity_address),
-                    this.txb.pure.u64(index), Protocol.TXB_OBJECT(this.txb, guard)]
+        guards.forEach(function (_a) {
+            var entity_address = _a.entity_address, index = _a.index, guard = _a.guard;
+            _this.txb.moveCall({
+                target: protocol_1.Protocol.Instance().PermissionFn('guard_set'),
+                arguments: [protocol_1.Protocol.TXB_OBJECT(_this.txb, _this.object), _this.txb.pure.address(entity_address),
+                    _this.txb.pure.u64(index), protocol_1.Protocol.TXB_OBJECT(_this.txb, guard)]
             });
         });
-    }
+    };
     // guard: undefine to set none
-    set_guard(entity_address, index, guard) {
-        if (!IsValidAddress(entity_address)) {
-            ERROR(Errors.IsValidAddress, 'entity_address');
+    Permission.prototype.set_guard = function (entity_address, index, guard) {
+        if (!(0, utils_1.IsValidAddress)(entity_address)) {
+            (0, exception_1.ERROR)(exception_1.Errors.IsValidAddress, 'entity_address');
         }
         if (!Permission.IsValidPermissionIndex(index) && !Permission.IsValidUserDefinedIndex(index)) {
-            ERROR(Errors.IsValidPermissionIndex, 'index');
+            (0, exception_1.ERROR)(exception_1.Errors.IsValidPermissionIndex, 'index');
         }
         if (guard) {
             this.txb.moveCall({
-                target: Protocol.Instance().PermissionFn('guard_set'),
-                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity_address),
-                    this.txb.pure.u64(index), Protocol.TXB_OBJECT(this.txb, guard)]
+                target: protocol_1.Protocol.Instance().PermissionFn('guard_set'),
+                arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity_address),
+                    this.txb.pure.u64(index), protocol_1.Protocol.TXB_OBJECT(this.txb, guard)]
             });
         }
         else {
             this.txb.moveCall({
-                target: Protocol.Instance().PermissionFn('guard_none'),
-                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity_address),
+                target: protocol_1.Protocol.Instance().PermissionFn('guard_none'),
+                arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity_address),
                     this.txb.pure.u64(index)]
             });
         }
         ;
-    }
-    remove_index(entity_address, index) {
-        if (!IsValidAddress(entity_address)) {
-            ERROR(Errors.IsValidAddress);
+    };
+    Permission.prototype.remove_index = function (entity_address, index) {
+        if (!(0, utils_1.IsValidAddress)(entity_address)) {
+            (0, exception_1.ERROR)(exception_1.Errors.IsValidAddress);
         }
         if (index.length === 0)
             return;
-        if (!(IsValidArray(index, Permission.IsValidPermissionIndex))) {
-            ERROR(Errors.InvalidParam, 'index');
+        if (!((0, utils_1.IsValidArray)(index, Permission.IsValidPermissionIndex))) {
+            (0, exception_1.ERROR)(exception_1.Errors.InvalidParam, 'index');
         }
         this.txb.moveCall({
-            target: Protocol.Instance().PermissionFn('remove_index'),
-            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity_address),
-                this.txb.pure.vector('u64', array_unique(index))]
+            target: protocol_1.Protocol.Instance().PermissionFn('remove_index'),
+            arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity_address),
+                this.txb.pure.vector('u64', (0, utils_1.array_unique)(index))]
         });
-    }
-    remove_entity(entity_address) {
+    };
+    Permission.prototype.remove_entity = function (entity_address) {
         if (entity_address.length === 0)
             return;
-        if (!IsValidArray(entity_address, IsValidAddress)) {
-            ERROR(Errors.IsValidArray);
+        if (!(0, utils_1.IsValidArray)(entity_address, utils_1.IsValidAddress)) {
+            (0, exception_1.ERROR)(exception_1.Errors.IsValidArray);
         }
         this.txb.moveCall({
-            target: Protocol.Instance().PermissionFn('remove'),
-            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(entity_address))]
+            target: protocol_1.Protocol.Instance().PermissionFn('remove'),
+            arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', (0, utils_1.array_unique)(entity_address))]
         });
-    }
-    set_description(description) {
-        if (!IsValidDesription(description)) {
-            ERROR(Errors.IsValidDesription);
+    };
+    Permission.prototype.set_description = function (description) {
+        if (!(0, utils_1.IsValidDesription)(description)) {
+            (0, exception_1.ERROR)(exception_1.Errors.IsValidDesription);
         }
         this.txb.moveCall({
-            target: Protocol.Instance().PermissionFn('description_set'),
-            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(description)]
+            target: protocol_1.Protocol.Instance().PermissionFn('description_set'),
+            arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(description)]
         });
-    }
-    add_admin(admin) {
+    };
+    Permission.prototype.add_admin = function (admin) {
         if (admin.length === 0)
             return;
-        if (!IsValidArray(admin, IsValidAddress)) {
-            ERROR(Errors.IsValidArray);
+        if (!(0, utils_1.IsValidArray)(admin, utils_1.IsValidAddress)) {
+            (0, exception_1.ERROR)(exception_1.Errors.IsValidArray);
         }
         this.txb.moveCall({
-            target: Protocol.Instance().PermissionFn('admin_add_batch'),
-            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(admin))]
+            target: protocol_1.Protocol.Instance().PermissionFn('admin_add_batch'),
+            arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', (0, utils_1.array_unique)(admin))]
         });
-    }
-    remove_admin(admin, removeall) {
+    };
+    Permission.prototype.remove_admin = function (admin, removeall) {
         if (!removeall && admin.length === 0)
             return;
-        if (!IsValidArray(admin, IsValidAddress)) {
-            ERROR(Errors.IsValidArray, 'admin');
+        if (!(0, utils_1.IsValidArray)(admin, utils_1.IsValidAddress)) {
+            (0, exception_1.ERROR)(exception_1.Errors.IsValidArray, 'admin');
         }
         if (removeall) {
             this.txb.moveCall({
-                target: Protocol.Instance().PermissionFn('admins_clear'),
-                arguments: [Protocol.TXB_OBJECT(this.txb, this.object)]
+                target: protocol_1.Protocol.Instance().PermissionFn('admins_clear'),
+                arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object)]
             });
         }
         else if (admin) {
             this.txb.moveCall({
-                target: Protocol.Instance().PermissionFn('admin_remove_batch'),
-                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(admin))]
+                target: protocol_1.Protocol.Instance().PermissionFn('admin_remove_batch'),
+                arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', (0, utils_1.array_unique)(admin))]
             });
         }
-    }
-    change_owner(new_owner) {
-        if (!IsValidAddress(new_owner)) {
-            ERROR(Errors.IsValidAddress);
+    };
+    Permission.prototype.change_owner = function (new_owner) {
+        if (!(0, utils_1.IsValidAddress)(new_owner)) {
+            (0, exception_1.ERROR)(exception_1.Errors.IsValidAddress);
         }
         this.txb.moveCall({
-            target: Protocol.Instance().PermissionFn('builder_set'),
-            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(new_owner)]
+            target: protocol_1.Protocol.Instance().PermissionFn('builder_set'),
+            arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(new_owner)]
         });
-    }
+    };
     // query all permissions for address
-    query_permissions_all(address_queried) {
-        if (!IsValidAddress(address_queried)) {
-            ERROR(Errors.InvalidParam, 'query_permissions');
+    Permission.prototype.query_permissions_all = function (address_queried) {
+        if (!(0, utils_1.IsValidAddress)(address_queried)) {
+            (0, exception_1.ERROR)(exception_1.Errors.InvalidParam, 'query_permissions');
         }
         this.txb.moveCall({
-            target: Protocol.Instance().PermissionFn('query_permissions_all'),
-            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address_queried)]
+            target: protocol_1.Protocol.Instance().PermissionFn('query_permissions_all'),
+            arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address_queried)]
         });
-    }
-    QueryPermissions(permission, address_queried, onPermissionAnswer, sender) {
+    };
+    Permission.prototype.QueryPermissions = function (permission, address_queried, onPermissionAnswer, sender) {
         //@ be the same txb
         this.query_permissions_all(address_queried);
-        Protocol.Client().devInspectTransactionBlock({ sender: sender ?? address_queried, transactionBlock: this.txb }).then((res) => {
+        protocol_1.Protocol.Client().devInspectTransactionBlock({ sender: sender !== null && sender !== void 0 ? sender : address_queried, transactionBlock: this.txb }).then(function (res) {
             if (res.results && res.results[0].returnValues && res.results[0].returnValues.length !== 3) {
                 onPermissionAnswer({ who: address_queried, object: permission });
                 return;
             }
-            const perm = Bcs.getInstance().de(BCS.U8, Uint8Array.from(res.results[0].returnValues[0][0]));
+            var perm = utils_1.Bcs.getInstance().de(bcs_1.BCS.U8, Uint8Array.from(res.results[0].returnValues[0][0]));
             if (perm === Permission.PERMISSION_ADMIN || perm === Permission.PERMISSION_OWNER_AND_ADMIN) {
                 onPermissionAnswer({ who: address_queried, admin: true, owner: perm % 2 === 1, items: [], object: permission });
             }
             else {
-                const perms = Bcs.getInstance().de('vector<u64>', Uint8Array.from(res.results[0].returnValues[1][0]));
-                const guards = Bcs.getInstance().de_guards(Uint8Array.from(res.results[0].returnValues[2][0]));
-                const items = [];
-                for (let i = 0; i < perms.length; ++i) {
+                var perms = utils_1.Bcs.getInstance().de('vector<u64>', Uint8Array.from(res.results[0].returnValues[1][0]));
+                var guards = utils_1.Bcs.getInstance().de_guards(Uint8Array.from(res.results[0].returnValues[2][0]));
+                var items = [];
+                for (var i = 0; i < perms.length; ++i) {
                     items.push({ query: perms[i], permission: true, guard: guards[i] ? ('0x' + guards[i]) : undefined });
                 }
                 onPermissionAnswer({ who: address_queried, admin: false, owner: perm % 2 === 1, items: items, object: permission });
             }
-        }).catch((e) => {
+        }).catch(function (e) {
             console.log(e);
             onPermissionAnswer({ who: address_queried, object: permission });
         });
-    }
-    static HasPermission(answer, index, bStrict = false) {
+    };
+    Permission.HasPermission = function (answer, index, bStrict) {
+        var _a;
+        if (bStrict === void 0) { bStrict = false; }
         if (answer) {
             if (answer.admin)
                 return { has: true, owner: answer.owner }; // admin
-            let i = answer.items?.find((v) => v.query == index); // index maybe string, so ==
+            var i = (_a = answer.items) === null || _a === void 0 ? void 0 : _a.find(function (v) { return v.query == index; }); // index maybe string, so ==
             if (i) {
                 return { has: i.permission, guard: i.guard, owner: answer.owner };
             }
             else {
-                return { has: false, guard: undefined, owner: answer?.owner };
+                return { has: false, guard: undefined, owner: answer === null || answer === void 0 ? void 0 : answer.owner };
             }
         }
         if (bStrict) {
             return { has: false, guard: undefined, owner: false };
         }
         return undefined; // basic: !== false ; otherwise: !
-    }
-    static MAX_ADMIN_COUNT = 64;
-    static MAX_ENTITY_COUNT = 2000;
-    static MAX_PERMISSION_INDEX_COUNT = 200;
-    static MAX_PERSONAL_PERMISSION_COUNT = 200;
-    static PERMISSION_NORMAL = 0;
-    static PERMISSION_OWNER = 1;
-    static PERMISSION_ADMIN = 2;
-    static PERMISSION_OWNER_AND_ADMIN = 3;
-    static BUSINESS_PERMISSIONS_START = PermissionIndex.user_defined_start;
-    static IsValidUserDefinedIndex = (index) => {
-        return index >= Permission.BUSINESS_PERMISSIONS_START && IsValidU64(index);
     };
-    static IsValidPermissionIndex = (index) => {
+    Permission.MAX_ADMIN_COUNT = 64;
+    Permission.MAX_ENTITY_COUNT = 2000;
+    Permission.MAX_PERMISSION_INDEX_COUNT = 200;
+    Permission.MAX_PERSONAL_PERMISSION_COUNT = 200;
+    Permission.PERMISSION_NORMAL = 0;
+    Permission.PERMISSION_OWNER = 1;
+    Permission.PERMISSION_ADMIN = 2;
+    Permission.PERMISSION_OWNER_AND_ADMIN = 3;
+    Permission.BUSINESS_PERMISSIONS_START = PermissionIndex.user_defined_start;
+    Permission.IsValidUserDefinedIndex = function (index) {
+        return index >= Permission.BUSINESS_PERMISSIONS_START && (0, utils_1.IsValidU64)(index);
+    };
+    Permission.IsValidPermissionIndex = function (index) {
         //console.log(index)
         if (Object.values(PermissionIndex).includes(index)) {
             return true;
@@ -491,4 +496,6 @@ export class Permission {
         //console.log(Object.keys(PermissionIndex))
         return Permission.IsValidUserDefinedIndex(index);
     };
-}
+    return Permission;
+}());
+exports.Permission = Permission;
