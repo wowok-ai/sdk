@@ -1,4 +1,3 @@
-import { BCS } from '@mysten/bcs';
 import { Protocol } from './protocol';
 import { IsValidAddress, IsValidName, IsValidArray, } from './utils';
 import { ERROR, Errors } from './exception';
@@ -8,62 +7,89 @@ export class Resource {
     static LikeName = "like";
     static DislikeName = "dislike";
     static FavorName = "favor";
+    static LaunchName = 'launch';
+    static OrderName = 'order';
     object;
-    protocol;
+    txb;
     get_object() { return this.object; }
-    constructor(protocol) {
-        this.protocol = protocol;
+    constructor(txb) {
+        this.txb = txb;
         this.object = '';
     }
-    static From(protocol, object) {
-        let r = new Resource(protocol);
-        r.object = Protocol.TXB_OBJECT(protocol.CurrentSession(), object);
+    static From(txb, object) {
+        let r = new Resource(txb);
+        r.object = Protocol.TXB_OBJECT(txb, object);
         return r;
     }
-    add(name, object) {
-        if (!IsValidName(name))
-            ERROR(Errors.IsValidName, 'add');
-        if (!object)
-            ERROR(Errors.InvalidParam, 'add');
-        if (!IsValidArray(object, IsValidAddress))
-            ERROR(Errors.IsValidArray, 'add');
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target: this.protocol.ResourceFn('add'),
-            arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(name, BCS.STRING), txb.pure(object, 'vector<address>')]
+    launch() {
+        if (!this.object)
+            ERROR(Errors.Fail, 'launch object Invalid');
+        this.txb.moveCall({
+            target: Protocol.Instance().ResourceFn('create'),
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object)]
         });
     }
+    add(name, object) {
+        var bString = true;
+        if (!IsValidName(name))
+            ERROR(Errors.IsValidName, 'add.name');
+        if (!IsValidArray(object, (item) => {
+            if (typeof (item) === 'string') {
+                return IsValidAddress(item);
+            }
+            else {
+                bString = false;
+            }
+            return true;
+        })) {
+            ERROR(Errors.IsValidArray, 'add.object');
+        }
+        if (bString) {
+            this.txb.moveCall({
+                target: Protocol.Instance().ResourceFn('add'),
+                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(name),
+                    this.txb.pure.vector('address', object)]
+            });
+        }
+        else {
+            this.txb.moveCall({
+                target: Protocol.Instance().ResourceFn('add'),
+                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(name),
+                    this.txb.makeMoveVec({ elements: object, type: 'address' })]
+            });
+        }
+    }
     add2(object, name) {
-        if (!IsValidAddress(object))
+        if (typeof (object) === 'string' && !IsValidAddress(object))
             ERROR(Errors.IsValidAddress, 'add2');
         if (!IsValidArray(name, IsValidName))
             ERROR(Errors.IsValidArray, 'add2');
         if (!name)
             return;
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target: this.protocol.ResourceFn('add2'),
-            arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(object, BCS.ADDRESS), txb.pure(name, 'vector<string>')]
+        this.txb.moveCall({
+            target: Protocol.Instance().ResourceFn('add2'),
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), typeof (object) === 'string' ? this.txb.pure.address(object) : object,
+                this.txb.pure.vector('string', name)]
         });
     }
     remove(name, object, removeall) {
         if (!IsValidName(name))
             ERROR(Errors.IsValidName, 'Resource: remove');
-        if (!object && !removeall)
-            ERROR(Errors.InvalidParam, 'Resource: remove, BOTH param undefined');
-        let txb = this.protocol.CurrentSession();
+        if (object.length === 0 && !removeall)
+            return;
         if (removeall) {
-            txb.moveCall({
-                target: this.protocol.ResourceFn('remove_all'),
-                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(name, BCS.STRING)]
+            this.txb.moveCall({
+                target: Protocol.Instance().ResourceFn('remove_all'),
+                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(name)]
             });
         }
         else if (object) {
             if (!IsValidArray(object, IsValidAddress))
                 ERROR(Errors.IsValidArray, 'Resource: remove');
-            txb.moveCall({
-                target: this.protocol.ResourceFn('remove'),
-                arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(name, BCS.STRING), txb.pure(object, 'vector<address>')]
+            this.txb.moveCall({
+                target: Protocol.Instance().ResourceFn('remove'),
+                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(name),
+                    this.txb.pure.vector('address', object)]
             });
         }
     }
@@ -74,19 +100,19 @@ export class Resource {
             ERROR(Errors.InvalidParam, 'Resource: remove2');
         if (!name)
             return;
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target: this.protocol.ResourceFn('remove2'),
-            arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(object, BCS.ADDRESS), txb.pure(name, 'vector<string>')]
+        this.txb.moveCall({
+            target: Protocol.Instance().ResourceFn('remove2'),
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(object),
+                this.txb.pure.vector('string', name)]
         });
     }
     rename(old_name, new_name) {
         if (!IsValidName(new_name))
             ERROR(Errors.IsValidName, 'Resource: rename');
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target: this.protocol.ResourceFn('rename'),
-            arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(old_name, BCS.STRING), txb.pure(new_name, BCS.STRING)]
+        this.txb.moveCall({
+            target: Protocol.Instance().ResourceFn('rename'),
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(old_name),
+                this.txb.pure.string(new_name)]
         });
     }
     add_tags(object, nick, tags) {
@@ -100,21 +126,21 @@ export class Resource {
             ERROR(Errors.IsValidArray, 'add_tags');
         if (tags.length > Resource.MAX_TAGS)
             ERROR(Errors.InvalidParam, 'add_tags');
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target: this.protocol.ResourceFn('tags_add'),
-            arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(object, BCS.ADDRESS), txb.pure(nick, BCS.STRING),
-                txb.pure(tags, 'vector<string>')
+        const encode = new TextEncoder();
+        this.txb.moveCall({
+            target: Protocol.Instance().ResourceFn('tags_add'),
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(object),
+                this.txb.pure.string(nick),
+                this.txb.pure.vector('string', tags)
             ]
         });
     }
     remove_tags(object) {
         if (!IsValidAddress(object))
             ERROR(Errors.IsValidAddress, 'Resource: remove_tags');
-        let txb = this.protocol.CurrentSession();
-        txb.moveCall({
-            target: this.protocol.ResourceFn('tags_remove'),
-            arguments: [Protocol.TXB_OBJECT(txb, this.object), txb.pure(object, BCS.ADDRESS)]
+        this.txb.moveCall({
+            target: Protocol.Instance().ResourceFn('tags_remove'),
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(object)]
         });
     }
 }

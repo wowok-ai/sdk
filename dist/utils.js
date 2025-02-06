@@ -1,15 +1,15 @@
-import { BCS, getSuiMoveConfig } from '@mysten/bcs';
+import { BCS, getSuiMoveConfig, } from '@mysten/bcs';
 import { ERROR, Errors } from './exception';
-import { isValidSuiAddress } from '@mysten/sui.js/utils';
-import { RepositoryValueType, ValueType } from './protocol';
-export const MAX_U8 = BigInt('256');
+import { isValidSuiAddress } from '@mysten/sui/utils';
+import { RepositoryValueType, ValueType, Protocol } from './protocol';
+export const MAX_U8 = BigInt('255');
 export const MAX_U64 = BigInt('18446744073709551615');
 export const MAX_U128 = BigInt('340282366920938463463374607431768211455');
 export const MAX_U256 = BigInt('115792089237316195423570985008687907853269984665640564039457584007913129639935');
 export const OPTION_NONE = 0;
 export const ValueTypeConvert = (type) => {
     if (type === ValueType.TYPE_U8 || type === ValueType.TYPE_U64 || type === ValueType.TYPE_U128 ||
-        type === ValueType.TYPE_U256 || type === ValueType.TYPE_BOOL) {
+        type === ValueType.TYPE_U256) {
         return RepositoryValueType.PositiveNumber;
     }
     else if (type === ValueType.TYPE_VEC_U8 || type === ValueType.TYPE_VEC_U64 || type === ValueType.TYPE_VEC_U128 ||
@@ -28,42 +28,10 @@ export const ValueTypeConvert = (type) => {
     else if (type === ValueType.TYPE_VEC_STRING) {
         return RepositoryValueType.String_Vec;
     }
+    else if (type === ValueType.TYPE_BOOL) {
+        return RepositoryValueType.Bool;
+    }
     return -1;
-};
-export const ResolveRepositoryData = (dataType, data) => {
-    if (dataType === RepositoryValueType.String) {
-        return { type: ValueType.TYPE_STRING, data: Bcs.getInstance().ser(ValueType.TYPE_VEC_U8, new TextEncoder().encode(data.toString())) };
-    }
-    else if (dataType === RepositoryValueType.PositiveNumber) {
-        try {
-            const value = BigInt(data.toString());
-            var t = ValueType.TYPE_U8;
-            if (value <= MAX_U8) {
-            }
-            else if (value <= MAX_U64) {
-                t = ValueType.TYPE_U64;
-            }
-            else if (value <= MAX_U128) {
-                t = ValueType.TYPE_U128;
-            }
-            else if (value <= MAX_U256) {
-                t = ValueType.TYPE_U256;
-            }
-            else {
-                return undefined;
-            }
-        }
-        catch (e) {
-            console.log(e);
-            return undefined;
-        }
-        return { type: t, data: Bcs.getInstance().ser(t, data) };
-    }
-    else if (dataType === RepositoryValueType.Address) {
-        return { type: ValueType.TYPE_ADDRESS, data: Bcs.getInstance().ser(ValueType.TYPE_ADDRESS, data) };
-    }
-    //@ todo vector....
-    return undefined;
 };
 export const readOption = (arr, de) => {
     let o = arr.splice(0, 1);
@@ -147,8 +115,17 @@ export const concatenate = (resultConstructor, ...arrays) => {
     }
     return result;
 };
+export const parseObjectType = (chain_type, header = 'payment::Payment<') => {
+    if (chain_type) {
+        const i = chain_type.indexOf(header);
+        if (i > 0) {
+            let r = chain_type.slice(i + header.length, chain_type.length - 1);
+            return r;
+        }
+    }
+    return '';
+};
 export const array_equal = (arr1, arr2) => {
-    // Array.some(): 有一项不满足，返回false
     if (arr1.length !== arr2.length) {
         return false;
     }
@@ -187,6 +164,8 @@ export class Bcs {
         this.bcs.registerStructType('EntStruct', {
             'avatar': 'vector<u8>',
             'resource': "Option<address>",
+            "safer_name": "vector<string>",
+            "safer_value": "vector<string>",
             'like': BCS.U32,
             'dislike': BCS.U32,
         });
@@ -198,6 +177,12 @@ export class Bcs {
             'discord': BCS.STRING,
             'homepage': BCS.STRING,
         });
+        this.bcs.registerStructType('OptionAddress', {
+            'address': 'Option<address>',
+        });
+        this.bcs.registerStructType('Guards', {
+            'guards': 'vector<OptionAddress>',
+        });
     }
     static getInstance() {
         if (!Bcs._instance) {
@@ -206,7 +191,13 @@ export class Bcs {
         ;
         return Bcs._instance;
     }
+    ser_option_u32(data) {
+        return this.bcs.ser('Option<u32>', { 'some': data }).toBytes();
+    }
     ser(type, data) {
+        if (typeof (type) === 'string') {
+            return this.bcs.ser(type, data).toBytes();
+        }
         switch (type) {
             case ValueType.TYPE_BOOL:
                 return this.bcs.ser(BCS.BOOL, data).toBytes();
@@ -249,15 +240,19 @@ export class Bcs {
             case ValueType.TYPE_U256:
                 return this.bcs.ser(BCS.U256, data).toBytes();
             case ValueType.TYPE_STRING:
-                return this.bcs.ser(BCS.STRING, data).toBytes();
+                const d = new TextEncoder().encode(data);
+                return this.bcs.ser('vector<u8>', d).toBytes();
             case ValueType.TYPE_VEC_STRING:
-                return this.bcs.ser('vector<string>', data).toBytes();
+                return this.bcs.ser('vector<vector<u8>>', data.map((v) => { return new TextEncoder().encode(v); })).toBytes();
             default:
                 ERROR(Errors.bcsTypeInvalid, 'ser');
         }
         return new Uint8Array();
     }
     de(type, data) {
+        if (typeof (type) === 'string') {
+            return this.bcs.de(type, data);
+        }
         switch (type) {
             case ValueType.TYPE_BOOL:
                 return this.bcs.de(BCS.BOOL, data);
@@ -266,7 +261,6 @@ export class Bcs {
             case ValueType.TYPE_U64:
                 return this.bcs.de(BCS.U64, data);
             case ValueType.TYPE_U8:
-                console.log(data);
                 return this.bcs.de(BCS.U8, data);
             case ValueType.TYPE_VEC_U8:
                 return this.bcs.de('vector<u8>', data);
@@ -299,7 +293,8 @@ export class Bcs {
             case ValueType.TYPE_VEC_U256:
                 return this.bcs.de('vector<u256>', data);
             case ValueType.TYPE_STRING:
-                return this.bcs.de(BCS.STRING, data);
+                const r = new TextDecoder().decode(Uint8Array.from(this.bcs.de('vector<u8>', data)));
+                return r;
             case ValueType.TYPE_VEC_STRING:
                 return this.bcs.de('vector<string>', data);
             case ValueType.TYPE_U256:
@@ -309,36 +304,34 @@ export class Bcs {
         }
     }
     de_ent(data) {
+        if (!data || data.length < 2)
+            return '';
         const struct_vec = this.bcs.de('vector<u8>', data);
         return this.bcs.de('EntStruct', Uint8Array.from(struct_vec));
-        /*        const reader = new BcsReader(data);
-                const total_len = reader.readULEB();
-                console.log(avatar_len)
-                const avatar = reader.readBytes(avatar_len);
-                console.log(avatar)
-                const option_resource = reader.read8();
-                var resource = '';
-                if (option_resource != 0) {
-                    resource = reader.read256();
-                }
-                const like = reader.read32();
-                const dislike = reader.read32();
-                return {avatar:avatar, resource:resource, like:like, dislike:dislike}*/
     }
     de_entInfo(data) {
+        if (!data || data.length === 0)
+            return undefined;
         let r = this.bcs.de('PersonalInfo', data);
         r.name = new TextDecoder().decode(Uint8Array.from(r.name));
         r.description = new TextDecoder().decode(Uint8Array.from(r.description));
         return r;
     }
+    de_guards(data) {
+        if (!data || data.length < 1)
+            return '';
+        let r = this.bcs.de('Guards', data);
+        return r?.guards?.map((v) => {
+            if (v?.address?.none)
+                return undefined;
+            return v?.address?.some;
+        });
+    }
 }
 export function stringToUint8Array(str) {
-    var arr = [];
-    for (var i = 0, j = str.length; i < j; ++i) {
-        arr.push(str.charCodeAt(i));
-    }
-    var tmpUint8Array = new Uint8Array(arr);
-    return tmpUint8Array;
+    const encoder = new TextEncoder();
+    const view = encoder.encode(str);
+    return new Uint8Array(view.buffer);
 }
 export function numToUint8Array(num) {
     if (!num)
@@ -378,13 +371,43 @@ export const IsValidDesription = (description) => { return description?.length <
 export const IsValidName = (name) => { if (!name)
     return false; return name.length <= MAX_NAME_LENGTH && name.length != 0; };
 export const IsValidName_AllowEmpty = (name) => { return name.length <= MAX_NAME_LENGTH; };
-export const IsValidEndpoint = (endpoint) => { if (!endpoint)
-    return false; return endpoint.length <= MAX_ENDPOINT_LENGTH; };
+export const IsValidEndpoint = (endpoint) => {
+    return (endpoint.length > 0 && endpoint.length <= MAX_ENDPOINT_LENGTH && isValidHttpUrl(endpoint));
+};
 export const IsValidAddress = (addr) => {
     if (!addr || !isValidSuiAddress(addr)) {
         return false;
     }
     return true;
+};
+export const IsValidBigint = (value, max = MAX_U256, min) => {
+    if (value === '' || value === undefined)
+        return false;
+    try {
+        const v = BigInt(value);
+        if (v <= max) {
+            if (min !== undefined) {
+                return v >= min;
+            }
+            return true;
+        }
+    }
+    catch (e) {
+    }
+    ;
+    return false;
+};
+export const IsValidU8 = (value, min = 0) => {
+    return IsValidBigint(value, MAX_U8, BigInt(min));
+};
+export const IsValidU64 = (value, min = 0) => {
+    return IsValidBigint(value, MAX_U64, BigInt(min));
+};
+export const IsValidU128 = (value, min = 0) => {
+    return IsValidBigint(value, MAX_U128, BigInt(min));
+};
+export const IsValidU256 = (value, min = 0) => {
+    return IsValidBigint(value, MAX_U256, BigInt(min));
 };
 export const IsValidTokenType = (argType) => {
     if (!argType || argType.length === 0) {
@@ -409,12 +432,6 @@ export const IsValidArgType = (argType) => {
     }
     return true;
 };
-export const IsValidUint = (value) => {
-    if (typeof (value) === 'string') {
-        value = parseInt(value);
-    }
-    return Number.isSafeInteger(value) && value > 0;
-};
 export const IsValidInt = (value) => {
     if (typeof (value) === 'string') {
         value = parseInt(value);
@@ -422,13 +439,10 @@ export const IsValidInt = (value) => {
     return Number.isSafeInteger(value);
 };
 export const IsValidPercent = (value) => {
-    if (typeof (value) === 'string') {
-        value = parseInt(value);
-    }
-    return Number.isSafeInteger(value) && value > 0 && value <= 100;
+    return IsValidBigint(value, BigInt(100), BigInt(0));
 };
 export const IsValidArray = (arr, validFunc) => {
-    for (let i = 0; i < arr.length; ++i) {
+    for (let i = 0; i < arr.length; i++) {
         if (!validFunc(arr[i])) {
             return false;
         }
@@ -444,6 +458,21 @@ export const ResolveU64 = (value) => {
         return value;
     }
 };
+function removeTrailingZeros(numberString) {
+    const trimmedString = numberString.trim();
+    const decimalIndex = trimmedString.indexOf('.');
+    if (decimalIndex !== -1) {
+        let endIndex = trimmedString.length - 1;
+        while (trimmedString[endIndex] === '0') {
+            endIndex--;
+        }
+        if (trimmedString[endIndex] === '.') {
+            endIndex--; // 如果小数点后面全是零，也去掉小数点
+        }
+        return trimmedString.slice(0, endIndex + 1);
+    }
+    return trimmedString;
+}
 export const ResolveBalance = (balance, decimals) => {
     if (!balance)
         return '';
@@ -453,18 +482,17 @@ export const ResolveBalance = (balance, decimals) => {
         return balance;
     var pos = decimals - balance.length;
     if (pos === 0) {
-        return '.' + balance;
+        return removeTrailingZeros('.' + (balance));
     }
     else if (pos < 0) {
         let start = balance.slice(0, Math.abs(pos));
         let end = balance.slice(Math.abs(pos));
-        return start + '.' + end;
+        return removeTrailingZeros(start + '.' + end);
     }
     else {
-        return '.' + balance.padStart(pos, '0');
+        return removeTrailingZeros('.' + balance.padStart(decimals, '0'));
     }
 };
-export const OptionNone = (txb) => { return txb.pure([], BCS.U8); };
 export const ParseType = (type) => {
     if (type) {
         const COIN = '0x2::coin::Coin<';
@@ -483,6 +511,13 @@ export const ParseType = (type) => {
     }
     return { isCoin: false, coin: '', token: '' };
 };
+export function insertAtHead(array, value) {
+    const newLength = array.length + 1;
+    const newArray = new Uint8Array(newLength);
+    newArray.set([value], 0);
+    newArray.set(array, 1);
+    return newArray;
+}
 export function toFixed(x) {
     let res = '';
     if (Math.abs(x) < 1.0) {
@@ -512,3 +547,46 @@ export function isValidHttpUrl(url) {
     }
     return r.protocol === "http:" || r.protocol === "https:" || r.protocol === 'ipfs:';
 }
+export const query_object = (param) => {
+    if (param.id) {
+        if (param?.onBegin)
+            param.onBegin(param.id);
+        Protocol.Client().getObject({ id: param.id, options: { showContent: true, showType: true, showOwner: true } }).then((res) => {
+            if (res.error) {
+                if (param?.onObjectErr)
+                    param.onObjectErr(param.id, res.error);
+            }
+            else {
+                if (param?.onObjectRes)
+                    param.onObjectRes(param.id, res);
+            }
+        }).catch((err) => {
+            console.log(err);
+            if (param?.onObjectErr)
+                param.onObjectErr(param.id, err);
+        });
+        Protocol.Client().getDynamicFields({ parentId: param.id }).then((res) => {
+            if (param?.onDynamicRes)
+                param.onDynamicRes(param.id, res);
+            if (res.data.length > 0) {
+                Protocol.Client().multiGetObjects({ ids: res.data.map(v => v.objectId), options: { showContent: true } }).then((fields) => {
+                    if (param?.onFieldsRes)
+                        param.onFieldsRes(param.id, fields);
+                }).catch((err) => {
+                    console.log(err);
+                    if (param?.onFieldsErr)
+                        param.onFieldsErr(param.id, err);
+                });
+            }
+        }).catch((err) => {
+            console.log(err);
+            if (param?.onDynamicErr)
+                param.onDynamicErr(param.id, err);
+        });
+    }
+};
+export const FirstLetterUppercase = (str) => {
+    if (!str)
+        return '';
+    return str.substring(0, 1).toUpperCase() + str.substring(1);
+};

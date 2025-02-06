@@ -1,56 +1,67 @@
-import { SuiClient, SuiObjectResponse, SuiObjectDataOptions, SuiTransactionBlockResponseOptions, SuiTransactionBlockResponse } from '@mysten/sui.js/client';
-import { TransactionBlock, TransactionResult } from '@mysten/sui.js/transactions';
+import { SuiClient, SuiObjectResponse, SuiObjectDataOptions, SuiTransactionBlockResponseOptions, SuiTransactionBlockResponse } from '@mysten/sui/client';
+import { Transaction as TransactionBlock, TransactionResult, TransactionArgument } from '@mysten/sui/transactions';
 import { GuardConstant } from './guard';
 export declare enum MODULES {
     machine = "machine",
-    node = "node",
     progress = "progress",
-    community = "community",
     repository = "repository",
     permission = "permission",
     passport = "passport",
     guard = "guard",
-    vote = "vote",
     demand = "demand",
     order = "order",
-    reward = "reward",
     service = "service",
     resource = "resource",
     entity = "entity",
-    wowok = "wowok"
+    wowok = "wowok",
+    treasury = "treasury",
+    payment = "payment",
+    arbitration = "arbitration",
+    arb = "arb"
 }
 export type PermissionAddress = TransactionResult;
-export type PermissionObject = TransactionResult | string;
+export type PermissionObject = TransactionResult | string | TransactionArgument;
 export type RepositoryAddress = TransactionResult;
-export type RepositoryObject = TransactionResult | string;
+export type RepositoryObject = TransactionResult | string | TransactionArgument;
 export type GuardAddress = TransactionResult;
-export type GuardObject = TransactionResult | string;
+export type GuardObject = TransactionResult | string | TransactionArgument;
 export type MachineAddress = TransactionResult;
-export type MachineObject = TransactionResult | string;
+export type MachineObject = TransactionResult | string | TransactionArgument;
 export type PassportObject = TransactionResult;
 export type DemandAddress = TransactionResult;
-export type DemandObject = TransactionResult | string;
-export type ServiceObject = TransactionResult | string;
+export type DemandObject = TransactionResult | string | TransactionArgument;
+export type ServiceObject = TransactionResult | string | TransactionArgument;
 export type ServiceAddress = TransactionResult;
-export type ProgressObject = TransactionResult | string;
+export type ArbitrationObject = TransactionResult | string | TransactionArgument;
+export type ArbitrationAddress = TransactionResult;
+export type ArbObject = TransactionResult | string | TransactionArgument;
+export type ArbAddress = TransactionResult;
+export type ProgressObject = TransactionResult | string | TransactionArgument;
 export type ProgressAddress = TransactionResult;
-export type RewardObject = TransactionResult | string;
-export type RewardAddress = TransactionResult;
-export type OrderObject = TransactionResult | string;
+export type TreasuryObject = TransactionResult | string | TransactionArgument;
+export type TreasuryAddress = TransactionResult;
+export type OrderObject = TransactionResult | string | TransactionArgument;
 export type OrderAddress = TransactionResult;
-export type DiscountObject = TransactionResult | string;
-export type CoinObject = TransactionResult | string;
-export type VoteObject = TransactionResult | string;
-export type VoteAddress = TransactionResult;
-export type ResourceObject = TransactionResult | string;
+export type DiscountObject = TransactionResult | string | TransactionArgument;
+export type CoinObject = TransactionResult | string | TransactionArgument;
+export type ResourceObject = TransactionResult | string | TransactionArgument;
 export type ResourceAddress = TransactionResult;
-export type EntityObject = TransactionResult | string;
+export type EntityObject = TransactionResult | string | TransactionArgument;
 export type EntityAddress = TransactionResult;
-export type TxbObject = string | TransactionResult | GuardObject | RepositoryObject | PermissionObject | MachineObject | PassportObject | DemandObject | ServiceObject | RewardObject | OrderObject | DiscountObject | VoteObject | DemandObject | ResourceObject | EntityObject;
+export type PaymentObject = TransactionResult | string | TransactionArgument;
+export type PaymentAddress = TransactionResult;
+export type ReceivedObject = TransactionResult | string | TransactionArgument;
+export type CoinWrapperObject = TransactionResult;
+export type TxbObject = string | TransactionResult | TransactionArgument | GuardObject | RepositoryObject | PermissionObject | MachineObject | PassportObject | DemandObject | ServiceObject | OrderObject | DiscountObject | DemandObject | ResourceObject | EntityObject | ArbitrationObject | ArbObject | TreasuryObject;
 export type WowokObject = TransactionResult;
 export type FnCallType = `${string}::${string}::${string}`;
 export declare enum OperatorType {
     TYPE_QUERY = 1,
+    TYPE_NUMBER_ADD = 2,
+    TYPE_NUMBER_SUBTRACT = 3,
+    TYPE_NUMBER_MULTIPLY = 4,
+    TYPE_NUMBER_DEVIDE = 5,
+    TYPE_NUMBER_MOD = 6,
     TYPE_LOGIC_AS_U256_GREATER = 11,
     TYPE_LOGIC_AS_U256_GREATER_EQUAL = 12,
     TYPE_LOGIC_AS_U256_LESSER = 13,
@@ -63,11 +74,12 @@ export declare enum OperatorType {
     TYPE_LOGIC_AND = 20,
     TYPE_LOGIC_OR = 21
 }
+export declare const LogicsInfo: (string | OperatorType)[][];
 export declare enum ValueType {
     TYPE_BOOL = 100,
     TYPE_ADDRESS = 101,
-    TYPE_U64 = 102,
-    TYPE_U8 = 103,
+    TYPE_U8 = 102,
+    TYPE_U64 = 103,
     TYPE_VEC_U8 = 104,
     TYPE_U128 = 105,
     TYPE_VEC_ADDRESS = 106,
@@ -94,34 +106,32 @@ export declare enum RepositoryValueType {
     PositiveNumber = 202,
     PositiveNumber_Vec = 203,
     String = 204,
-    String_Vec = 205
+    String_Vec = 205,
+    Bool = 206
 }
 export declare const RepositoryValueTypeInfo: {
     type: RepositoryValueType;
     name: string;
     description: string;
 }[];
-export declare const ValueTypeInfo: {
-    type: ValueType;
-    name: string;
-}[];
 export declare const OperatorTypeArray: number[];
 export declare const ValueTypeArray: number[];
 export declare const IsValidOperatorType: (type: number) => boolean;
 export declare const IsValidValueType: (type: number) => boolean;
-interface ValueTypeString {
-    type: ValueType;
-    name: string;
-    description: string;
-}
-export declare const SER_VALUE: ValueTypeString[];
+export declare const IsNumberType: (type: ValueType | any) => boolean;
 export declare enum ContextType {
     TYPE_SIGNER = 60,
     TYPE_CLOCK = 61,
-    TYPE_WITNESS_ID = 62,
+    TYPE_GUARD = 62,
     TYPE_CONSTANT = 80
 }
-export type ConstantType = ValueType | ContextType.TYPE_WITNESS_ID;
+interface ValueTypeString {
+    type: ValueType | ContextType;
+    name: string;
+    description: string;
+    validator?: (value: any) => boolean;
+}
+export declare const SER_VALUE: ValueTypeString[];
 export type Data_Type = ValueType | OperatorType | ContextType;
 export declare enum ENTRYPOINT {
     mainnet = "mainnet",
@@ -133,41 +143,48 @@ export interface CoinTypeInfo {
     symbol: string;
     type: string;
     decimals: number;
+    alias?: boolean;
 }
 export declare class Protocol {
     protected network: string;
-    protected package: string;
+    protected package: Map<string, string>;
     protected signer: string;
     protected wowok_object: string;
     protected entity_object: string;
+    protected treasury_cap: string;
+    protected oracle_object: string;
     protected graphql: string;
     protected txb: TransactionBlock | undefined;
     static _instance: any;
     constructor(network?: ENTRYPOINT);
     static Instance(): Protocol;
     static Client(): SuiClient;
+    client(): SuiClient;
     UseNetwork(network?: ENTRYPOINT): void;
-    Package(): string;
+    Package(type: string): string;
     WowokObject(): string;
     EntityObject(): string;
+    OracleObject(): string;
+    TreasuryCap(): string;
     GraphqlUrl(): string;
     NetworkUrl(): string;
     MachineFn: (fn: any) => string;
-    NodeFn: (fn: any) => string;
     ProgressFn: (fn: any) => string;
-    CommunityFn: (fn: any) => string;
     RepositoryFn: (fn: any) => string;
     PermissionFn: (fn: any) => string;
     PassportFn: (fn: any) => string;
-    GuardFn: (fn: any) => string;
-    VoteFn: (fn: any) => string;
     DemandFn: (fn: any) => string;
     OrderFn: (fn: any) => string;
-    RewardFn: (fn: any) => string;
     ServiceFn: (fn: any) => string;
     ResourceFn: (fn: any) => string;
     EntityFn: (fn: any) => string;
     WowokFn: (fn: any) => string;
+    TreasuryFn: (fn: any) => string;
+    PaymentFn: (fn: any) => string;
+    GuardFn: (fn: any) => string;
+    BaseWowokFn: (fn: any) => string;
+    ArbitrationFn: (fn: any) => string;
+    ArbFn: (fn: any) => string;
     Query: (objects: Query_Param[], options?: SuiObjectDataOptions) => Promise<SuiObjectResponse[]>;
     Query_Raw: (objects: string[], options?: SuiObjectDataOptions) => Promise<SuiObjectResponse[]>;
     NewSession: () => TransactionBlock;
@@ -184,31 +201,17 @@ export declare class Protocol {
     CoinTypes_Mainnet: CoinTypeInfo[];
     GetCoinTypeInfo: (token_type: string, handler: (info: CoinTypeInfo) => void) => CoinTypeInfo | 'loading';
     static CLOCK_OBJECT: {
-        Object: {
-            ImmOrOwned: {
-                digest: string;
-                objectId: string;
-                version: string | number | bigint;
-            };
-        } | {
-            Shared: {
-                objectId: string;
-                initialSharedVersion: string | number;
-                mutable: boolean;
-            };
-        } | {
-            Receiving: {
-                digest: string;
-                objectId: string;
-                version: string | number | bigint;
-            };
-        };
+        objectId: string;
+        mutable: boolean;
+        initialSharedVersion: number;
     };
-    static TXB_OBJECT(txb: TransactionBlock, arg: TxbObject): TransactionResult;
+    static TXB_OBJECT(txb: TransactionBlock, arg: TxbObject): TransactionArgument;
     static IsValidObjects: (arr: TxbObject[]) => boolean;
     WOWOK_OBJECTS_TYPE: () => string[];
     WOWOK_OBJECTS_PREFIX_TYPE: () => string[];
+    hasPackage(pack: string): boolean;
     object_name_from_type_repr: (type_repr: string) => string;
+    module_object_name_from_type_repr: (type_repr: string) => string;
 }
 export declare class RpcResultParser {
     static Object_Type_Extra: () => string[];

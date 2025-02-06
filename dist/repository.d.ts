@@ -1,14 +1,27 @@
-import { Protocol, ValueType, RepositoryValueType, RepositoryAddress, PermissionObject, PassportObject, TxbObject } from './protocol';
+import { ValueType, RepositoryValueType, RepositoryAddress, PermissionObject, PassportObject, TxbObject } from './protocol';
 import { PermissionIndexType } from './permission';
+import { Transaction as TransactionBlock } from '@mysten/sui/transactions';
 export declare enum Repository_Policy_Mode {
     POLICY_MODE_FREE = 0,
     POLICY_MODE_STRICT = 1
 }
+export declare enum Repository_Type {
+    NORMAL = 0,
+    WOWOK_GRANTEE = 1,
+    WOWOK_ORACLE = 2
+}
+export interface RepData {
+    id: string;
+    name: string;
+    dataType: RepositoryValueType;
+    data: string | string[];
+    object: string;
+}
 export type Repository_Policy = {
     key: string;
     description: string;
-    data_type: RepositoryValueType;
-    permission?: PermissionIndexType;
+    dataType: RepositoryValueType;
+    permissionIndex?: PermissionIndexType | null;
 };
 export type Repository_Policy_Data = {
     key: string;
@@ -22,13 +35,12 @@ export type Repository_Value = {
 export declare class Repository {
     protected permission: PermissionObject;
     protected object: TxbObject;
-    protected protocol: Protocol;
+    protected txb: TransactionBlock;
     get_object(): TxbObject;
     private constructor();
-    static From(protocol: Protocol, permission: PermissionObject, object: TxbObject): Repository;
-    static New(protocol: Protocol, permission: PermissionObject, description: string, policy_mode: Repository_Policy_Mode, passport?: PassportObject): Repository;
+    static From(txb: TransactionBlock, permission: PermissionObject, object: TxbObject): Repository;
+    static New(txb: TransactionBlock, permission: PermissionObject, description: string, policy_mode?: Repository_Policy_Mode, passport?: PassportObject): Repository;
     launch(): RepositoryAddress;
-    destroy(): false | undefined;
     add_data(data: Repository_Policy_Data): void;
     remove(address: string, key: string): void;
     add_reference(references: string[], passport?: PassportObject): void;
@@ -47,6 +59,12 @@ export declare class Repository {
     static MAX_REFERENCE_COUNT: number;
     static IsValidName: (key: string) => boolean;
     static IsValidValue: (value: Uint8Array) => boolean;
-    static parseObjectType: (chain_type: string) => string;
+    static parseObjectType: (chain_type?: string | null) => string;
+    static rpc_de_data(fields: any): RepData[];
+    static DataType2ValueType(data: string): ValueType | undefined;
+    static ResolveRepositoryData: (dataType: RepositoryValueType, data: string | boolean | string[]) => {
+        type: ValueType;
+        data: Uint8Array;
+    } | undefined;
 }
 //# sourceMappingURL=repository.d.ts.map

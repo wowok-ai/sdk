@@ -41,16 +41,16 @@
     "payment",
     "arbitration",
     "oracle",
-    "AI agent"
+    "AI agent tool"
   ],
   "author": "wowok",
   "license": "Apache-2.0",
-  "dependencies": {
-    "@mysten/bcs": "^0.11.1",
-    "@mysten/sui": "^1.7.0"
-  },
   "devDependencies": {
     "@types/node": "^20.12.12",
     "tsx": "^4.7.1"
+  },
+  "dependencies": {
+    "@mysten/bcs": "^0.11.1",
+    "@mysten/sui": "^1.7.0"
   }
 }

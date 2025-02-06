@@ -1,26 +1,54 @@
-import { Protocol, GuardAddress, Data_Type, MODULES, ContextType, ValueType, OperatorType, ConstantType } from './protocol';
-export type GuardConstant = Map<number, Guard_Vriable>;
-export interface Guard_Vriable {
-    type: ConstantType;
+import { GuardAddress, Data_Type, MODULES, ContextType, ValueType, OperatorType, TxbObject, GuardObject } from './protocol';
+import { Transaction as TransactionBlock } from '@mysten/sui/transactions';
+export type GuardConstant = Map<number, Guard_Variable>;
+export interface Guard_Variable {
+    type: ValueType;
     value?: Uint8Array;
-    witness?: Uint8Array;
+    bWitness: boolean;
 }
+export interface Guard_Options {
+    from: 'query' | 'type';
+    name: string;
+    value: number;
+    group?: string;
+}
+export interface GuardAnswer {
+    txb: TransactionBlock;
+    err?: string;
+    identifiers: number[];
+}
+export type OnQueryAnswer = (answer: GuardAnswer) => void;
 export declare class Guard {
     static MAX_INPUT_LENGTH: number;
-    static launch(protocol: Protocol, description: string, maker: GuardMaker): GuardAddress;
-    static signer_guard(protocol: Protocol): GuardAddress;
-    static everyone_guard(protocol: Protocol): GuardAddress;
+    protected txb: TransactionBlock;
+    protected object: TxbObject;
+    get_object(): TxbObject;
+    static From(txb: TransactionBlock, object: TxbObject): Guard;
+    private constructor();
+    static New(txb: TransactionBlock, description: string, maker: GuardMaker): Guard;
+    launch(): GuardAddress;
+    static everyone_guard(txb: TransactionBlock): GuardAddress;
+    static QueryAddressIdentifiers(guard: GuardObject, onQueryAnswer: OnQueryAnswer, sender: string): void;
     static QUERIES: any[];
     static BoolCmd: any[];
     static IsBoolCmd: (cmd: number) => boolean;
-    static GetCmd: (cmd: number) => any;
-}
-export declare class GuardConstantHelper {
-    static IsValidIndentifier: (identifier: number) => boolean;
-    static get_constant_value(constants: GuardConstant, identifier: number, type: ConstantType): Uint8Array | undefined;
-    static get_constant_witness(constants: GuardConstant, identifier: number): Uint8Array | undefined;
-    static add_future_constant(constants: GuardConstant, identifier: number, witness: any, value?: any, bNeedSerialize?: boolean): void;
-    static add_constant(constants: GuardConstant, identifier: number, type: ValueType, value: any, bNeedSerialize?: boolean): false | undefined;
+    static CmdFilter: (retType: ValueType) => any[];
+    static GetCmd: (cmd: number | undefined) => any;
+    static GetCmdOption: (cmd: number) => Guard_Options | undefined;
+    static GetInputParams: (cmd: number) => ValueType[];
+    static GetModuleName: (cmd: number) => string;
+    static NumberOptions: () => Guard_Options[];
+    static Signer: Guard_Options;
+    static Time: Guard_Options;
+    static Guard: Guard_Options;
+    static Logics: () => Guard_Options[];
+    static Crunchings: Guard_Options[];
+    static CommonOptions: (retType: ValueType) => Guard_Options[];
+    static AllOptions: () => Guard_Options[];
+    static StringOptions: () => Guard_Options[];
+    static BoolOptions: () => Guard_Options[];
+    static AddressOptions: () => Guard_Options[];
+    static Options: (ret_type: ValueType | 'number' | 'any') => Guard_Options[];
 }
 export declare class GuardMaker {
     protected data: Uint8Array[];
@@ -28,12 +56,13 @@ export declare class GuardMaker {
     protected constant: GuardConstant;
     private static index;
     private static get_index;
+    static IsValidIndentifier: (identifier: number) => boolean;
     constructor();
-    add_constant(type: ConstantType, value: any, bNeedSerialize?: boolean): number;
-    private serValueParam;
+    add_constant(type: ValueType, value?: any, identifier?: number, bNeedSerialize?: boolean): number;
     add_param(type: ValueType | ContextType, param?: any): GuardMaker;
-    add_query(module: MODULES, query_name: string, object_address_from: string | number, bWitness?: boolean): GuardMaker;
-    add_logic(type: OperatorType): GuardMaker;
+    add_query(module: MODULES, query_name: string, object_address_from: string | number): GuardMaker;
+    add_logic(type: OperatorType, logic_count?: number): GuardMaker;
+    hasIdentifier(id: number): boolean;
     build(bNot?: boolean): GuardMaker;
     IsReady(): boolean;
     combine(otherBuilt: GuardMaker, bAnd?: boolean, bCombinConstant?: boolean): GuardMaker;
@@ -42,5 +71,6 @@ export declare class GuardMaker {
     static input_combine(input1: Uint8Array, input2: Uint8Array, bAnd?: boolean): Uint8Array;
     static input_not(input: Uint8Array): Uint8Array;
     static match_u256(type: number): boolean;
+    static is_multi_input_op(type: number): boolean;
 }
 //# sourceMappingURL=guard.d.ts.map

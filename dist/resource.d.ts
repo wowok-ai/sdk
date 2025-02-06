@@ -1,4 +1,5 @@
-import { Protocol, TxbObject } from './protocol';
+import { TxbObject } from './protocol';
+import { type TransactionResult, Transaction as TransactionBlock } from '@mysten/sui/transactions';
 export interface Tags {
     address: string;
     nick: string;
@@ -14,14 +15,17 @@ export declare class Resource {
     static LikeName: string;
     static DislikeName: string;
     static FavorName: string;
+    static LaunchName: string;
+    static OrderName: string;
     protected object: TxbObject;
-    protected protocol: Protocol;
+    protected txb: TransactionBlock;
     get_object(): TxbObject;
     private constructor();
-    static From(protocol: Protocol, object: TxbObject): Resource;
-    add(name: string, object: string[]): void;
-    add2(object: string, name: string[]): void;
-    remove(name: string, object?: string[], removeall?: boolean): void;
+    static From(txb: TransactionBlock, object: TxbObject): Resource;
+    launch(): void;
+    add(name: string, object: string[] | TransactionResult[]): void;
+    add2(object: TxbObject, name: string[]): void;
+    remove(name: string, object: string[], removeall?: boolean): void;
     remove2(object: string, name: string[]): void;
     rename(old_name: string, new_name: string): void;
     add_tags(object: string, nick: string, tags: string[]): void;

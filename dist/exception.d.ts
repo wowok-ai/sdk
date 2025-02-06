@@ -8,6 +8,8 @@ export declare enum Errors {
     IsValidTokenType = "invalid token type",
     IsValidUint = "invalid uint",
     IsValidInt = "invalid int",
+    IsValidU64 = "invalid u64",
+    IsValidU8 = "invalid u8",
     IsValidPercent = "invalid percent",
     IsValidArray = "invalid array",
     IsValidObjects = "invalid objects",
@@ -19,7 +21,8 @@ export declare enum Errors {
     IsValidIndentifier = "indentifier invalid",
     isValidHttpUrl = "invalid url",
     IsValidUserDefinedIndex = "invalid user defined permission index",
-    bcsTypeInvalid = "invalid bcs type"
+    bcsTypeInvalid = "invalid bcs type",
+    IsValidServiceItemName = "invalid service item name"
 }
 export declare const ERROR: (error: Errors, info?: any) => never;
 //# sourceMappingURL=exception.d.ts.map
