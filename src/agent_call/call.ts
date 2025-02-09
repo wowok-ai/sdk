@@ -15,7 +15,7 @@ import { Entity } from '../entity';
 import { Repository, Repository_Policy, Repository_Policy_Data, Repository_Policy_Data2, Repository_Policy_Data_Remove, Repository_Policy_Mode, } from '../repository';
 import { Demand } from '../demand';
 import { Machine, Machine_Forward, Machine_Node } from '../machine';
-import { BuyRequiredEnum, Service, Service_Guard_Percent } from '../service';
+import { BuyRequiredEnum, Customer_RequiredInfo, DicountDispatch, Service, Service_Buy, Service_Guard_Percent, Service_Sale } from '../service';
 import { Treasury } from '../treasury';
 
 export interface CallBase {
@@ -72,6 +72,8 @@ export interface CallService extends CallBase {
     bPaused?: boolean;
     bPublished?: boolean;
     description?: string;
+    gen_discount?: DicountDispatch[];
+    buy?: {buy_items:Service_Buy[], coin_object?:string, discount?:string, machine?:string, customer_info_crypto?: Customer_RequiredInfo}
     arbitration: {op:'set' | 'add'; arbitrations:{address:string, token_type:string}[]} 
         | {op:'removeall'} | {op:'remove', addresses:string[]};
     buy_guard?: string;
@@ -87,8 +89,10 @@ export interface CallService extends CallBase {
     refund_guard?: {op:'add' | 'set'; guards:Service_Guard_Percent[]} 
         | {op:'removeall'} | {op:'remove', addresses:string[]};
     customer_required_info?: {pubkey:string; required_info:(string | BuyRequiredEnum)[]};
-    sales: {}
+    sales: {op:'add', sales:Service_Sale[]} | {op:'remove'; sales_name:string[]}
 }
+
+
 export namespace Call {
     export const repository = (call: CallRepository, txb:TransactionBlock, passport?:PassportObject) => {
         let obj : Repository | undefined ; let permission: any;
@@ -507,6 +511,9 @@ export namespace Call {
                         break;
                 }
             }
+            if (call?.gen_discount !== undefined) {
+                obj.discount_transfer(call.gen_discount, passport)
+            }
             if (call?.withdraw_guard !== undefined) {
                 switch(call.withdraw_guard.op) {
                     case 'add':
@@ -525,7 +532,32 @@ export namespace Call {
                 }
             }
             if (call?.sales !== undefined) {
-                
+                switch(call.sales.op) {
+                    case 'add':
+                        obj.add_sales(call.sales.sales, false, passport)
+                        break;
+                    case 'remove':
+                        obj.remove_sales(call.sales.sales_name, passport)
+                        break;
+                }
+            }
+            if (call?.buy !== undefined) {
+                let b = BigInt(0); let coin : any;
+                call.buy.buy_items.forEach(v => {
+                    b += BigInt(v.max_price) * BigInt(v.count)
+                })
+                if (b > BigInt(0)) {
+                    if (call?.type_parameter === '0x2::sui::SUI' || call?.type_parameter === '0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI') {
+                        coin = txb.splitCoins(txb.gas, [b])[0];
+                    } else if (call?.buy.coin_object) {
+                        coin = txb.splitCoins(call.buy.coin_object, [b])[0];
+                    }                    
+                }
+
+                if (coin) {
+                    //@ crypto tools support
+                    obj.buy(call.buy.buy_items, coin, call.buy.discount, call.buy.machine, call.buy.customer_info_crypto, passport)                    
+                }
             }
             if (permission) {
                 permission.launch();

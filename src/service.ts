@@ -53,8 +53,8 @@ export enum BuyRequiredEnum {
 
 export type Service_Buy = {
     item: string;
-    max_price: bigint;
-    count: bigint;
+    max_price: string;
+    count: string;
 }
 
 export type DicountDispatch = {
@@ -1045,7 +1045,7 @@ export class Service {
         }
 
         let name:string[] = []; let price:bigint[] = [];    let stock:bigint[] = []; let order;
-        buy_items.forEach((b) => { name.push(b.item); price.push(b.max_price); stock.push(b.count)})
+        buy_items.forEach((b) => { name.push(b.item); price.push(BigInt(b.max_price)); stock.push(BigInt(b.count))})
         const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         if (passport) {
             if (discount) {
