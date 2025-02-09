@@ -103,7 +103,7 @@ export interface ObjectService extends ObjectBase {
     arbitration: string[];
     buy_guard?: string | null;
     endpoint?: string | null;
-    extern_withdraw_treasuries: string[];
+    extern_withdraw_treasury: string[];
     machine?: string | null;
     payee: string;
     repository: string[];
@@ -458,7 +458,7 @@ export namespace OBJECT_QUERY {
                     refund_guard:content?.refund_guard?.fields?.contents?.map((v:any) => {
                         return {object:v?.fields?.key, percent:v?.fields?.value}
                     }),
-                    sales_count:parseInt(content?.sales?.fields?.size), extern_withdraw_treasuries:content?.extern_withdraw_treasuries,
+                    sales_count:parseInt(content?.sales?.fields?.size), extern_withdraw_treasury:content?.extern_withdraw_treasuries,
                     customer_required_info:content?.customer_required ? 
                         {pubkey:content?.customer_required?.fields?.service_pubkey, required_info:content?.customer_required?.fields?.customer_required_info}
                         :undefined,

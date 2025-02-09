@@ -23,22 +23,36 @@ export interface RepData {
     object: string;
 }
 
-export type Repository_Policy = {
+export interface Repository_Policy {
     key:string;
     description: string;
     dataType: RepositoryValueType;
     permissionIndex?: PermissionIndexType | null; // PermissionIndex like, must be geater than 1000
 }
-export type Repository_Policy_Data = {
+export interface Repository_Policy_Data {
     key: string;
     data: Repository_Value[];  
-    value_type?: ValueType; // 
+    value_type?: ValueType; // Specifies a data type prefix; If the data prefix is already included in the data byte stream, there is no need to specify it.
 }
-export type Repository_Value = {
+export interface Repository_Value {
     address: string; // UID: address or objectid
     bcsBytes: Uint8Array; // BCS contents. Notice that: First Byte be the Type by caller, or specify type with 'Repository_Policy_Data.value_type' field.
 }
+export interface Repository_Value2 {
+    key: string;
+    bcsBytes: Uint8Array;
+}
 
+export interface Repository_Policy_Data2 {
+    address: string;
+    data: Repository_Value2[];
+    value_type?: ValueType;
+}
+
+export interface Repository_Policy_Data_Remove {
+    key: string;
+    address: string;
+}
 export class Repository {
     protected permission ;
     protected object:TxbObject;
@@ -89,7 +103,7 @@ export class Repository {
 
     add_data(data:Repository_Policy_Data)  {
         if (!Repository.IsValidName(data.key)) {
-            ERROR(Errors.IsValidName)
+            ERROR(Errors.IsValidName, 'add_data')
         }
 
         let bValid = true;
@@ -98,7 +112,7 @@ export class Repository {
             if (!Repository.IsValidValue(value.bcsBytes)) bValid = false; 
         });
         if (!bValid) {
-            ERROR(Errors.InvalidParam)
+            ERROR(Errors.InvalidParam, 'add_data')
         }
         
         if (data?.value_type !== undefined) {
@@ -118,6 +132,44 @@ export class Repository {
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
                     this.txb.pure.address(d.address),
                     this.txb.pure.string(data.key), 
+                    this.txb.pure.vector('u8', [...d.bcsBytes]),
+                    Protocol.TXB_OBJECT(this.txb, this.permission),
+                ],
+            }))   
+        }
+    }
+
+    add_data2(data:Repository_Policy_Data2)  {
+        if (!IsValidAddress(data.address)) {
+            ERROR(Errors.IsValidAddress, 'add_data2')
+        }
+
+        let bValid = true;
+        data.data.forEach((value) => {
+            if (!Repository.IsValidName(value.key)) bValid = false;
+            if (!Repository.IsValidValue(value.bcsBytes)) bValid = false; 
+        });
+        if (!bValid) {
+            ERROR(Errors.InvalidParam, 'add_data2')
+        }
+        
+        if (data?.value_type !== undefined) {
+            data.data.forEach((d) => this.txb.moveCall({
+                target:Protocol.Instance().RepositoryFn('add') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
+                    this.txb.pure.address(data.address),
+                    this.txb.pure.string(d.key), 
+                    this.txb.pure.u8(data.value_type!),
+                    this.txb.pure.vector('u8', [...d.bcsBytes]),
+                    Protocol.TXB_OBJECT(this.txb, this.permission),
+                ],
+            }))       
+        } else {
+            data.data.forEach((d) => this.txb.moveCall({
+                target:Protocol.Instance().RepositoryFn('add_typed_data') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
+                    this.txb.pure.address(data.address),
+                    this.txb.pure.string(d.key), 
                     this.txb.pure.vector('u8', [...d.bcsBytes]),
                     Protocol.TXB_OBJECT(this.txb, this.permission),
                 ],
@@ -241,26 +293,42 @@ export class Repository {
         });    
     }
 
-    remove_policies(policy_keys:string[], passport?:PassportObject)  {
+    remove_policies(policy_keys:string[], removeall?:boolean, passport?:PassportObject)  {
         if (policy_keys.length === 0) return ;
         if (!IsValidArray(policy_keys, Repository.IsValidName)){
             ERROR(Errors.InvalidParam, 'policy_keys')
         }
         
         if (passport) {
-            this.txb.moveCall({
-                target:Protocol.Instance().RepositoryFn('policy_remove_with_passport') as FnCallType,
-                arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
-                    this.txb.pure.vector('string', array_unique(policy_keys)), 
-                    Protocol.TXB_OBJECT(this.txb, this.permission)]
-            })                
+            if (removeall) {
+                this.txb.moveCall({
+                    target:Protocol.Instance().RepositoryFn('policy_removeall_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission)]
+                })    
+            } else {
+                this.txb.moveCall({
+                    target:Protocol.Instance().RepositoryFn('policy_remove_with_passport') as FnCallType,
+                    arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
+                        this.txb.pure.vector('string', array_unique(policy_keys)), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission)]
+                })                  
+            }
         } else {
-            this.txb.moveCall({
-                target:Protocol.Instance().RepositoryFn('policy_remove') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
-                    this.txb.pure.vector('string', array_unique(policy_keys)), 
-                    Protocol.TXB_OBJECT(this.txb, this.permission)]
-            })                     
+            if (removeall) {
+                this.txb.moveCall({
+                    target:Protocol.Instance().RepositoryFn('policy_removeall') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission)]
+                })       
+            } else {
+                this.txb.moveCall({
+                    target:Protocol.Instance().RepositoryFn('policy_remove') as FnCallType,
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
+                        this.txb.pure.vector('string', array_unique(policy_keys)), 
+                        Protocol.TXB_OBJECT(this.txb, this.permission)]
+                })                         
+            }
         }
     }
     rename_policy(policy_key:string, new_policy_key:string, passport?:PassportObject) {

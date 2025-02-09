@@ -4,212 +4,538 @@
  */
 
 import { Transaction as TransactionBlock,  } from '@mysten/sui/transactions';
-import { MODULES, DemandObject, PermissionObject, Protocol, ServiceObject, } from '../protocol';
+import { MODULES, DemandObject, PermissionObject, Protocol, ServiceObject, PassportObject, TxbObject, } from '../protocol';
 import { Bcs, IsValidAddress, IsValidArgType, IsValidU64, parseObjectType, IsValidU8 } from '../utils'
 import { Errors, ERROR}  from '../exception'
 import { MultiGetObjectsParams } from '@mysten/sui/client';
-import { Permission, PermissionIndex } from '../permission';
+import { Permission, Permission_Entity, Permission_Index, PermissionIndex, UserDefinedIndex } from '../permission';
 import { BCS } from '@mysten/bcs';
 import { PermissionAnswerItem, PermissionIndexType } from '../permission';
 import { Entity } from '../entity';
-import { Repository_Policy_Mode } from '../repository';
-import { LargeNumberLike } from 'crypto';
+import { Repository, Repository_Policy, Repository_Policy_Data, Repository_Policy_Data2, Repository_Policy_Data_Remove, Repository_Policy_Mode, } from '../repository';
+import { Demand } from '../demand';
+import { Machine, Machine_Forward, Machine_Node } from '../machine';
+import { BuyRequiredEnum, Service, Service_Guard_Percent } from '../service';
+import { Treasury } from '../treasury';
 
-export interface AgentOperate_Parameter {
-    name: string;
-    required: boolean;
+export interface CallBase {
+    object: string | 'new';
+    type_parameter?: string;
+    permission?: string;
+    //type_raw?: string;
+}
+export interface CallRepository extends CallBase {
+    permission_new?: string; // change permission or 'new' object with permission specified.
     description?: string;
-    value?: any;
+    policy_mode?: Repository_Policy_Mode; // default: 'Relax' (POLICY_MODE_FREE) 
+    reference?: {op:'set' | 'add' | 'remove' ; addresses:string[]} | {op:'removeall'};
+    policy?: {op:'add' | 'set'; data:Repository_Policy[]} | {op:'remove'; data:string[]} | {op:'removeall'} | {op:'rename'; data:{old:string; new:string}[]};
+    data?: {op:'add', data: Repository_Policy_Data | Repository_Policy_Data2} | {op:'remove'; data: Repository_Policy_Data_Remove};
 }
-export interface AgentOperate {
-    module: MODULES;
-    name: string;
-    object?: any;
+
+export interface CallPermission extends CallBase {
+    builder?: string;
+    admin?: {op:'add' | 'remove' | 'set', admins:string[]};
     description?: string;
-    permissionIndex?: number;
-    parameter: AgentOperate_Parameter[];
-    needLaunch?: boolean;
-    return?: any;
+    entity?: {op:'add entity'; entities:Permission_Entity[]} | {op:'add permission'; permissions:Permission_Index[]} 
+        | {op:'remove entity'; addresses:string[]} | {op:'remove permission'; address:string; index:PermissionIndexType[]} 
+        | {op:'transfer permission', from_address: string; to_address: string};
+    biz_permission?: {op:'add'; data: UserDefinedIndex[]} | {op:'remove'; permissions: PermissionIndexType[]};
 }
 
-enum FUNCNAME {
-    Repository_New = 'New',
-    Repository_Description = 'Description',
-    Repository_PolicyMode = 'Policy mode',
-    Repository_AddPolicy = 'Add policies',
-    Repository_RemovePolicy = 'Remove policies',
-    Repository_RenamePolicy = 'Rename policy',
-    Repository_PolicyDescription = 'Policy description',
-    Repository_PolicyPermission = 'Policy Permission',
-    Repository_AddReference = 'Add references',
-    Repository_RemoveReference = 'Remove references',
-    Repository_AddData= 'Add data',
-    Repository_RemoveData = 'Rmove data',
+export interface CallDemand extends CallBase {
+    permission_new?: string;
+    guard?: {address:string; service_id_in_guard?:number};
+    description?: string;
+    time_expire?: {op: 'duration'; minutes:number} | {op:'set'; time:number};
+    bounty?: {op:'add'; object?:string; balance:string} | {op:'refund'} | {op:'reward'; service:string};
+    present?: {service: string | number; recommend_words:string; service_pay_type:string};
 }
-export const AGENT_FUNC: AgentOperate[] = [
-    {permissionIndex:PermissionIndex.repository, name:FUNCNAME.Repository_New, description:'New Repository', module: MODULES.repository, parameter:[
-        {name:'Permission object', description:'Permission address or object', required:true},
-        {name:'Policy mode', description:'Relax mode: Allows entry of data other than policy. Used for informal, non-consensus situations.\nStrict mode: Prohibits entry of data beyond policy. Used in formal, fully consensus contexts.', required:false}, 
-    ], needLaunch:true},
-    {permissionIndex:PermissionIndex.repository_description, name:FUNCNAME.Repository_Description, description:'Set Repository description', module:MODULES.repository, parameter:[
-        {name:'Repository object', description:'Repository address or object', required:true},
-        {name:'Description', description:'Repository description', required:true},
-    ]},
-    {permissionIndex:PermissionIndex.repository_policy_mode, name:FUNCNAME.Repository_PolicyMode, description:'Set Repository policy mode', module: MODULES.repository, parameter:[
-        {name:'Repository object', description:'Repository address or object', required:true},
-        {name:'Policy mode', description:'Relax mode: Allows entry of data other than policy. Used for informal, non-consensus situations.\nStrict mode: Prohibits entry of data beyond policy. Used in formal, fully consensus contexts.', required:false}, 
-    ]},
-    {permissionIndex:PermissionIndex.repository_policies, name:FUNCNAME.Repository_AddPolicy, description:'Add Repository policies', module: MODULES.repository, parameter:[
-        {name:'Repository object', description:'Repository address or object', required:true},
-        {name:'Policies', description:'Repository policy struct lists', required:true},
-    ]},
-    {permissionIndex:PermissionIndex.repository_policies, name:FUNCNAME.Repository_RenamePolicy, description:'Remove Repository policies', module: MODULES.repository, parameter:[
-        {name:'Repository object', description:'Repository address or object', required:true},
-        {name:'Policy names', description:'The names of the Repository policies to be removed', required:true},
-    ]},
-    {permissionIndex:PermissionIndex.repository_policies, name:FUNCNAME.Repository_RenamePolicy, description:'Rename a Repository policy', module: MODULES.repository, parameter:[
-        {name:'Repository object', description:'Repository address or object', required:true},
-        {name:'policy name', description:'The name of the Repository policy to be renamed', required:true},
-        {name:'The changed policy name', description:'The changed policy name', required:true},
-    ]},
-    {permissionIndex:PermissionIndex.repository_policy_description, name:FUNCNAME.Repository_PolicyDescription, description:'Set Repository policy description', module: MODULES.repository, parameter:[
-        {name:'Repository object', description:'Repository address or object', required:true},
-        {name:'Policy name', description:'The name of the Repository policy to be set', required:true},
-        {name:'Policy description', description:'Policy description', required:true}, 
-    ]},
-    {permissionIndex:PermissionIndex.repository_policy_permission, name:FUNCNAME.Repository_PolicyPermission, description:'Set Repository policy permission',  module: MODULES.repository, parameter:[
-        {name:'Repository object', description:'Repository address or object', required:true},
-        {name:'Policy name', description:'The name of the Repository policy to be set', required:true},
-        {name:'Policy permission index', description:'Policy permission index', required:true}, 
-    ]},
-    {permissionIndex:PermissionIndex.repository_reference, name:FUNCNAME.Repository_AddReference, description:'Add Repository references', module: MODULES.repository, parameter:[
-        {name:'Repository object', description:'Repository address or object', required:true},
-        {name:'Reference addresses', description:'object addresses list that use the Repository to be added', required:true},
-    ]},
-    {permissionIndex:PermissionIndex.repository_reference, name:FUNCNAME.Repository_RemoveReference, description:'Remove Repository references', module: MODULES.repository, parameter:[
-        {name:'Repository object', description:'Repository address or object', required:true},
-        {name:'Reference addresses', description:'object addresses list that use the Repository to be removed', required:true},
-    ]},
-    {name:FUNCNAME.Repository_AddData, description:'Add Repository data. Notice:Operation permissions depend on the policy.', module: MODULES.repository, parameter:[
-        {name:'Repository object', description:'Repository address or object', required:true},
-        {name:'Data', description:'The data struct to be added', required:true},
-    ]},
-    {name:FUNCNAME.Repository_RemoveData, description:'Remove Repository data. Notice:Operation permissions depend on the policy.', module: MODULES.repository, parameter:[
-        {name:'Repository object', description:'Repository address or object', required:true},
-        {name:'Policy name', description:'The name of the Repository policy where the data is located', required:true},
-        {name:'Address', description:'The address where the data belongs', required:true},
-    ]},
-    {permissionIndex:PermissionIndex.service, name:'Service', description:'Launch new Service', module: MODULES.service, parameter:[]},
-    {permissionIndex:PermissionIndex.service_description, name:'Description', description:'Set Service description', module: MODULES.service, parameter:[]},
-    {permissionIndex:PermissionIndex.service_price, name:'Price', description:'Set Service item price', module: MODULES.service, parameter:[]},
-    {permissionIndex:PermissionIndex.service_stock, name:'Inventory', description:'Set Service item inventory', module: MODULES.service, parameter:[]},
-    {permissionIndex:PermissionIndex.service_payee, name:'Payee', description:'Set Service payee', module: MODULES.service, parameter:[]},
-    {permissionIndex:PermissionIndex.service_repository, name:'Repository', description:'Set Service repositories', module: MODULES.service, parameter:[]},
-    {permissionIndex:PermissionIndex.service_withdraw_guards, name:'Withdraw Guard', description:'Set Service withdraw guards', module: MODULES.service, parameter:[]},
-    {permissionIndex:PermissionIndex.service_refund_guards, name:'Refund Guard', description:'Set Service refund guards', module: MODULES.service, parameter:[]},
-    {permissionIndex:PermissionIndex.service_add_sales, name:'Add sales', description:'Add sale items for Service', module: MODULES.service, parameter:[]},
-    {permissionIndex:PermissionIndex.service_remove_sales, name:'Remove sales', description:'Remove sale items for Service', module: MODULES.service, parameter:[]},
-    {permissionIndex:PermissionIndex.service_discount_transfer, name:'Discount', description:'Launch discounts for Service', module: MODULES.service, parameter:[]},
-    {permissionIndex:PermissionIndex.service_withdraw, name:'Withdraw', description:'Widthraw from Service orders', module: MODULES.service, parameter:[]},
-    {permissionIndex:PermissionIndex.service_buyer_guard, name:'Buyer Guard', description:'Set Guard of buying for Service', module: MODULES.service, parameter:[]},
-    {permissionIndex:PermissionIndex.service_machine, name:'Machine', description:'Set Machine for Service', module: MODULES.service, parameter:[]},
-    {permissionIndex:PermissionIndex.service_endpoint, name:'Endpoint', description:'Set Service endpoint', module: MODULES.service, parameter:[]},
-    {permissionIndex:PermissionIndex.service_publish, name:'Publish', description:'Allowing the creation of Order', module: MODULES.service, parameter:[]},
-    {permissionIndex:PermissionIndex.service_clone, name:'Clone', description:'Clone Service', module: MODULES.service, parameter:[]},
-    {permissionIndex:PermissionIndex.service_customer_required, name:'Buyer info', description:'Set Service buyer info required', module: MODULES.service, parameter:[]},
-    {permissionIndex:PermissionIndex.service_pause, name:'Pause', description:'Pause/Unpause Service', module: MODULES.service, parameter:[]},
-    {permissionIndex:PermissionIndex.service_treasury, name:'Treasury', description:'Externally withdrawable treasury for compensation or rewards', module: MODULES.service, parameter:[]},
-    {permissionIndex:PermissionIndex.service_arbitration, name:'Arbitration', description:'Add/Remove arbitration that allows refunds from orders at any time based on arbitration results', module: MODULES.service, parameter:[]},
 
-    {permissionIndex:PermissionIndex.demand, name:'Demand', description:'Launch new Demand', module: MODULES.demand, parameter:[]},
-    {permissionIndex:PermissionIndex.demand_refund, name:'Refund', description:'Refund from Demand', module: MODULES.demand, parameter:[]},
-    {permissionIndex:PermissionIndex.demand_expand_time, name:'Expand deadline', description:'Expand Demand deadline', module: MODULES.demand, parameter:[]},
-    {permissionIndex:PermissionIndex.demand_guard, name:'Guard', description:'Set Demand guard', module: MODULES.demand, parameter:[]},
-    {permissionIndex:PermissionIndex.demand_description, name:'Description', description:'Set Demand description', module: MODULES.demand, parameter:[]},
-    {permissionIndex:PermissionIndex.demand_yes, name:'Yes', description:'Pick the Deamand serice', module: MODULES.demand, parameter:[]},
+export interface CallMachine extends CallBase { //@ todo self-owned node operate
+    permission_new?: string;
+    bPaused?: boolean;
+    bPublished?: boolean;
+    consensus_repository?: {op:'set' | 'add' | 'remove' ; repositories:string[]} | {op:'removeall'};
+    description?: string;
+    endpoint?: string;
+    clone_new?: boolean;
+    nodes?: {op: 'add'; data: Machine_Node[]} | {op: 'remove'; names: string[], bTransferMyself?:boolean} 
+        | {op:'rename node'; data:{old:string; new:string}[]} | {op:'add from myself'; addresses: string[]}
+        | {op:'remove pair'; pairs: {prior_node_name:string; node_name:string}[]}
+        | {op:'add forward'; data: {prior_node_name:string; node_name:string; forward:Machine_Forward; threshold?:number; old_need_remove?:string}[]}
+        | {op:'remove forward'; data:{prior_node_name:string; node_name:string; forward_name:string}[]}
+}       
 
-    {permissionIndex:PermissionIndex.machine, name: 'Machine', description:'Launch new Machine', module: MODULES.machine, parameter:[]},
-    {permissionIndex:PermissionIndex.machine_description, name: 'Description', description:'Set Machine description', module: MODULES.machine, parameter:[]},
-    {permissionIndex:PermissionIndex.machine_repository, name: 'Repository', description:'Set Machine repository', module: MODULES.machine, parameter:[]},
-    {permissionIndex:PermissionIndex.machine_clone, name: 'Clone', description:'Clone Machine', module: MODULES.machine, parameter:[]},
-    {permissionIndex:PermissionIndex.machine_node, name: 'Node', description:'Set Machine nodes', module: MODULES.machine, parameter:[]},
-    {permissionIndex:PermissionIndex.machine_endpoint, name: 'Endpoint', description:'Set Machine endpoint', module: MODULES.machine, parameter:[]},
-    {permissionIndex:PermissionIndex.machine_pause, name: 'Pause', description:'Pause/Unpause Machine', module: MODULES.machine, parameter:[]},
-    {permissionIndex:PermissionIndex.machine_publish, name: 'Publish', description:'Allowing the creation of Progress', module: MODULES.machine, parameter:[]},
-
-    {permissionIndex:PermissionIndex.progress, name: 'Progress', description:'Launch new Progress', module: MODULES.progress, parameter:[]},
-    {permissionIndex:PermissionIndex.progress_namedOperator, name: 'Operator', description:'Set Progress operators', module: MODULES.progress, parameter:[]},
-    {permissionIndex:PermissionIndex.progress_bind_task, name: 'Bind', description:'Set Progress task', module: MODULES.progress, parameter:[]},
-    {permissionIndex:PermissionIndex.progress_context_repository, name: 'Repository', description:'Set Progress repository', module: MODULES.progress, parameter:[]},
-    {permissionIndex:PermissionIndex.progress_unhold, name: 'Unhold', description:'Release Progress holdings', module: MODULES.progress, parameter:[]},
-    {permissionIndex:PermissionIndex.progress_parent, name: 'Parent', description:'Set Progress parent', module: MODULES.progress, parameter:[]},
-    
-    {permissionIndex:PermissionIndex.treasury, name: 'Treasury', description:'Launch new Treasury', module: MODULES.treasury, parameter:[]},
-    {permissionIndex:PermissionIndex.treasury_deposit, name: 'Deposit', description:'Deposit coins', module: MODULES.treasury, parameter:[]},
-    {permissionIndex:PermissionIndex.treasury_receive, name: 'Receive', description:'Receive coins from some address sent', module: MODULES.treasury, parameter:[]},
-    {permissionIndex:PermissionIndex.treasury_withdraw, name: 'Withdraw', description:'Withdraw coins', module: MODULES.treasury, parameter:[]},
-    {permissionIndex:PermissionIndex.treasury_withdraw_guard, name: 'Withdraw Guard', description:'Add/Remove Treasury withdraw guard', module: MODULES.treasury, parameter:[]},
-    {permissionIndex:PermissionIndex.treasury_withdraw_mode, name: 'Withdraw mode', description:'Set Treasury withdraw mode', module: MODULES.treasury, parameter:[]},
-    {permissionIndex:PermissionIndex.treasury_deposit_guard, name: 'Deposit Guard', description:'Set Treasury deposit guard', module: MODULES.treasury, parameter:[]},
-    {permissionIndex:PermissionIndex.treasury_descritption, name: 'Description', description:'Set Treasury description', module: MODULES.treasury, parameter:[]},
-
-    {permissionIndex:PermissionIndex.arbitration, name: 'Arbitration', description:'Launch new Arbitration', module: MODULES.arbitration, parameter:[]},
-    {permissionIndex:PermissionIndex.arbitration_description, name: 'Description', description:'Set Arbitration description', module: MODULES.arbitration, parameter:[]},
-    {permissionIndex:PermissionIndex.arbitration_endpoint, name: 'Endpoint', description:'Set Arbitration endpoint', module: MODULES.arbitration, parameter:[]},
-    {permissionIndex:PermissionIndex.arbitration_fee, name: 'Fee', description:'Set Arbitration fee', module: MODULES.arbitration, parameter:[]},
-    {permissionIndex:PermissionIndex.arbitration_guard, name: 'Guard', description:'Set Guard to apply for arbitration', module: MODULES.arbitration, parameter:[]},
-    {permissionIndex:PermissionIndex.arbitration_arbitration, name: 'Arbitrate', description:'Determine the outcome of arbitration', module: MODULES.arbitration, parameter:[]},
-    {permissionIndex:PermissionIndex.arbitration_pause, name: 'Pause', description:'Allowing/forbidding the creation of Arb', module: MODULES.arbitration, parameter:[]},
-    {permissionIndex:PermissionIndex.arbitration_voting_guard, name: 'Voting Guard', description:'Add/Remove voting Guard', module: MODULES.arbitration, parameter:[]},
-    {permissionIndex:PermissionIndex.arbitration_vote, name: 'Vote', description:'Vote on the application for arbitration', module: MODULES.arbitration, parameter:[]},
-    {permissionIndex:PermissionIndex.arbitration_withdraw, name: 'Withdraw', description:'Withdraw the arbitration fee', module: MODULES.arbitration, parameter:[]},
-    {permissionIndex:PermissionIndex.arbitration_treasury, name: 'Withdraw', description:'Set Treasury that fees was collected at the time of withdrawal', module: MODULES.arbitration, parameter:[]},
-]
+export interface CallService extends CallBase {
+    permission_new?: string;
+    bPaused?: boolean;
+    bPublished?: boolean;
+    description?: string;
+    arbitration: {op:'set' | 'add'; arbitrations:{address:string, token_type:string}[]} 
+        | {op:'removeall'} | {op:'remove', addresses:string[]};
+    buy_guard?: string;
+    endpoint?: string;
+    extern_withdraw_treasury: {op:'set' | 'add'; treasuries:{address:string, token_type:string}[]} 
+        | {op:'removeall'} | {op:'remove', addresses:string[]};
+    machine?: string;
+    payee_treasury?:string;
+    clone_new?: {token_type_new?:string};
+    repository: {op:'set' | 'add' | 'remove' ; repositories:string[]} | {op:'removeall'};
+    withdraw_guard?: {op:'add' | 'set'; guards:Service_Guard_Percent[]} 
+        | {op:'removeall'} | {op:'remove', addresses:string[]};
+    refund_guard?: {op:'add' | 'set'; guards:Service_Guard_Percent[]} 
+        | {op:'removeall'} | {op:'remove', addresses:string[]};
+    customer_required_info?: {pubkey:string; required_info:(string | BuyRequiredEnum)[]};
+    sales: {}
+}
 export namespace Call {
-    export const calls = async (funcs: AgentOperate[]) => {
-        const needLaunch: any[] = [];
+    export const repository = (call: CallRepository, txb:TransactionBlock, passport?:PassportObject) => {
+        let obj : Repository | undefined ; let permission: any;
+        if (call.object === 'new') {
+            if (!call?.permission || !IsValidAddress(call?.permission)) {
+                permission = Permission.New(txb, '');
+            }
+            
+            obj = Repository.New(txb, permission ?? call?.permission, call?.description??'', call?.policy_mode, permission?undefined:passport)
+        } else {
+            if (IsValidAddress(call.object) && call.permission && IsValidAddress(call?.permission)) {
+                obj = Repository.From(txb, call.permission, call.object)
+            }
+        }
 
-        // build operations
-        try {
-            funcs.forEach((v) => {
-                switch (v.module){
-                    case MODULES.repository:
-                        repository_call(v, needLaunch);
+        if (obj) {
+            if (call?.permission_new !== undefined ) {
+                obj.change_permission(call.permission_new);
+            }
+            if (call?.description !== undefined && call.object !== 'new') {
+                obj.set_description(call.description, passport);
+            }
+            if (call?.policy_mode !== undefined && call.object !== 'new') {
+                obj.set_policy_mode(call.policy_mode, passport)
+            }
+            if (call?.reference !== undefined) {
+                switch (call.reference.op) {
+                    case 'set':
+                        obj.remove_reference([], true, passport);
+                        obj.add_reference(call.reference.addresses, passport);
+                        break;
+                    case 'add':
+                        obj.add_reference(call.reference.addresses, passport);
+                        break;
+                    case 'remove':
+                        obj.remove_reference(call.reference.addresses, false, passport);
+                        break;
+                    case 'removeall':
+                        obj.remove_reference([], true, passport);
                         break;
                 }
-            })            
-        } catch (e) {
-
+            }
+            if (call?.policy !== undefined) {
+                switch(call.policy.op) {
+                    case 'set':
+                        obj.remove_policies([], true, passport);
+                        obj.add_policies(call.policy.data, passport);
+                        break;
+                    case 'add':
+                        obj.add_policies(call.policy.data, passport);
+                        break;
+                    case 'remove':
+                        obj.remove_policies(call.policy.data, false, passport);
+                        break;
+                    case 'removeall':
+                        obj.remove_policies([], true, passport);
+                        break;
+                    case 'rename':
+                        call.policy.data.forEach((v) => {
+                            obj.rename_policy(v.old, v.new, passport);
+                        })
+                }
+            }
+            if (call?.data !== undefined) {
+                switch(call.data.op) {
+                    case 'add':
+                        if ((call.data?.data as any)?.key !== undefined) {
+                            obj.add_data(call.data.data as Repository_Policy_Data);
+                        } else if ((call.data?.data as any)?.address !== undefined) {
+                            obj.add_data2(call.data.data as Repository_Policy_Data2);
+                        }
+                        break;
+                    case 'remove':
+                        obj.remove(call.data.data.address, call.data.data.key);
+                        break;
+                }
+            }
+            if (permission) {
+                permission.launch();
+            }
+            if (call.object === 'new') {
+                obj.launch();
+            }
         }
     }
 
-    const repository_call = (func:AgentOperate, needLaunch:any[]) => {
-        switch(func.name) {
-            case FUNCNAME.Repository_New:
+    export const permission = (call: CallPermission, txb:TransactionBlock) => {
+        let obj : Permission | undefined ; 
+        if (call.object === 'new') {
+            obj = Permission.New(txb, call?.description??'');
+        } else {
+            if (IsValidAddress(call.object)) {
+                obj = Permission.From(txb, call.object)
+            }
+        }
+
+        if (obj) {
+            if (call?.builder !== undefined ) {
+                obj.change_owner(call.builder);
+            }
+            if (call?.admin !== undefined) {
+                switch(call.admin.op) {
+                    case 'add':
+                        obj.add_admin(call.admin.admins);
+                        break;
+                    case 'remove':
+                        obj.remove_admin(call.admin.admins);
+                        break;
+                    case 'set':
+                        obj.remove_admin([], true);
+                        obj.add_admin(call.admin.admins);
+                        break
+                }
+            }
+            if (call?.description !== undefined && call.object !== 'new') {
+                obj.set_description(call.description)
+            }
+            if (call?.entity !== undefined) {
+                switch (call.entity.op) {
+                    case 'add entity':
+                        obj.add_entity(call.entity.entities);
+                        break;
+                    case 'add permission':
+                        obj.add_entity3(call.entity.permissions);
+                        break;
+                    case 'remove entity':
+                        obj.remove_entity(call.entity.addresses);
+                        break;
+                    case 'remove permission':
+                        obj.remove_index(call.entity.address, call.entity.index);
+                        break;
+                    case 'transfer permission':
+                        obj.transfer_permission(call.entity.from_address, call.entity.to_address);
+                        break;
+                }
+            }
+            if (call?.biz_permission !== undefined) {
+                switch(call.biz_permission.op) {
+                    case 'add':
+                        call.biz_permission.data.forEach(v => {
+                            obj.add_userdefine(v.index, v.name);
+                        })
+                        break;
+                    case 'remove':
+                        call.biz_permission.permissions.forEach(v => {
+                            obj.remove_userdefine(v);
+                        })
+                        break;
+                }
+            }
+            if (call.object === 'new') {
+                obj.launch();
+            }
+        }
+    }
+
+    export const demand = (call: CallDemand, txb:TransactionBlock, passport?: PassportObject) => {
+        let obj : Demand | undefined ; let permission: any;
+        if (call.object === 'new' && call?.type_parameter) {
+            if (!call?.permission || !IsValidAddress(call?.permission)) {
+                permission = Permission.New(txb, '');
+            }
+            
+            if (call.time_expire !== undefined) {
+                obj = Demand.New(txb, call?.type_parameter, call.time_expire?.op === 'duration' ? true : false, 
+                    call.time_expire?.op === 'duration' ? call.time_expire.minutes : call.time_expire?.time,
+                    permission ?? call?.permission, call?.description??'', call.type_parameter, permission?undefined:passport)
+            } else {
+                obj = Demand.New(txb, call?.type_parameter, true, 30*24*60, // 30days default
+                    permission ?? call?.permission, call?.description??'', call.type_parameter, permission?undefined:passport)
+            }
+        } else {
+            if (IsValidAddress(call.object) && call.type_parameter && call.permission && IsValidAddress(call?.permission)) {
+                obj = Demand.From(txb, call.type_parameter, call.permission, call.object)
+            }
+        }
+
+        if (obj) {
+            if (call?.permission_new !== undefined ) {
+                obj.change_permission(call.permission_new);
+            }
+            if (call?.description !== undefined && call.object !== 'new') {
+                obj.set_description(call.description, passport);
+            }
+            if (call?.guard !== undefined) {
+                obj.set_guard(call.guard.address, call.guard?.service_id_in_guard ?? undefined, passport)
+            }
+            if (call?.time_expire !== undefined && call.object !== 'new') {
+                obj.expand_time(call.time_expire.op === 'duration' ? true : false, 
+                    call.time_expire.op === 'duration' ? call.time_expire.minutes : call.time_expire.time, passport)
+            }
+            if (call?.bounty !== undefined) {
+                if (call.bounty.op === 'add') {
+                    let deposit : any | undefined; let b = BigInt(call.bounty.balance);
+                    if (b > BigInt(0)) {
+                        if (call?.type_parameter === '0x2::sui::SUI' || call?.type_parameter === '0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI') {
+                            deposit = txb.splitCoins(txb.gas, [b])[0];
+                        } else if (call?.bounty?.object) {
+                            deposit = txb.splitCoins(call.bounty.object, [b])[0];
+                        }
+                        if (deposit) {
+                            obj.deposit(deposit);                              
+                        }
+                    }
+                } else if (call.bounty.op === 'refund') {
+                    obj.refund(passport);
+                } else if (call.bounty.op === 'reward') {
+                    obj.yes(call.bounty.service, passport);
+                }
+            }
+            if (call?.present !== undefined) {
+                //@ demand guard
+                obj.present(call.present.service, call.present.service_pay_type, call.present.recommend_words, passport);
+            }
+            if (permission) {
+                permission.launch();
+            }
+            if (call.object === 'new') {
+                obj.launch();
+            }
+        }
+    }
+
+    export const machine = (call: CallMachine, txb:TransactionBlock, passport?: PassportObject) => {
+        let obj : Machine | undefined ; let permission: any;
+        if (call.object === 'new' && call?.type_parameter) {
+            if (!call?.permission || !IsValidAddress(call?.permission)) {
+                permission = Permission.New(txb, '');
+            }
+            obj = Machine.New(txb, permission ?? call?.permission, call?.description??'', call?.endpoint ?? '', permission?undefined:passport);
+        } else {
+            if (IsValidAddress(call.object) && call.type_parameter && call.permission && IsValidAddress(call?.permission)) {
+                obj = Machine.From(txb, call.permission, call.object)
+            }
+        }
+
+        if (obj) {
+            if (call?.permission_new !== undefined ) {
+                obj.change_permission(call.permission_new);
+            }
+            if (call?.description !== undefined && call.object !== 'new') {
+                obj.set_description(call.description, passport);
+            }
+            if (call?.endpoint !== undefined && call.object !== 'new') {
+                obj.set_endpoint(call.endpoint, passport)
+            }
+            if (call?.bPaused !== undefined) {
+                obj.pause(call.bPaused, passport)
+            }
+            if (call?.bPublished ) {
+                obj.publish(passport)
+            }
+            if (call?.clone_new) {
+                obj.clone(true, passport)
+            }
+            if (call?.consensus_repository !== undefined) {
+                switch (call.consensus_repository.op) {
+                    case 'add': 
+                        call.consensus_repository.repositories.forEach(v=>obj.add_repository(v, passport)) ;
+                        break;
+                    case 'remove': 
+                        obj.remove_repository(call.consensus_repository.repositories, false, passport);
+                        break;
+                    case 'removeall': 
+                        obj.remove_repository([], true, passport);
+                        break;
+                    case 'set':
+                        obj.remove_repository([], true, passport);
+                        call.consensus_repository.repositories.forEach(v=>obj.add_repository(v, passport)) ;
+                        break;
+                }
+            }
+            if (call?.nodes !== undefined) {
+                switch (call?.nodes?.op) {
+                    case 'add':
+                        obj.add_node(call.nodes.data, passport)
+                        break;
+                    case 'remove':
+                        obj.remove_node(call.nodes.names, call.nodes?.bTransferMyself, passport)
+                        break;
+                    case 'rename node':
+                        call.nodes.data.forEach(v => obj.rename_node(v.old, v.new, passport));
+                        break;
+                    case 'add from myself':
+                        obj.add_node2(call.nodes.addresses, passport);
+                        break;
+                    case 'add forward':
+                        call.nodes.data.forEach(v => obj.add_forward(v.prior_node_name, v.node_name, v.forward, v.threshold, v.old_need_remove, passport))
+                        break;
+                    case 'remove forward':
+                        call.nodes.data.forEach(v => obj.remove_forward(v.prior_node_name, v.node_name, v.forward_name, passport))
+                        break;
+                    }
+            }
+            if (permission) {
+                permission.launch();
+            }
+            if (call.object === 'new') {
+                obj.launch();
+            }
+        }
+    }
+
+    export const service = (call: CallService, txb:TransactionBlock, passport?: PassportObject) => {
+        let obj : Service | undefined ; let permission: any;  let payee: any;
+        if (call.object === 'new' && call?.type_parameter) {
+            if (!call?.permission || !IsValidAddress(call?.permission)) {
+                permission = Permission.New(txb, '');
+            }
+            if (!call?.payee_treasury || !IsValidAddress(call?.payee_treasury)) {
+                payee = Treasury.New(txb, call?.type_parameter, permission ?? call?.permission, '', permission?undefined:passport);
+            }
+            obj = Service.New(txb, call.type_parameter, permission ?? call?.permission, call?.description??'', payee, permission?undefined:passport)
+        } else {
+            if (IsValidAddress(call.object) && call.type_parameter && call.permission && IsValidAddress(call?.permission)) {
+                obj = Service.From(txb, call.type_parameter, call.permission, call.object)
+            }
+        }
+
+        if (obj) {
+            if (call?.permission_new !== undefined) {
+                obj.change_permission(call.permission_new);
+            }
+            if (call?.description !== undefined && call.object !== 'new') {
+                obj.set_description(call.description, passport);
+            }
+            if (call?.payee_treasury !== undefined && call.object !== 'new') {
+                obj.set_payee(call.payee_treasury, passport);
+            }
+            if (call?.endpoint !== undefined) {
+                obj.set_endpoint(call.endpoint, passport)
+            }
+            if (call?.buy_guard !== undefined) {
+                obj.set_buy_guard(call.buy_guard, passport)
+            }
+            if (call?.bPaused !== undefined) {
+                obj.pause(call.bPaused, passport)
+            }
+            if (call?.bPublished) {
+                obj.publish(passport)
+            }
+            if (call?.clone_new !== undefined) {
+                obj.clone(call.clone_new?.token_type_new, true, passport)
+            }
+            if (call?.machine !== undefined) {
+                obj.set_machine(call.machine, passport)
+            }
+            if (call?.repository !== undefined) {
+                switch (call.repository.op) {
+                    case 'add':
+                        call.repository.repositories.forEach(v => obj.add_repository(v, passport))
+                        break;
+                    case 'remove':
+                        obj.remove_repository(call.repository.repositories, false, passport)
+                        break;
+                    case 'set':
+                        obj.remove_repository([], true, passport)
+                        call.repository.repositories.forEach(v => obj.add_repository(v, passport))
+                        break;
+                    case 'removeall':
+                        obj.remove_repository([], true, passport)
+                        break;
+                }
+            }
+            if (call?.extern_withdraw_treasury !== undefined) {
+                switch(call.extern_withdraw_treasury.op) {
+                    case 'add':
+                        call.extern_withdraw_treasury.treasuries.forEach(v=>obj.add_treasury(v.token_type, v.address, passport))
+                        break;
+                    case 'set':
+                        obj.remove_treasury([], true, passport)
+                        call.extern_withdraw_treasury.treasuries.forEach(v=>obj.add_treasury(v.token_type, v.address, passport))
+                        break;
+                    case 'remove':
+                        obj.remove_treasury(call.extern_withdraw_treasury.addresses, false, passport)
+                        break;
+                    case 'removeall':
+                        obj.remove_treasury([], false, passport)
+                        break;
+                }
+            }
+            if (call?.arbitration !== undefined) {
+                switch(call.arbitration.op) {
+                    case 'add':
+                        call.arbitration.arbitrations.forEach(v=>obj.add_arbitration(v.address, v.token_type, passport))
+                        break;
+                    case 'set':
+                        obj.remove_arbitration([], true, passport)
+                        call.arbitration.arbitrations.forEach(v=>obj.add_arbitration(v.address, v.token_type, passport))
+                        break;
+                    case 'remove':
+                        obj.remove_arbitration(call.arbitration.addresses, false, passport)
+                        break;
+                    case 'removeall':
+                        obj.remove_arbitration([], false, passport)
+                        break;
+                }
+            }
+            if (call?.customer_required_info !== undefined) {
+                obj.set_customer_required(call.customer_required_info.pubkey, call.customer_required_info.required_info, passport);
+            }
+            if (call?.refund_guard !== undefined) {
+                switch(call.refund_guard.op) {
+                    case 'add':
+                        obj.add_refund_guards(call.refund_guard.guards, passport)
+                        break;
+                    case 'set':
+                        obj.remove_refund_guards([], true, passport)
+                        obj.add_refund_guards(call.refund_guard.guards, passport)
+                        break;
+                    case 'remove':
+                        obj.remove_refund_guards(call.refund_guard.addresses, false, passport)
+                        break;
+                    case 'removeall':
+                        obj.remove_refund_guards([], true, passport)
+                        break;
+                }
+            }
+            if (call?.withdraw_guard !== undefined) {
+                switch(call.withdraw_guard.op) {
+                    case 'add':
+                        obj.add_withdraw_guards(call.withdraw_guard.guards, passport)
+                        break;
+                    case 'set':
+                        obj.remove_withdraw_guards([], true, passport)
+                        obj.add_withdraw_guards(call.withdraw_guard.guards, passport)
+                        break;
+                    case 'remove':
+                        obj.remove_withdraw_guards(call.withdraw_guard.addresses, false, passport)
+                        break;
+                    case 'removeall':
+                        obj.remove_withdraw_guards([], true, passport)
+                        break;
+                }
+            }
+            if (call?.sales !== undefined) {
                 
-                break;
-            case FUNCNAME.Repository_AddData:
-                break;
-            case FUNCNAME.Repository_AddPolicy:
-                break;
-            case FUNCNAME.Repository_AddReference:
-                break;
-            case FUNCNAME.Repository_Description:
-                break;
-            case FUNCNAME.Repository_PolicyDescription:
-                break;
-            case FUNCNAME.Repository_PolicyMode:
-                break;
-            case FUNCNAME.Repository_PolicyPermission:
-                break;
-            case FUNCNAME.Repository_RemoveData:
-                break;
-            case FUNCNAME.Repository_RemovePolicy:
-                break;
-            case FUNCNAME.Repository_RemoveReference:
-                break;
-            case FUNCNAME.Repository_RenamePolicy:
-                break;
+            }
+            if (permission) {
+                permission.launch();
+            }
+            if (payee) {
+                payee.launch();
+            }
+            if (call.object === 'new') {
+                obj.launch();
+            }
         }
     }
 }

@@ -8,7 +8,7 @@ import { Errors, ERROR}  from './exception'
 import { ValueType } from './protocol';
 
 export interface ServiceWrap {
-    object:ServiceObject,
+    object: ServiceObject,
     pay_token_type: string,
     bOptional: boolean,
 }
@@ -331,17 +331,26 @@ export class Machine {
         }   
     }
 
-    clone(passport?:PassportObject) : MachineObject  {
+    clone(bLaunch?: boolean, passport?:PassportObject) : MachineObject | MachineAddress  {
+        let ret: MachineObject | undefined;
         if (passport) {
-            return this.txb.moveCall({
+            ret = this.txb.moveCall({
                 target:Protocol.Instance().MachineFn('clone_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(this.txb,  this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
             })
         } else {
-            return this.txb.moveCall({
+            ret = this.txb.moveCall({
                 target:Protocol.Instance().MachineFn('clone') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb,  this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
             })
+        }
+        if (bLaunch) {
+            return this.txb.moveCall({
+                target:Protocol.Instance().MachineFn('create') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, ret)],
+            })
+        } else {
+            return ret
         }
     }
 

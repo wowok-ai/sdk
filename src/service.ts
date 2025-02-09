@@ -826,20 +826,30 @@ export class Service {
         
     }
 
-    clone(new_token_type?:string, passport?:PassportObject) : ServiceObject  {
+    clone(new_token_type?:string, bLaunch?:boolean, passport?:PassportObject) : ServiceObject | ServiceAddress  {
+        let ret : ServiceObject | undefined;
         if (passport) {
-            return this.txb.moveCall({
+            ret = this.txb.moveCall({
                 target:Protocol.Instance().ServiceFn('clone_withpassport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type, new_token_type ? new_token_type : this.pay_token_type]
             })    
         } else {
-            return this.txb.moveCall({
+            ret = this.txb.moveCall({
                 target:Protocol.Instance().ServiceFn('clone') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 typeArguments:[this.pay_token_type, new_token_type ? new_token_type : this.pay_token_type]
             })    
         }  
+        if (bLaunch) {
+            return this.txb.moveCall({
+                target:Protocol.Instance().ServiceFn('create') as FnCallType,
+                arguments:[Protocol.TXB_OBJECT(this.txb, ret)],
+                typeArguments:[new_token_type ? new_token_type : this.pay_token_type]
+            })
+        } else {
+            return ret;
+        }
     }
 
     set_customer_required(pubkey:string, customer_required: (BuyRequiredEnum | string)[], passport?:PassportObject) {

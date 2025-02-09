@@ -226,16 +226,29 @@ export const PermissionInfo : PermissionInfoType[] = [
 
 export type PermissionIndexType = PermissionIndex | number;
 
-export type Permission_Index = {
+export interface Permission_Entity_Permission {
     index: PermissionIndexType;
     guard?: TxbObject;
 }
 
-export type Permission_Entity = {
-    entity_address:string;
-    permissions:Permission_Index[];
+export interface Permission_Entity {
+    address:string;
+    permissions:Permission_Entity_Permission[];
 }
 
+export interface Permission_Index_Entity {
+    address: string;
+    guard?: TxbObject;
+}
+export interface Permission_Index {
+    index: PermissionIndexType;
+    entities: Permission_Index_Entity[];
+}
+
+export interface UserDefinedIndex {
+    index: PermissionIndexType;
+    name: string;
+}
 export class  Permission {
     protected txb;
     protected object : TxbObject;
@@ -295,9 +308,9 @@ export class  Permission {
         })   
     }
 
-    change_entity(old_entity: string, new_entity: string) {
+    transfer_permission(old_entity: string, new_entity: string) {
         if (!IsValidAddress(old_entity) || !IsValidAddress(new_entity)) {
-            ERROR(Errors.IsValidAddress, 'change_entity')
+            ERROR(Errors.IsValidAddress, 'transfer_permission')
         }
 
         this.txb.moveCall({
@@ -327,20 +340,41 @@ export class  Permission {
             })                   
         }
     }
+    add_entity3(entities: Permission_Index[]) {
+        if (entities.length === 0) return;
+        const e : Permission_Entity[] = [];
+
+        entities.forEach((v) => {
+            v.entities.forEach((p) => {
+                const f = e.find((i) => i.address === p.address);
+                if (f) {
+                    const t = f.permissions.find((k)=>k.index === v.index);
+                    if (t) {
+                        t.guard = p.guard;
+                    } else {
+                        f.permissions.push({guard:p.guard, index:v.index});
+                    }
+                } else {
+                    e.push({address:p.address, permissions:[{guard:p.guard, index:v.index}]})
+                }
+            })
+        });
+        this.add_entity(e);
+    }
 
     add_entity(entities:Permission_Entity[])  {
         if (entities.length === 0) return
 
         let bValid = true;
-        let e = entities.forEach((v) => {
-            if (!IsValidAddress(v.entity_address)) bValid = false;
+        entities.forEach((v) => {
+            if (!IsValidAddress(v.address)) bValid = false;
             v.permissions.forEach((p) => {
                 if (!Permission.IsValidPermissionIndex(p.index)) bValid = false;
                 if (p?.guard && !Protocol.IsValidObjects([p.guard])) bValid = false;
             })
         });
         if (!bValid) {
-            ERROR(Errors.InvalidParam, 'entities');
+            ERROR(Errors.InvalidParam, 'add_entity.entities');
         }
 
         let guards:any[]  = [];
@@ -357,7 +391,7 @@ export class  Permission {
                 if (!indexes.includes(index.index))   {
                     indexes.push(index.index);
                     if (index?.guard) {
-                        guards.push({entity_address:entity.entity_address, index:index.index, guard:index.guard});
+                        guards.push({address:entity.address, index:index.index, guard:index.guard});
                     }
                 }      
             }    
@@ -365,25 +399,25 @@ export class  Permission {
             if (indexes.length > 0) {
                 this.txb.moveCall({
                     target:Protocol.Instance().PermissionFn('add_batch') as FnCallType,
-                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity.entity_address), 
+                    arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity.address), 
                         this.txb.pure.vector('u64', indexes)]
                 })            
             }
         } 
         // set guards
-        guards.forEach(({entity_address, index, guard}) => {
+        guards.forEach(({address, index, guard}) => {
             this.txb.moveCall({
                 target:Protocol.Instance().PermissionFn('guard_set') as FnCallType,
-                arguments:[ Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity_address), 
+                arguments:[ Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address), 
                     this.txb.pure.u64(index), Protocol.TXB_OBJECT(this.txb, guard)]
             })
         })
     }
 
     // guard: undefine to set none
-    set_guard(entity_address:string, index:PermissionIndexType, guard?:GuardObject)  {
-        if (!IsValidAddress(entity_address)) {
-            ERROR(Errors.IsValidAddress, 'entity_address')
+    set_guard(address:string, index:PermissionIndexType, guard?:GuardObject)  {
+        if (!IsValidAddress(address)) {
+            ERROR(Errors.IsValidAddress, 'address')
         }
         if(!Permission.IsValidPermissionIndex(index) && !Permission.IsValidUserDefinedIndex(index)) {
             ERROR(Errors.IsValidPermissionIndex, 'index')
@@ -392,20 +426,20 @@ export class  Permission {
         if (guard) {
             this.txb.moveCall({
                 target:Protocol.Instance().PermissionFn('guard_set') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity_address), 
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address), 
                     this.txb.pure.u64(index), Protocol.TXB_OBJECT(this.txb, guard)]
             })    
         } else {
             this.txb.moveCall({
                 target:Protocol.Instance().PermissionFn('guard_none') as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity_address), 
+                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address), 
                     this.txb.pure.u64(index)]
             })       
         };
     }
 
-    remove_index(entity_address:string, index:PermissionIndexType[])  {
-        if (!IsValidAddress(entity_address)) {
+    remove_index(address:string, index:PermissionIndexType[])  {
+        if (!IsValidAddress(address)) {
             ERROR(Errors.IsValidAddress)
         }
         if (index.length === 0) return ;
@@ -415,19 +449,19 @@ export class  Permission {
 
         this.txb.moveCall({
             target:Protocol.Instance().PermissionFn('remove_index') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity_address), 
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address), 
                 this.txb.pure.vector('u64', array_unique(index))]
         })            
     }
-    remove_entity(entity_address:string[])  {
-        if (entity_address.length === 0) return ;
-        if (!IsValidArray(entity_address, IsValidAddress)) {
+    remove_entity(address:string[])  {
+        if (address.length === 0) return ;
+        if (!IsValidArray(address, IsValidAddress)) {
             ERROR(Errors.IsValidArray)
         }
 
         this.txb.moveCall({
             target:Protocol.Instance().PermissionFn('remove') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(entity_address))]
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(address))]
         })           
     }
 
