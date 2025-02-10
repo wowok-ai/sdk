@@ -15,8 +15,9 @@ import { Entity } from '../entity';
 import { Repository, Repository_Policy, Repository_Policy_Data, Repository_Policy_Data2, Repository_Policy_Data_Remove, Repository_Policy_Mode, } from '../repository';
 import { Demand } from '../demand';
 import { Machine, Machine_Forward, Machine_Node } from '../machine';
-import { BuyRequiredEnum, Customer_RequiredInfo, DicountDispatch, Service, Service_Buy, Service_Guard_Percent, Service_Sale } from '../service';
-import { Treasury } from '../treasury';
+import { BuyRequiredEnum, Customer_RequiredInfo, DicountDispatch, Service, Service_Buy, Service_Guard_Percent, Service_Sale, WithdrawPayee } from '../service';
+import { DepositParam, Treasury, Treasury_WithdrawMode, WithdrawParam } from '../treasury';
+import { Arbitration, VotingGuard } from '../arbitration';
 
 export interface CallBase {
     object: string | 'new';
@@ -90,8 +91,36 @@ export interface CallService extends CallBase {
         | {op:'removeall'} | {op:'remove', addresses:string[]};
     customer_required_info?: {pubkey:string; required_info:(string | BuyRequiredEnum)[]};
     sales: {op:'add', sales:Service_Sale[]} | {op:'remove'; sales_name:string[]}
+    crypto_pubkey?: string;
+    order_required_info?: {order:string; info:Customer_RequiredInfo};
+    order_refund?: {order:string; guard?:string;} | {order:string; arb:string; arb_token_type:string}; // guard address
+    order_withdrawl?: {order:string; data:WithdrawPayee}; // guard address
+    order_payer?: {order:string; payer_new: string}; // transfer the order payer permission to someaddress
+    order_agent?: {order:string; agents: string[]; progress?:string};
 }
 
+export interface CallTreasury extends CallBase {
+    permission_new?: string;
+    description?: string;
+    withdraw_mode?: Treasury_WithdrawMode;
+    withdraw_guard?: {op:'add' | 'set'; data:{guard:string, amount:string}[]} | {op:'remove', guards:string[]} | {op:'removeall'};
+    deposit_guard?: string;
+    deposit?: DepositParam;
+    receive?: {payment:string; received_object:string};
+    withdraw?:WithdrawParam;
+}
+
+export interface CallArbitration extends CallBase {
+    permission_new?: string;
+    description?: string;
+    bPaused?: boolean;
+    endpoint?: string;
+    fee?: string;
+    fee_treasury?: string;
+    usage_guard?: string;
+    withdraw_treasury?: string;
+    voting_guard?: {op:'add' | 'set'; data:VotingGuard[]} | {op:'remove', guards:string[]} | {op:'removeall'};
+}
 
 export namespace Call {
     export const repository = (call: CallRepository, txb:TransactionBlock, passport?:PassportObject) => {
@@ -405,7 +434,7 @@ export namespace Call {
             if (!call?.payee_treasury || !IsValidAddress(call?.payee_treasury)) {
                 payee = Treasury.New(txb, call?.type_parameter, permission ?? call?.permission, '', permission?undefined:passport);
             }
-            obj = Service.New(txb, call.type_parameter, permission ?? call?.permission, call?.description??'', payee, permission?undefined:passport)
+            obj = Service.New(txb, call.type_parameter, permission??call?.permission, call?.description??'', payee??call?.payee_treasury, permission?undefined:passport)
         } else {
             if (IsValidAddress(call.object) && call.type_parameter && call.permission && IsValidAddress(call?.permission)) {
                 obj = Service.From(txb, call.type_parameter, call.permission, call.object)
@@ -531,6 +560,9 @@ export namespace Call {
                         break;
                 }
             }
+            if (call?.crypto_pubkey !== undefined) {
+                obj.change_required_pubkey(call.crypto_pubkey, passport);
+            }
             if (call?.sales !== undefined) {
                 switch(call.sales.op) {
                     case 'add':
@@ -559,11 +591,162 @@ export namespace Call {
                     obj.buy(call.buy.buy_items, coin, call.buy.discount, call.buy.machine, call.buy.customer_info_crypto, passport)                    
                 }
             }
+            if (call?.order_payer !== undefined) {
+                obj.change_order_payer(call?.order_payer.order, call.order_payer.payer_new)
+            }
+            if (call?.order_agent !== undefined) {
+                obj.set_order_agent(call.order_agent.order, call.order_agent.agents, call.order_agent.progress)
+            }
+            if (call?.order_required_info !== undefined) {
+                obj.update_order_required_info(call.order_required_info.order, call.order_required_info.info)
+            }
+            if (call?.order_refund !== undefined) {
+                if ((call?.order_refund as any)?.arb && (call?.order_refund as any)?.arb_token_type) {
+                    obj.refund_withArb(call.order_refund.order, (call?.order_refund as any)?.arb, (call?.order_refund as any)?.arb_token_type)
+                } else {
+                    obj.refund(call.order_refund.order, (call?.order_refund as any)?.guard, passport)
+                }
+            }
+            if (call?.order_withdrawl !== undefined && passport) { //@ need withdrawal passport
+                obj.withdraw(call.order_withdrawl.order, call.order_withdrawl.data, passport)
+            }
+
             if (permission) {
                 permission.launch();
             }
             if (payee) {
                 payee.launch();
+            }
+            if (call.object === 'new') {
+                obj.launch();
+            }
+        }
+    }
+  
+    export const treasury = (call: CallTreasury, txb:TransactionBlock, passport?: PassportObject) => {
+        let obj : Treasury | undefined ; let permission: any; 
+        if (call.object === 'new' && call?.type_parameter) {
+            if (!call?.permission || !IsValidAddress(call?.permission)) {
+                permission = Permission.New(txb, '');
+            }
+            obj = Treasury.New(txb, call.type_parameter, permission ?? call?.permission, call?.description??'', permission?undefined:passport)
+        } else {
+            if (IsValidAddress(call.object) && call.type_parameter && call.permission && IsValidAddress(call?.permission)) {
+                obj = Treasury.From(txb, call.type_parameter, call.permission, call.object)
+            }
+        }
+
+        if (obj) {
+            if (call?.permission_new !== undefined) {
+                obj.change_permission(call.permission_new);
+            }
+            if (call?.description !== undefined && call.object !== 'new') {
+                obj.set_description(call.description, passport);
+            }
+            if (call?.deposit_guard !== undefined) {
+                obj.set_deposit_guard(call.deposit_guard, passport);
+            }
+            if (call?.withdraw_mode !== undefined) {
+                obj.set_withdraw_mode(call.withdraw_mode, passport)
+            }
+            if (call?.withdraw_guard !== undefined) {
+                switch (call.withdraw_guard.op) {
+                    case 'add':
+                        call.withdraw_guard.data.forEach(v => obj.add_withdraw_guard(v.guard, BigInt(v.amount), passport))
+                        break;
+                    case 'remove':
+                        obj.remove_withdraw_guard(call.withdraw_guard.guards, false, passport)
+                        break;
+                    case 'set':
+                        obj.remove_withdraw_guard([], true, passport)
+                        call.withdraw_guard.data.forEach(v => obj.add_withdraw_guard(v.guard, BigInt(v.amount), passport))
+                        break;
+                    case 'removeall':
+                        obj.remove_withdraw_guard([], true, passport)
+                        break;
+                }
+            }
+            if (call?.withdraw !== undefined) {
+                obj.withdraw(call.withdraw, passport)
+            }
+            if (call?.receive !== undefined) {
+                obj.receive(call.receive.payment, call.receive.received_object, passport); 
+            }
+            if (call.deposit !== undefined) {
+                obj.deposit(call.deposit, passport)
+            }
+
+            if (permission) {
+                permission.launch();
+            }
+            if (call.object === 'new') {
+                obj.launch();
+            }
+        }
+    }
+
+    export const arbitraion = (call: CallArbitration, txb:TransactionBlock, passport?: PassportObject) => {
+        let obj : Arbitration | undefined ; let permission: any; let withdraw_treasury:any;
+        if (call.object === 'new' && call?.type_parameter) {
+            if (!call?.permission || !IsValidAddress(call?.permission)) {
+                permission = Permission.New(txb, '');
+            }
+            if (!call?.withdraw_treasury || !IsValidAddress(call?.withdraw_treasury)) {
+                withdraw_treasury = Treasury.New(txb, call?.type_parameter, permission ?? call?.permission, '', permission?undefined:passport);
+            }
+            obj = Arbitration.New(txb, call.type_parameter, permission ?? call?.permission, call?.description??'', 
+                BigInt(call?.fee ?? 0), withdraw_treasury??call.withdraw_treasury, permission?undefined:passport);
+        } else {
+            if (IsValidAddress(call.object) && call.type_parameter && call.permission && IsValidAddress(call?.permission)) {
+                obj = Arbitration.From(txb, call.type_parameter, call.permission, call.object)
+            }
+        }
+
+        if (obj) {
+            if (call?.permission_new !== undefined) {
+                obj.change_permission(call.permission_new);
+            }
+            if (call?.description !== undefined && call.object !== 'new') {
+                obj.set_description(call.description, passport);
+            }
+            if (call?.bPaused !== undefined) {
+                obj.pause(call.bPaused, passport);
+            }
+            if (call?.endpoint !== undefined) {
+                obj.set_endpoint(call.endpoint, passport)
+            }
+            if (call?.fee !== undefined && call.object !== 'new') {
+                obj.set_fee(BigInt(call.fee), passport)
+            }
+            if (call.fee_treasury !== undefined && call.object !== 'new') {
+                obj.set_withdrawTreasury(call.fee_treasury, passport)
+            }
+            if (call.usage_guard !== undefined) {
+                obj.set_guard(call.usage_guard, passport)
+            }
+            if (call?.voting_guard !== undefined) {
+                switch (call.voting_guard.op) {
+                    case 'add':
+                        obj.add_voting_guard(call.voting_guard.data, passport)
+                        break;
+                    case 'remove':
+                        obj.remove_voting_guard(call.voting_guard.guards, false, passport)
+                        break;
+                    case 'set':
+                        obj.remove_voting_guard([], true, passport)
+                        obj.add_voting_guard(call.voting_guard.data, passport)
+                        break;
+                    case 'removeall':
+                        obj.remove_voting_guard([], true, passport)
+                        break;
+                }
+            }
+            
+            if (withdraw_treasury) {
+                withdraw_treasury.launch();
+            }
+            if (permission) {
+                permission.launch();
             }
             if (call.object === 'new') {
                 obj.launch();

@@ -603,7 +603,7 @@ export class Passport {
             ERROR(Errors.InvalidParam, 'guards' )
         }
 
-        this.txb = txb;
+        this.txb = txb;  //console.log(query)
         this.passport = this.txb.moveCall({
             target:Protocol.Instance().PassportFn('new') as FnCallType,
             arguments: []
