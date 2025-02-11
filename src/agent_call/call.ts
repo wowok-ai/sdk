@@ -17,7 +17,7 @@ import { Demand } from '../demand';
 import { Machine, Machine_Forward, Machine_Node } from '../machine';
 import { BuyRequiredEnum, Customer_RequiredInfo, DicountDispatch, Service, Service_Buy, Service_Guard_Percent, Service_Sale, WithdrawPayee } from '../service';
 import { DepositParam, Treasury, Treasury_WithdrawMode, WithdrawParam } from '../treasury';
-import { Arbitration, VotingGuard } from '../arbitration';
+import { Arbitration, Dispute, Feedback, Vote, VotingGuard, WithdrawFee } from '../arbitration';
 
 export interface CallBase {
     object: string | 'new';
@@ -66,6 +66,10 @@ export interface CallMachine extends CallBase { //@ todo self-owned node operate
         | {op:'remove pair'; pairs: {prior_node_name:string; node_name:string}[]}
         | {op:'add forward'; data: {prior_node_name:string; node_name:string; forward:Machine_Forward; threshold?:number; old_need_remove?:string}[]}
         | {op:'remove forward'; data:{prior_node_name:string; node_name:string; forward_name:string}[]}
+    progress_context_repository?: string;
+    progress_parent?: string;
+    progress_task?: string;
+    progress_namedOperator: {name:string, operator:string[]}[];
 }       
 
 export interface CallService extends CallBase {
@@ -120,6 +124,10 @@ export interface CallArbitration extends CallBase {
     usage_guard?: string;
     withdraw_treasury?: string;
     voting_guard?: {op:'add' | 'set'; data:VotingGuard[]} | {op:'remove', guards:string[]} | {op:'removeall'};
+    dispute?: Dispute; // dispute an order, and a new Arb launched.
+    arb_withdraw_fee?: {arb:string; data:WithdrawFee};
+    arb_vote?: Vote;
+    arb_arbitration?: Feedback;
 }
 
 export namespace Call {
@@ -742,6 +750,19 @@ export namespace Call {
                 }
             }
             
+            if (call?.dispute !== undefined) {
+                obj.dispute(call.dispute, passport)
+            }
+            if (call?.arb_arbitration !== undefined) {
+                obj.arbitration(call.arb_arbitration, passport)
+            }
+            if (call?.arb_vote !== undefined) {
+                obj.vote(call.arb_vote, passport)
+            }
+            if (call?.arb_withdraw_fee !== undefined) {
+                obj.withdraw_fee(call.arb_withdraw_fee.arb, call.arb_withdraw_fee.data, passport)
+            }
+
             if (withdraw_treasury) {
                 withdraw_treasury.launch();
             }

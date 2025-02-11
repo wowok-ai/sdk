@@ -192,6 +192,13 @@ export class Bcs {
         this.bcs.registerStructType('Guards', {
             'guards':'vector<OptionAddress>',
         })
+        this.bcs.registerStructType('Perm', {
+            'index': BCS.U64,
+            'guard': 'Option<address>'
+        })
+        this.bcs.registerStructType('Perms', {
+            'perms':'vector<Perm>'
+        })
     }
     static getInstance() : Bcs { 
         if (!Bcs._instance) {
@@ -329,12 +336,11 @@ export class Bcs {
         r.description = new TextDecoder().decode(Uint8Array.from(r.description));
         return r
     }        
-    de_guards(data:Uint8Array | undefined) : any {
+    de_perms(data:Uint8Array | undefined) : any {
         if (!data || data.length  < 1) return ''
-        let r = this.bcs.de('Guards', data);
-        return r?.guards?.map((v:any) => {
-            if (v?.address?.none) return undefined;
-            return v?.address?.some;
+        let r = this.bcs.de('Perms', data);
+        return r.perms.map((v:any) => {
+            return {index: v?.index, guard:v?.guard?.none ? undefined : '0x'+v?.guard?.some}
         })
     }   
 }

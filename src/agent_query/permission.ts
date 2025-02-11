@@ -48,13 +48,10 @@ export namespace PERMISSION_QUERY {
         if (perm === Permission.PERMISSION_ADMIN || perm === Permission.PERMISSION_OWNER_AND_ADMIN) {
             return {who:query.address, admin:true, owner:perm%2===1, items:[], object:query.permission_object}
         } else {
-            const perms = Bcs.getInstance().de('vector<u64>', Uint8Array.from((res.results as any)[0].returnValues[1][0]));
-            const guards = Bcs.getInstance().de_guards(Uint8Array.from((res.results as any)[0].returnValues[2][0]));
-            const items: PermissionAnswerItem[] = [];
-            for(let i = 0; i < perms.length; ++i) {
-                items.push({query:perms[i], permission:true, guard:guards[i] ? ('0x'+guards[i]) : undefined})
-            }
-            return {who:query.address, admin:false, owner:perm%2===1, items:items, object:query.permission_object};  
+            const perms = Bcs.getInstance().de_perms(Uint8Array.from((res.results as any)[0].returnValues[1][0]));
+            return {who:query.address, admin:false, owner:perm%2===1, items:perms.map((v:any)=>{
+                return {query:v?.index, permission:true, guard:v?.guard}
+            }), object:query.permission_object};  
         }
     }
 }

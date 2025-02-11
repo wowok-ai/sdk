@@ -536,9 +536,9 @@ export class  Permission {
     QueryPermissions(permission:string, address_queried:string, onPermissionAnswer:OnPermissionAnswer, sender?:string) {
         //@ be the same txb
         this.query_permissions_all(address_queried);
-
+        console.log(address_queried)
         Protocol.Client().devInspectTransactionBlock({sender:sender ?? address_queried, transactionBlock:this.txb}).then((res) => {
-            if (res.results && res.results[0].returnValues && res.results[0].returnValues.length !== 3 )  {
+            if (res.results && res.results[0].returnValues && res.results[0].returnValues.length !== 2)  {
                 onPermissionAnswer({who:address_queried, object:permission});
                 return 
             }
@@ -546,13 +546,10 @@ export class  Permission {
             if (perm === Permission.PERMISSION_ADMIN || perm === Permission.PERMISSION_OWNER_AND_ADMIN) {
                 onPermissionAnswer({who:address_queried, admin:true, owner:perm%2===1, items:[], object:permission})
             } else {
-                const perms = Bcs.getInstance().de('vector<u64>', Uint8Array.from((res.results as any)[0].returnValues[1][0]));
-                const guards = Bcs.getInstance().de_guards(Uint8Array.from((res.results as any)[0].returnValues[2][0]));
-                const items: PermissionAnswerItem[] = [];
-                for(let i = 0; i < perms.length; ++i) {
-                    items.push({query:perms[i], permission:true, guard:guards[i] ? ('0x'+guards[i]) : undefined})
-                }
-                onPermissionAnswer({who:address_queried, admin:false, owner:perm%2===1, items:items, object:permission});  
+                const perms = Bcs.getInstance().de_perms(Uint8Array.from((res.results as any)[0].returnValues[1][0]));
+                onPermissionAnswer({who:address_queried, admin:false, owner:perm%2===1, items:perms.map((v:any)=>{
+                    return {query:v?.index, permission:true, guard:v?.guard}
+                }), object:permission});  
             }
         }).catch((e) => {
             console.log(e);
