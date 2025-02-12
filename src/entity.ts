@@ -1,7 +1,7 @@
 import { Protocol, FnCallType, TxbObject, ResourceAddress, PermissionObject, ResourceObject} from './protocol';
 import { IsValidDesription, IsValidAddress, IsValidName, isValidHttpUrl, Bcs, IsValidArray,  } from './utils';
 import { ERROR, Errors } from './exception';
-import { Resource } from './resource';
+import { MarkName, Resource } from './resource';
 import { Transaction as TransactionBlock } from '@mysten/sui/transactions';
 
 export interface Safer {
@@ -18,7 +18,6 @@ export interface Entity_Info {
 }
 
 export class Entity {
-
     protected object:TxbObject;
     protected txb;
 
@@ -34,7 +33,7 @@ export class Entity {
         return r
     }
 
-    mark(resource:Resource, address:string, like:'like' | 'dislike') {
+    mark(resource:Resource, address:string, like:MarkName.LikeName | MarkName.DislikeName) {
         if (!IsValidAddress(address)) ERROR(Errors.IsValidAddress, like);
 
         this.txb.moveCall({
@@ -43,7 +42,7 @@ export class Entity {
                 this.txb.pure.address(address)]
         })
     }
-    
+    /*
     add_safer(safer: Safer[], bExistModify:boolean=true) {
         if (safer.length === 0) return ;
         if (!IsValidArray(safer, (v:Safer) => {
@@ -77,7 +76,7 @@ export class Entity {
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('string', name)]
             })
         }
-    }
+    }*/
 
     update(info: Entity_Info) {
         if (info?.name && !IsValidName(info.name)) ERROR(Errors.IsValidName, 'update');

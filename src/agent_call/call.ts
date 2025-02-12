@@ -11,13 +11,15 @@ import { MultiGetObjectsParams } from '@mysten/sui/client';
 import { Permission, Permission_Entity, Permission_Index, PermissionIndex, UserDefinedIndex } from '../permission';
 import { BCS } from '@mysten/bcs';
 import { PermissionAnswerItem, PermissionIndexType } from '../permission';
-import { Entity } from '../entity';
+import { Entity, Entity_Info } from '../entity';
 import { Repository, Repository_Policy, Repository_Policy_Data, Repository_Policy_Data2, Repository_Policy_Data_Remove, Repository_Policy_Mode, } from '../repository';
 import { Demand } from '../demand';
 import { Machine, Machine_Forward, Machine_Node } from '../machine';
 import { BuyRequiredEnum, Customer_RequiredInfo, DicountDispatch, Service, Service_Buy, Service_Guard_Percent, Service_Sale, WithdrawPayee } from '../service';
 import { DepositParam, Treasury, Treasury_WithdrawMode, WithdrawParam } from '../treasury';
 import { Arbitration, Dispute, Feedback, Vote, VotingGuard, WithdrawFee } from '../arbitration';
+import { Deliverable, ParentProgress, Progress, ProgressNext } from '../progress';
+import { MarkName, Resource } from '../resource';
 
 export interface CallBase {
     object: string | 'new';
@@ -66,10 +68,13 @@ export interface CallMachine extends CallBase { //@ todo self-owned node operate
         | {op:'remove pair'; pairs: {prior_node_name:string; node_name:string}[]}
         | {op:'add forward'; data: {prior_node_name:string; node_name:string; forward:Machine_Forward; threshold?:number; old_need_remove?:string}[]}
         | {op:'remove forward'; data:{prior_node_name:string; node_name:string; forward_name:string}[]}
-    progress_context_repository?: string;
-    progress_parent?: string;
-    progress_task?: string;
-    progress_namedOperator: {name:string, operator:string[]}[];
+    progress_new?: {task_address?:string; };
+    progress_context_repository?: {progress:string; repository:string};
+    progress_parent?: {progress:string, parent?:ParentProgress};
+    progress_task?: {progress:string; task:string};
+    progress_namedOperator?: {progress:string; data:{name:string, operator:string[]}[]};
+    progress_hold?: {progress:string; data:ProgressNext; bHold:boolean; adminUnhold?:boolean};
+    progress_next?: {progress:string; data:ProgressNext; deliverable:Deliverable};
 }       
 
 export interface CallService extends CallBase {
@@ -78,7 +83,6 @@ export interface CallService extends CallBase {
     bPublished?: boolean;
     description?: string;
     gen_discount?: DicountDispatch[];
-    buy?: {buy_items:Service_Buy[], coin_object?:string, discount?:string, machine?:string, customer_info_crypto?: Customer_RequiredInfo}
     arbitration: {op:'set' | 'add'; arbitrations:{address:string, token_type:string}[]} 
         | {op:'removeall'} | {op:'remove', addresses:string[]};
     buy_guard?: string;
@@ -87,7 +91,7 @@ export interface CallService extends CallBase {
         | {op:'removeall'} | {op:'remove', addresses:string[]};
     machine?: string;
     payee_treasury?:string;
-    clone_new?: {token_type_new?:string};
+    clone?: {token_type_new?:string};
     repository: {op:'set' | 'add' | 'remove' ; repositories:string[]} | {op:'removeall'};
     withdraw_guard?: {op:'add' | 'set'; guards:Service_Guard_Percent[]} 
         | {op:'removeall'} | {op:'remove', addresses:string[]};
@@ -96,6 +100,7 @@ export interface CallService extends CallBase {
     customer_required_info?: {pubkey:string; required_info:(string | BuyRequiredEnum)[]};
     sales: {op:'add', sales:Service_Sale[]} | {op:'remove'; sales_name:string[]}
     crypto_pubkey?: string;
+    order_new?: {buy_items:Service_Buy[], coin_object?:string, discount?:string, machine?:string, customer_info_crypto?: Customer_RequiredInfo}
     order_required_info?: {order:string; info:Customer_RequiredInfo};
     order_refund?: {order:string; guard?:string;} | {order:string; arb:string; arb_token_type:string}; // guard address
     order_withdrawl?: {order:string; data:WithdrawPayee}; // guard address
@@ -124,10 +129,23 @@ export interface CallArbitration extends CallBase {
     usage_guard?: string;
     withdraw_treasury?: string;
     voting_guard?: {op:'add' | 'set'; data:VotingGuard[]} | {op:'remove', guards:string[]} | {op:'removeall'};
-    dispute?: Dispute; // dispute an order, and a new Arb launched.
+    arb_new?: Dispute; // dispute an order, and a new Arb launched.
     arb_withdraw_fee?: {arb:string; data:WithdrawFee};
     arb_vote?: Vote;
     arb_arbitration?: Feedback;
+}
+
+export interface CallPersonal extends CallBase {
+    information?: Entity_Info;
+    transfer_to?: string;
+    marks?: {op:'add mark'; data:{mark_name:string; address:string[]}}
+        | {op:'add address'; data:{address:string; mark_name:string[]}} 
+        | {op:'remove mark'; data:{mark_name:string; address:string[]}}
+        | {op:'remove address'; data:{address:string; mark_name:string[]}}
+        | {op:'clear mark'; mark_name:string};
+    tags?: {op:'add'; data:{address:string; nick_name:string; tags:string[]}}
+        | {op:'remove'; address:string};
+    close?: boolean; // close a personal resource
 }
 
 export namespace Call {
@@ -424,6 +442,37 @@ export namespace Call {
                         break;
                     }
             }
+            if (call?.progress_new !== undefined) {
+                Progress?.New(txb, call?.object, permission??call?.permission, call?.progress_new.task_address, passport).launch();
+            }
+            if (call?.progress_context_repository !== undefined) {
+                Progress.From(txb, call?.object, permission??call?.permission, call?.progress_context_repository.progress)
+                    .set_context_repository(call?.progress_context_repository.repository, passport)
+            }
+            if (call?.progress_namedOperator !== undefined) {
+                const p = Progress.From(txb, call?.object, permission??call?.permission, call?.progress_namedOperator.progress);
+                call.progress_namedOperator.data.forEach(v => p.set_namedOperator(v.name, v.operator, passport));
+            }
+            if (call?.progress_parent !== undefined) {
+                if (call.progress_parent.parent) {
+                    Progress.From(txb, call?.object, permission??call?.permission, call?.progress_parent.progress).parent(call.progress_parent.parent);
+                } else {
+                    Progress.From(txb, call?.object, permission??call?.permission, call?.progress_parent.progress).parent_none();
+                }
+            }
+            if (call?.progress_task !== undefined) {
+                Progress.From(txb, call?.object, permission??call?.permission, call?.progress_task.progress).bind_task(call.progress_task.task, passport)
+            }
+            if (call?.progress_hold !== undefined) {
+                if (call?.progress_hold.adminUnhold) {
+                    Progress.From(txb, call?.object, permission??call?.permission, call?.progress_hold.progress).unhold(call.progress_hold.data, passport)
+                } else {
+                    Progress.From(txb, call?.object, permission??call?.permission, call?.progress_hold.progress).hold(call.progress_hold.data, call.progress_hold.bHold)
+                }
+            }
+            if (call?.progress_next !== undefined) {
+                Progress.From(txb, call?.object, permission??call?.permission, call?.progress_next.progress).next(call.progress_next.data, call.progress_next.deliverable, passport)
+            }
             if (permission) {
                 permission.launch();
             }
@@ -471,8 +520,8 @@ export namespace Call {
             if (call?.bPublished) {
                 obj.publish(passport)
             }
-            if (call?.clone_new !== undefined) {
-                obj.clone(call.clone_new?.token_type_new, true, passport)
+            if (call?.clone !== undefined) {
+                obj.clone(call.clone?.token_type_new, true, passport)
             }
             if (call?.machine !== undefined) {
                 obj.set_machine(call.machine, passport)
@@ -581,25 +630,25 @@ export namespace Call {
                         break;
                 }
             }
-            if (call?.buy !== undefined) {
+            if (call?.order_new !== undefined) {
                 let b = BigInt(0); let coin : any;
-                call.buy.buy_items.forEach(v => {
+                call.order_new.buy_items.forEach(v => {
                     b += BigInt(v.max_price) * BigInt(v.count)
                 })
                 if (b > BigInt(0)) {
                     if (call?.type_parameter === '0x2::sui::SUI' || call?.type_parameter === '0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI') {
                         coin = txb.splitCoins(txb.gas, [b])[0];
-                    } else if (call?.buy.coin_object) {
-                        coin = txb.splitCoins(call.buy.coin_object, [b])[0];
+                    } else if (call?.order_new.coin_object) {
+                        coin = txb.splitCoins(call.order_new.coin_object, [b])[0];
                     }                    
                 }
 
                 if (coin) {
                     //@ crypto tools support
-                    obj.buy(call.buy.buy_items, coin, call.buy.discount, call.buy.machine, call.buy.customer_info_crypto, passport)                    
+                    obj.buy(call.order_new.buy_items, coin, call.order_new.discount, call.order_new.machine, call.order_new.customer_info_crypto, passport)                    
                 }
             }
-            if (call?.order_payer !== undefined) {
+            if (call?.order_payer !== undefined && obj) {
                 obj.change_order_payer(call?.order_payer.order, call.order_payer.payer_new)
             }
             if (call?.order_agent !== undefined) {
@@ -750,8 +799,8 @@ export namespace Call {
                 }
             }
             
-            if (call?.dispute !== undefined) {
-                obj.dispute(call.dispute, passport)
+            if (call?.arb_new !== undefined) {
+                obj.dispute(call.arb_new, passport)
             }
             if (call?.arb_arbitration !== undefined) {
                 obj.arbitration(call.arb_arbitration, passport)
@@ -769,6 +818,74 @@ export namespace Call {
             if (permission) {
                 permission.launch();
             }
+            if (call.object === 'new') {
+                obj.launch();
+            }
+        }
+    }
+
+    export const personal = (call: CallPersonal, txb:TransactionBlock) => {
+        let obj : Resource | undefined ; let entity: Entity = Entity.From(txb);
+        if (call.object === 'new') {
+            obj = Resource.From(txb, entity.create_resource2());
+        } else {
+            if (IsValidAddress(call.object)) {
+                obj = Resource.From(txb, call.object)
+                if (call?.close) {
+                    entity.destroy_resource(obj)
+                    return ; //@ return 
+                }
+            }
+        }
+
+        if (call?.information !== undefined ) {
+            entity.update(call.information)
+        }
+
+        if (obj?.get_object()) {
+            if (call?.marks !== undefined) {
+                switch(call.marks.op) {
+                    case 'add address':
+                        obj.add2(call.marks.data.address, call.marks.data.mark_name)
+                        break;
+                    case 'add mark':
+                        if (call.marks.data.mark_name === MarkName.DislikeName || call.marks.data.mark_name === MarkName.LikeName) {
+                            const n = call.marks.data.mark_name;
+                            call.marks.data.address.forEach(v => entity.mark(obj, v, n))
+                        } else {
+                            obj.add(call.marks.data.mark_name, call.marks.data.address)
+                        }
+                        break;
+                    case 'clear mark':
+                        obj.remove(call.marks.mark_name, [], true)
+                        break;
+                    case 'remove address':
+                        obj.remove2(call.marks.data.address, call.marks.data.mark_name)
+                        break;
+                    case 'remove mark':
+                        if (call.marks.data.mark_name === MarkName.DislikeName || call.marks.data.mark_name === MarkName.LikeName) {
+                            const n = call.marks.data.mark_name;
+                            call.marks.data.address.forEach(v => entity.mark(obj, v, n))
+                        } else {
+                            obj.remove(call.marks.data.mark_name, call.marks.data.address)
+                        }
+                        break;
+                }
+            }
+            if (call?.tags !== undefined) {
+                switch(call.tags.op) {
+                    case 'add':
+                        obj.add_tags(call.tags.data.address, call.tags.data.nick_name, call.tags.data.tags)
+                        break;
+                    case 'remove':
+                        obj.remove_tags(call.tags.address)
+                        break;
+                }
+            }
+            if (call?.transfer_to !== undefined) {
+                entity.transfer_resource(obj, call.transfer_to);
+            }
+
             if (call.object === 'new') {
                 obj.launch();
             }

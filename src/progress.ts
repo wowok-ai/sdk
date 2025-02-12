@@ -101,21 +101,6 @@ export class Progress {
         })   
     }
 
-    launch_as_child(parent:ProgressObject, parent_next:ProgressNext) : ProgressAddress {
-        if (!Protocol.IsValidObjects([parent])) {
-            ERROR(Errors.IsValidObjects, 'parent')
-        }
-        if (!Progress.IsValidProgressNext(parent_next)) {
-            ERROR(Errors.InvalidParam, 'parent_next')
-        }
-        
-        return this.txb.moveCall({
-            target:Protocol.Instance().ProgressFn('create_as_child') as FnCallType,
-            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, parent), 
-                this.txb.pure.string(parent_next.next_node_name), this.txb.pure.string(parent_next.forward)],
-        })   
-    }
-
     set_namedOperator(name:string, addresses:string[], passport?:PassportObject)  {
         if (!IsValidName(name)) {
             ERROR(Errors.IsValidName, 'name')
@@ -149,7 +134,6 @@ export class Progress {
             ERROR(Errors.IsValidAddress)
         }
 
-        
         if (passport) {
             this.txb.moveCall({
                 target:Protocol.Instance().ProgressFn('task_set_with_passport') as FnCallType,

@@ -13,16 +13,17 @@ export interface ResourceData { // personal folder
     name: string; // folder name
     address: string[]; // objects in folder
 }
+export enum MarkName {
+    LikeName = "like",
+    DislikeName = "dislike",
+    FavorName = "favor",
+    LaunchName = 'launch',
+    OrderName = 'order',
+}
 
 export class Resource {
     static MAX_ADDRESS_COUNT = 600;
     static MAX_TAGS = 8;
-
-    static LikeName = "like";
-    static DislikeName = "dislike";
-    static FavorName = "favor";
-    static LaunchName = 'launch';
-    static OrderName = 'order';
 
     protected object:TxbObject;
     protected txb;
