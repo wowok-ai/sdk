@@ -43,7 +43,7 @@ export class Resource {
     launch() {
         if (!this.object) ERROR(Errors.Fail, 'launch object Invalid');
         this.txb.moveCall({
-            target:Protocol.Instance().ResourceFn('create')  as FnCallType,
+            target:Protocol.Instance().resourceFn('create')  as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object)]
         });
     }
@@ -63,13 +63,13 @@ export class Resource {
 
         if (bString) {
             this.txb.moveCall({
-                target:Protocol.Instance().ResourceFn('add')  as FnCallType,
+                target:Protocol.Instance().resourceFn('add')  as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(name), 
                     this.txb.pure.vector('address', object as string[])]
             });            
         } else {
             this.txb.moveCall({
-                target:Protocol.Instance().ResourceFn('add')  as FnCallType,
+                target:Protocol.Instance().resourceFn('add')  as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(name), 
                     this.txb.makeMoveVec({elements:object as TransactionResult[], type:'address'})]
             });   
@@ -82,7 +82,7 @@ export class Resource {
         if (!name) return 
 
         this.txb.moveCall({
-            target:Protocol.Instance().ResourceFn('add2')  as FnCallType,
+            target:Protocol.Instance().resourceFn('add2')  as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), typeof(object) === 'string' ? this.txb.pure.address(object) : object, 
                 this.txb.pure.vector('string', name)]
         });
@@ -94,14 +94,14 @@ export class Resource {
         
         if (removeall) {
             this.txb.moveCall({
-                target:Protocol.Instance().ResourceFn('remove_all')  as FnCallType,
+                target:Protocol.Instance().resourceFn('remove_all')  as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(name)]
             });
         } else if(object) {
             if (!IsValidArray(object, IsValidAddress)) ERROR(Errors.IsValidArray, 'Resource: remove');
 
             this.txb.moveCall({
-                target:Protocol.Instance().ResourceFn('remove')  as FnCallType,
+                target:Protocol.Instance().resourceFn('remove')  as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(name), 
                     this.txb.pure.vector('address', object)]
             });
@@ -114,7 +114,7 @@ export class Resource {
         if (!name) return
         
         this.txb.moveCall({
-            target:Protocol.Instance().ResourceFn('remove2')  as FnCallType,
+            target:Protocol.Instance().resourceFn('remove2')  as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(object), 
                 this.txb.pure.vector('string', name)]
         });
@@ -124,7 +124,7 @@ export class Resource {
         if (!IsValidName(new_name)) ERROR(Errors.IsValidName, 'Resource: rename');
         
         this.txb.moveCall({
-            target:Protocol.Instance().ResourceFn('rename')  as FnCallType,
+            target:Protocol.Instance().resourceFn('rename')  as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(old_name), 
                 this.txb.pure.string(new_name)]
         }); 
@@ -139,7 +139,7 @@ export class Resource {
 
         const encode = new TextEncoder();
         this.txb.moveCall({
-            target:Protocol.Instance().ResourceFn('tags_add')  as FnCallType,
+            target:Protocol.Instance().resourceFn('tags_add')  as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(object), 
                 this.txb.pure.string(nick),
                 this.txb.pure.vector('string', tags)
@@ -151,7 +151,7 @@ export class Resource {
         if (!IsValidAddress(object)) ERROR(Errors.IsValidAddress, 'Resource: remove_tags');
         
         this.txb.moveCall({
-            target:Protocol.Instance().ResourceFn('tags_remove')  as FnCallType,
+            target:Protocol.Instance().resourceFn('tags_remove')  as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(object)]
         });
     }

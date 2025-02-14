@@ -56,21 +56,21 @@ export interface EventAnswer {
 
 export namespace EVENT_QUERY {
     export const newArbEvents = async(option?:EventQueryOption) : Promise<EventAnswer> => {
-        return await queryEvents(Protocol.Instance().Package('wowok') + '::arb::NewArbEvent', option)
+        return await queryEvents(Protocol.Instance().package('wowok') + '::arb::NewArbEvent', option)
     }
     export const presentServiceEvents = async(option?:EventQueryOption) : Promise<EventAnswer> => {
-        return await queryEvents(Protocol.Instance().Package('wowok') + '::demand::PresentEvent', option)
+        return await queryEvents(Protocol.Instance().package('wowok') + '::demand::PresentEvent', option)
     }
     export const newProgressEvents = async(option?:EventQueryOption) : Promise<EventAnswer> => {
-        return await queryEvents(Protocol.Instance().Package('wowok') + '::progress::NewProgressEvent', option)
+        return await queryEvents(Protocol.Instance().package('wowok') + '::progress::NewProgressEvent', option)
     }
     export const newOrderEvents = async(option?:EventQueryOption) : Promise<EventAnswer> => {
-        return await queryEvents(Protocol.Instance().Package('wowok') + '::order::NewOrderEvent', option)
+        return await queryEvents(Protocol.Instance().package('wowok') + '::order::NewOrderEvent', option)
     }
     const queryEvents = async(type:string, option?:EventQueryOption) : Promise<EventAnswer> => {
         const res = await Protocol.Client().queryEvents({query:{MoveEventType:type}, cursor:option?.cursor, limit:option?.limit, order:option?.order});
         const data = res?.data?.map((v:any) => {
-            if (v?.packageId === Protocol.Instance().Package('wowok')) {
+            if (v?.packageId === Protocol.Instance().package('wowok')) {
                 if (v?.type?.includes('::order::NewOrderEvent')) {
                     return {
                         id: v?.id, time: v?.timestampMs, type_raw:v?.type, sender:v?.sender, type:'NewOrderEvent',

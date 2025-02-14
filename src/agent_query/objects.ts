@@ -11,6 +11,7 @@ import { Machine_Node, Machine } from '../machine';
 import { Progress, History } from '../progress';
 import { ERROR, Errors } from '../exception';
 import { IsValidAddress, Bcs } from '../utils';
+import { WowokCache, OBJECT_KEY } from '../cache';
 export interface ObjectBase {
     object: string;
     type?: string | 'Demand' | 'Progress' | 'Service' | 'Machine' | 'Order' | 'Treasury' | 'Arbitration' | 'Arb' | 'Payment' | 'Guard' |
@@ -20,7 +21,9 @@ export interface ObjectBase {
     type_raw?: string;
     owner?: any;
     version?: string;
+    cache_expire?: number;
 }
+
 export interface ObjectPermission extends ObjectBase {
     builder: string;
     admin: string[];
@@ -248,11 +251,18 @@ export interface TableItem_ResourceMark extends ObjectBase {
     objects: string[];
 }
 
+export enum CacheType {
+    localStorage = 'localStorage', // for explorer
+    memoryStorage = 'memoryStorage', // for console
+}
+
+const MEMORY_STORAGE = new Map<string, string>();
 export interface ObjectsQuery {
     objects: string[];
     showType?: boolean;
     showContent?: boolean;
     showOwner?: boolean;
+    no_cache?: boolean;
 }
 export interface ObjectsAnswer {
     objects?: ObjectBase[];
@@ -280,6 +290,10 @@ interface TableItemQuery {
     key: {type:string, value:unknown};
 }
 
+export interface CacheData {
+    expire: number;
+    data: string | any; 
+}
 export namespace OBJECT_QUERY {
     /* json: ObjectsQuery string */
     export const objects_json = async (json:string) : Promise<string> => {
@@ -302,17 +316,65 @@ export namespace OBJECT_QUERY {
     }
 
     export const objects = async (query: ObjectsQuery) : Promise<ObjectsAnswer> => {
+        const ret:ObjectBase[] = []; let bCached = true; const time = new Date().getTime();
+        const cache = WowokCache.Instance().get();
+        if (!query?.no_cache && cache) {
+            try {
+                for (let i = 0; i < query.objects.length; ++i) {
+                    let data = cache.load(OBJECT_KEY(query.objects[i]))
+                    
+                    if (data) {
+                        const r:CacheData = JSON.parse(data);
+                        const d = data2object(JSON.parse(r.data));
+                        d.cache_expire = r.expire;
+    
+                        if (r?.expire <= time && (query.showOwner || query.showContent)) {
+                            bCached = false; 
+                            break;
+                        }
+    
+                        ret.push(d);                        
+                    } else {
+                        bCached = false; break;
+                    }
+                }
+                
+                if (bCached) {
+                    return {objects:ret}
+                }
+            } catch(e) {
+                console.log(e);
+            }
+        } 
+
         if (query.objects.length > 0) {
             const res = await Protocol.Client().multiGetObjects({ids:query.objects, 
                 options:{showContent:query.showContent, showType:query.showType, showOwner:query.showOwner}});
-            console.log(JSON.stringify(res))
+            const now = new Date().getTime(); 
+            const cache = WowokCache.Instance().get();
+            
+            if (cache) {
+                res.forEach((i) => { // save
+                    try {
+                        if (i?.data) {
+                            const type_raw:string | undefined = i.data?.type ?? ((i.data?.content as any)?.type ?? undefined);
+                            const type:string | undefined = type_raw ? Protocol.Instance().object_name_from_type_repr(type_raw) : undefined;
+                            const expire = (type === 'Guard' || type === 'Payment') ? 86400000000 : cache.expire_time(); // guard & payment immutable
+                            const r:CacheData = {expire:expire+now, data:JSON.stringify(i.data)}
+                            cache.save(OBJECT_KEY(i.data.objectId), JSON.stringify(r));
+                        }                            
+                    } catch(e) { console.log(e) }
+                })                
+            }
+
             return {objects:res.map(v=>data2object(v?.data))}                
         } 
         return {objects:[]}
     }
+
     export const entity = async (address:string) : Promise<ObjectEntity> => {
         if (!IsValidAddress(address))  ERROR(Errors.IsValidAddress, 'entity.address')
-        const res = await Protocol.Client().getDynamicFieldObject({parentId:Protocol.Instance().EntityObject(), name:{type:'address', value:address}});
+        const res = await Protocol.Client().getDynamicFieldObject({parentId:Protocol.Instance().objectEntity(), name:{type:'address', value:address}});
         return data2object(res?.data) as ObjectEntity
     }
 
@@ -350,7 +412,7 @@ export namespace OBJECT_QUERY {
         if (typeof(repository_object) !== 'string') {
             repository_object = repository_object.object;
         }
-        return await tableItem({parent:repository_object, key:{type:Protocol.Instance().Package('wowok')+'::repository::DataKey', value:{id:address, key:name}}})
+        return await tableItem({parent:repository_object, key:{type:Protocol.Instance().package('wowok')+'::repository::DataKey', value:{id:address, key:name}}})
     }
     export const tableItemQuery_ResourceMark = async (resource_object:string | ObjectResouorce, name:string) : Promise<ObjectBase> => {
         return await tableItem(tableItemQuery_byString(resource_object, name))
@@ -379,7 +441,7 @@ export namespace OBJECT_QUERY {
         return data2object(res?.data)
     }
 
-    function data2object(data?:any) : ObjectBase {
+    export function data2object(data?:any) : ObjectBase {
         const content = (data?.content as any)?.fields;
         const id = data?.objectId ?? (content?.id?.id ?? undefined);
         const type_raw:string | undefined = data?.type ?? (data?.content?.type ?? undefined);

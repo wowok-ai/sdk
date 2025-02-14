@@ -29,7 +29,7 @@ export class Entity {
 
     static From(txb:TransactionBlock) : Entity {
         let r = new Entity(txb);
-        r.object = Protocol.TXB_OBJECT(txb, Protocol.Instance().EntityObject());
+        r.object = Protocol.TXB_OBJECT(txb, Protocol.Instance().objectEntity());
         return r
     }
 
@@ -37,7 +37,7 @@ export class Entity {
         if (!IsValidAddress(address)) ERROR(Errors.IsValidAddress, like);
 
         this.txb.moveCall({
-            target:Protocol.Instance().EntityFn(like) as FnCallType,
+            target:Protocol.Instance().entityFn(like) as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, resource.get_object()), 
                 this.txb.pure.address(address)]
         })
@@ -56,7 +56,7 @@ export class Entity {
         const name = safer.map((v)=>v.name);
         const value = safer.map((v)=>v.value);
         this.txb.moveCall({
-            target:Protocol.Instance().EntityFn('safer_add') as FnCallType,
+            target:Protocol.Instance().entityFn('safer_add') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('string', name), 
                 this.txb.pure.vector('string', value),  this.txb.pure.bool(bExistModify)]
         })
@@ -67,12 +67,12 @@ export class Entity {
 
         if (removeall) {
             this.txb.moveCall({
-                target:Protocol.Instance().EntityFn('safer_remove_all') as FnCallType,
+                target:Protocol.Instance().entityFn('safer_remove_all') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object)]
             })
         } else {
             this.txb.moveCall({
-                target:Protocol.Instance().EntityFn('safer_remove') as FnCallType,
+                target:Protocol.Instance().entityFn('safer_remove') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('string', name)]
             })
         }
@@ -95,28 +95,28 @@ export class Entity {
             homepage : info?.homepage ?? '',
         }).toBytes();    
         this.txb.moveCall({
-            target:Protocol.Instance().EntityFn('avatar_update') as FnCallType,
+            target:Protocol.Instance().entityFn('avatar_update') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('u8', [].slice.call(bytes))]
         })
     }
 
     create_resource() : ResourceAddress {
         return this.txb.moveCall({
-            target:Protocol.Instance().EntityFn('resource_create') as FnCallType,
+            target:Protocol.Instance().entityFn('resource_create') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object)]
         })
     }
 
     create_resource2(): ResourceObject {
         return this.txb.moveCall({
-            target:Protocol.Instance().EntityFn('resource_create2') as FnCallType,
+            target:Protocol.Instance().entityFn('resource_create2') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object)]
         }) 
     }
     
     destroy_resource(resource:Resource) {
         return this.txb.moveCall({
-            target:Protocol.Instance().EntityFn('resource_destroy') as FnCallType,
+            target:Protocol.Instance().entityFn('resource_destroy') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, resource.get_object())]
         })
     }
@@ -125,7 +125,7 @@ export class Entity {
         if (!IsValidAddress(new_address)) ERROR(Errors.IsValidAddress, 'transfer_resource');
         
         return this.txb.moveCall({
-            target:Protocol.Instance().EntityFn('resource_transfer') as FnCallType,
+            target:Protocol.Instance().entityFn('resource_transfer') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, resource.get_object()), 
                 this.txb.pure.address(new_address)]
         })   
@@ -137,7 +137,7 @@ export class Entity {
         }
 
         this.txb.moveCall({
-            target:Protocol.Instance().EntityFn('QueryEnt') as FnCallType,
+            target:Protocol.Instance().entityFn('QueryEnt') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address_queried)]
         })   
     }

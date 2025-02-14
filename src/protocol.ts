@@ -249,19 +249,19 @@ export interface CoinTypeInfo {
 }
 export class Protocol {
     protected network = '';
-    protected package = new Map<string, string>();
+    protected packages = new Map<string, string>();
     protected signer = '';
     protected wowok_object = '';
     protected entity_object = '';
     protected treasury_cap = '';
     protected oracle_object = '';
-    protected graphql = '';
+    //protected graphql = '';
     protected txb: TransactionBlock | undefined;
     static _instance: any;
 
     constructor(network:ENTRYPOINT=ENTRYPOINT.testnet) {
-        this.UseNetwork(network);
-        this.NewSession();
+        this.use_network(network);
+        this.new_session();
     }
 
     static Instance() : Protocol {
@@ -270,11 +270,11 @@ export class Protocol {
         }; return Protocol._instance
     }
     static Client() : SuiClient {
-        return  new SuiClient({ url: Protocol.Instance().NetworkUrl() });  
+        return  new SuiClient({ url: Protocol.Instance().networkUrl() });  
     }
     
-    client() { return new SuiClient({url: this.NetworkUrl() })}
-    UseNetwork(network:ENTRYPOINT=ENTRYPOINT.testnet) {
+    client() { return new SuiClient({url: this.networkUrl() })}
+    use_network(network:ENTRYPOINT=ENTRYPOINT.testnet) {
         this.network = network;
         switch(network) {
             case ENTRYPOINT.localnet:
@@ -282,40 +282,39 @@ export class Protocol {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package.set('wowok', TESTNET.wowok);
-                this.package.set('base', TESTNET.base);
-                this.package.set('wowok_origin', TESTNET.wowok_origin); //@ orgin package!!!
-                this.package.set('base_origin', TESTNET.base_origin);
+                this.packages.set('wowok', TESTNET.wowok);
+                this.packages.set('base', TESTNET.base);
+                this.packages.set('wowok_origin', TESTNET.wowok_origin); //@ orgin package!!!
+                this.packages.set('base_origin', TESTNET.base_origin);
                 this.wowok_object = TESTNET.wowok_object;
                 this.entity_object= TESTNET.entity_object;
                 this.treasury_cap = TESTNET.treasury_cap;
-                this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
+                //this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 this.oracle_object = TESTNET.oracle_object;
                 break;
             case ENTRYPOINT.mainnet:
-                this.package.set('wowok', MAINNET.wowok);
-                this.package.set('base', MAINNET.base);
-                this.package.set('wowok_origin', MAINNET.wowok_origin); //@ orgin package!!!
-                this.package.set('base_origin', MAINNET.base_origin);
+                this.packages.set('wowok', MAINNET.wowok);
+                this.packages.set('base', MAINNET.base);
+                this.packages.set('wowok_origin', MAINNET.wowok_origin); //@ orgin package!!!
+                this.packages.set('base_origin', MAINNET.base_origin);
                 this.wowok_object = MAINNET.wowok_object;
                 this.entity_object= MAINNET.entity_object;
                 this.treasury_cap = MAINNET.treasury_cap;
-                this.graphql = 'https://sui-mainnet.mystenlabs.com/graphql';
+                //this.graphql = 'https://sui-mainnet.mystenlabs.com/graphql';
                 this.oracle_object = MAINNET.oracle_object;
                 break;
         };
     }
-    Package(type:string): string { 
-        return this.package.get(type) ?? ''
+    package(type:string): string { 
+        return this.packages.get(type) ?? ''
     }
 
-    WowokObject(): string { return this.wowok_object }
-    EntityObject(): string { return this.entity_object }
-    OracleObject(): string { return this.oracle_object }
-    TreasuryCap() : string { return this.treasury_cap }
-    GraphqlUrl() : string { return this.graphql }
+    objectWowok(): string { return this.wowok_object }
+    objectEntity(): string { return this.entity_object }
+    objectOracle(): string { return this.oracle_object }
+    objectTreasuryCap() : string { return this.treasury_cap }
     
-    NetworkUrl() : string { 
+    networkUrl() : string { 
         switch(this.network) {
             case ENTRYPOINT.localnet:
                 return "http://127.0.0.1:9000";
@@ -328,26 +327,26 @@ export class Protocol {
         }; return "";
     };
     
-    MachineFn = (fn:any) => { return `${this.package.get('wowok')}::${MODULES.machine}::${fn}`};
-    ProgressFn = (fn:any) => { return `${this.package.get('wowok')}::${MODULES.progress}::${fn}`};
-    RepositoryFn = (fn:any) => { return `${this.package.get('wowok')}::${MODULES.repository}::${fn}`};
-    PermissionFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.permission}::${fn}`};
-    PassportFn = (fn:any) => { return `${this.package.get('wowok')}::${MODULES.passport}::${fn}`};
-    DemandFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.demand}::${fn}`};
-    OrderFn = (fn:any) => { return `${this.package.get('wowok')}::${MODULES.order}::${fn}`};
-    ServiceFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.service}::${fn}`};
-    ResourceFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.resource}::${fn}`};
-    EntityFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.entity}::${fn}`};
-    WowokFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.wowok}::${fn}`};
-    TreasuryFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.treasury}::${fn}`};
-    PaymentFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.payment}::${fn}`};
-    GuardFn = (fn: any) => { return `${this.package.get('base')}::${MODULES.guard}::${fn}`};
-    BaseWowokFn = (fn: any) => { return `${this.package.get('base')}::${MODULES.wowok}::${fn}`};
-    ArbitrationFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.arbitration}::${fn}`};
-    ArbFn = (fn: any) => { return `${this.package.get('wowok')}::${MODULES.arb}::${fn}`};
+    machineFn = (fn:any) => { return `${this.packages.get('wowok')}::${MODULES.machine}::${fn}`};
+    progressFn = (fn:any) => { return `${this.packages.get('wowok')}::${MODULES.progress}::${fn}`};
+    repositoryFn = (fn:any) => { return `${this.packages.get('wowok')}::${MODULES.repository}::${fn}`};
+    permissionFn = (fn: any) => { return `${this.packages.get('wowok')}::${MODULES.permission}::${fn}`};
+    passportFn = (fn:any) => { return `${this.packages.get('wowok')}::${MODULES.passport}::${fn}`};
+    demandFn = (fn: any) => { return `${this.packages.get('wowok')}::${MODULES.demand}::${fn}`};
+    orderFn = (fn:any) => { return `${this.packages.get('wowok')}::${MODULES.order}::${fn}`};
+    serviceFn = (fn: any) => { return `${this.packages.get('wowok')}::${MODULES.service}::${fn}`};
+    resourceFn = (fn: any) => { return `${this.packages.get('wowok')}::${MODULES.resource}::${fn}`};
+    entityFn = (fn: any) => { return `${this.packages.get('wowok')}::${MODULES.entity}::${fn}`};
+    wowokFn = (fn: any) => { return `${this.packages.get('wowok')}::${MODULES.wowok}::${fn}`};
+    treasuryFn = (fn: any) => { return `${this.packages.get('wowok')}::${MODULES.treasury}::${fn}`};
+    paymentFn = (fn: any) => { return `${this.packages.get('wowok')}::${MODULES.payment}::${fn}`};
+    guardFn = (fn: any) => { return `${this.packages.get('base')}::${MODULES.guard}::${fn}`};
+    baseWowokFn = (fn: any) => { return `${this.packages.get('base')}::${MODULES.wowok}::${fn}`};
+    arbitrationFn = (fn: any) => { return `${this.packages.get('wowok')}::${MODULES.arbitration}::${fn}`};
+    arbFn = (fn: any) => { return `${this.packages.get('wowok')}::${MODULES.arb}::${fn}`};
 
-    Query = async (objects: Query_Param[], options:SuiObjectDataOptions={showContent:true}) : Promise<SuiObjectResponse[]> => {
-        const client =  new SuiClient({ url: this.NetworkUrl() });  
+    query = async (objects: Query_Param[], options:SuiObjectDataOptions={showContent:true}) : Promise<SuiObjectResponse[]> => {
+        const client =  new SuiClient({ url: this.networkUrl() });  
         const ids = objects.map((value) => value.objectid);
         const res = await client.call('sui_multiGetObjects', [ids, options]) as SuiObjectResponse[];
         let ret:any[] = [];
@@ -358,25 +357,25 @@ export class Protocol {
         }   
         return res;
     } 
-    Query_Raw = async (objects: string[], options:SuiObjectDataOptions={showContent:true}) : Promise<SuiObjectResponse[]> => {
-        const client =  new SuiClient({ url: this.NetworkUrl() });  
+    query_raw = async (objects: string[], options:SuiObjectDataOptions={showContent:true}) : Promise<SuiObjectResponse[]> => {
+        const client =  new SuiClient({ url: this.networkUrl() });  
         return await client.call('sui_multiGetObjects', [objects, options]) as SuiObjectResponse[];
     }
 
-    NewSession = () : TransactionBlock => {
+    new_session = () : TransactionBlock => {
         this.txb = new  TransactionBlock();
         return this.txb
     }
-    CurrentSession = () : TransactionBlock => { return this.txb ? this.txb : this.NewSession() }
+    sessionCurrent = () : TransactionBlock => { return this.txb ? this.txb : this.new_session() }
 
-    SignExcute = async (exes: ((protocol:Protocol, param:any) => void)[], priv_key:string, param?:any, options:SuiTransactionBlockResponseOptions={showObjectChanges:true}) : Promise<SuiTransactionBlockResponse> => {
-        const client =  new SuiClient({ url: this.NetworkUrl() });  
+    sign_excute = async (exes: ((protocol:Protocol, param:any) => void)[], priv_key:string, param?:any, options:SuiTransactionBlockResponseOptions={showObjectChanges:true}) : Promise<SuiTransactionBlockResponse> => {
+        const client =  new SuiClient({ url: this.networkUrl() });  
         exes.forEach((e) => { e(this, param) });
 
         const privkey = fromHEX(priv_key);
         const keypair = Ed25519Keypair.fromSecretKey(privkey);
         const response = await client.signAndExecuteTransaction({
-            transaction: this.CurrentSession(), 
+            transaction: this.sessionCurrent(), 
             signer: keypair,
             options,
         });
@@ -388,8 +387,8 @@ export class Protocol {
     static SUI_TOKEN_TYPE = '0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI'; // TOKEN_TYPE
     // used in demand, reward, ...
     static SUI_COIN_TYPE = '0x0000000000000000000000000000000000000000000000000000000000000002::coin::Coin<0x2::sui::SUI>'; // COIN TYPE
-    WOWOK_TOKEN_TYPE = () => { return this.package.get('base') + '::wowok::WOWOK' }
-    WOWOK_COIN_TYPE = () => {  return '0x2::coin::Coin<' + this.package.get('base') + '::wowok::WOWOK>'}
+    WOWOK_TOKEN_TYPE = () => { return this.packages.get('base') + '::wowok::WOWOK' }
+    WOWOK_COIN_TYPE = () => {  return '0x2::coin::Coin<' + this.packages.get('base') + '::wowok::WOWOK>'}
     COINS_TYPE = () => { 
         switch(this.network) {
             case ENTRYPOINT.testnet:
@@ -398,7 +397,7 @@ export class Protocol {
                 return this.CoinTypes_Mainnet.filter((v)=>v.alias !== true);
         }; return [];
     }
-    Update_CoinType = (token_type: string, decimals:number, symbol: string) => {
+    update_coinType = (token_type: string, decimals:number, symbol: string) => {
         if (!symbol || !token_type) return ;
         switch(this.network) {
             case ENTRYPOINT.testnet:
@@ -413,7 +412,7 @@ export class Protocol {
                 break;
         }; 
     }
-    ExplorerUrl = (objectid: string, type:'object' | 'txblock' | 'account'='object') => {
+    explorerUrl = (objectid: string, type:'object' | 'txblock' | 'account'='object') => {
         if (this.network === ENTRYPOINT.testnet) {
             return 'https://testnet.suivision.xyz/' + type + '/' + objectid;
         } else if (this.network === ENTRYPOINT.mainnet) {
@@ -437,13 +436,13 @@ export class Protocol {
         {symbol:'WBNB', type:'0xb848cce11ef3a8f62eccea6eb5b35a12c4c2b1ee1af7755d02d7bd6218e8226f::coin::COIN', decimals:8},
     ];
 
-    GetCoinTypeInfo = (token_type: string, handler:(info:CoinTypeInfo)=>void) : CoinTypeInfo | 'loading' => {
+    coinTypeInfo = (token_type: string, handler:(info:CoinTypeInfo)=>void) : CoinTypeInfo | 'loading' => {
         if (!token_type) return 'loading';
         let r = this.COINS_TYPE().find((v) => v?.type === token_type);
         if (!r) {
             Protocol.Client().getCoinMetadata({coinType:token_type}).then((res) => {
                 if (res?.decimals && res?.symbol) {
-                    this.Update_CoinType(token_type, res?.decimals, res?.symbol); 
+                    this.update_coinType(token_type, res?.decimals, res?.symbol); 
                     handler({symbol:res.symbol, decimals:res.decimals, type:token_type});
                 }
             }).catch((e) => {
@@ -470,11 +469,11 @@ export class Protocol {
         })
     }  
     WOWOK_OBJECTS_TYPE = () => (Object.keys(MODULES) as Array<keyof typeof MODULES>).map((key) => 
-        { let i = (key === MODULES.guard ? this.package.get('base') : this.package.get('wowok')) + '::' + key + '::';  return i + capitalize(key); })
+        { let i = (key === MODULES.guard ? this.packages.get('base') : this.packages.get('wowok')) + '::' + key + '::';  return i + capitalize(key); })
     WOWOK_OBJECTS_PREFIX_TYPE = () => (Object.keys(MODULES) as Array<keyof typeof MODULES>).map((key) => 
-        { return (key === MODULES.guard ? this.package.get('base') : this.package.get('wowok'))  + '::' + key + '::'; })
+        { return (key === MODULES.guard ? this.packages.get('base') : this.packages.get('wowok'))  + '::' + key + '::'; })
     hasPackage(pack:string) : boolean {
-        for (let value of this.package.values()) {
+        for (let value of this.packages.values()) {
             if (pack.includes(value)) {
                 return true;
             }

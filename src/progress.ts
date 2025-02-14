@@ -82,12 +82,12 @@ export class Progress {
 
         if (passport) {
             p.object = txb.moveCall({
-                target:Protocol.Instance().ProgressFn('new_with_passport') as FnCallType,
+                target:Protocol.Instance().progressFn('new_with_passport') as FnCallType,
                 arguments: [passport, t, Protocol.TXB_OBJECT(txb, machine), Protocol.TXB_OBJECT(txb, permission)],
             })    
         } else {
             p.object = txb.moveCall({
-                target:Protocol.Instance().ProgressFn('new') as FnCallType,
+                target:Protocol.Instance().progressFn('new') as FnCallType,
                 arguments: [t, Protocol.TXB_OBJECT(txb, machine), Protocol.TXB_OBJECT(txb, permission)],
             })    
         }
@@ -96,7 +96,7 @@ export class Progress {
 
     launch() : ProgressAddress {
         return this.txb.moveCall({
-            target:Protocol.Instance().ProgressFn('create') as FnCallType,
+            target:Protocol.Instance().progressFn('create') as FnCallType,
             arguments: [Protocol.TXB_OBJECT(this.txb, this.object)],
         })   
     }
@@ -114,14 +114,14 @@ export class Progress {
 
         if (passport) {
             this.txb.moveCall({
-                target:Protocol.Instance().ProgressFn('namedOperator_set_with_passport') as FnCallType,
+                target:Protocol.Instance().progressFn('namedOperator_set_with_passport') as FnCallType,
                 arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(name), 
                     this.txb.pure.vector('address', array_unique(addresses)), 
                 Protocol.TXB_OBJECT(this.txb, this.machine), Protocol.TXB_OBJECT(this.txb, this.permission)],
             })  
         } else {
             this.txb.moveCall({
-                target:Protocol.Instance().ProgressFn('namedOperator_set') as FnCallType,
+                target:Protocol.Instance().progressFn('namedOperator_set') as FnCallType,
                 arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(name), 
                     this.txb.pure.vector('address', array_unique(addresses)), 
                 Protocol.TXB_OBJECT(this.txb, this.machine), Protocol.TXB_OBJECT(this.txb, this.permission)],
@@ -136,13 +136,13 @@ export class Progress {
 
         if (passport) {
             this.txb.moveCall({
-                target:Protocol.Instance().ProgressFn('task_set_with_passport') as FnCallType,
+                target:Protocol.Instance().progressFn('task_set_with_passport') as FnCallType,
                 arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), 
                     this.txb.pure.address(task_address), Protocol.TXB_OBJECT(this.txb, this.machine), Protocol.TXB_OBJECT(this.txb, this.permission)],
             })   
         } else {
             this.txb.moveCall({
-                target:Protocol.Instance().ProgressFn('task_set') as FnCallType,
+                target:Protocol.Instance().progressFn('task_set') as FnCallType,
                 arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(task_address), 
                     Protocol.TXB_OBJECT(this.txb, this.machine), Protocol.TXB_OBJECT(this.txb, this.permission)],
             })   
@@ -156,13 +156,13 @@ export class Progress {
         if (passport) {
             if (repository) {
                 this.txb.moveCall({
-                    target:Protocol.Instance().ProgressFn('context_repository_set_with_passport') as FnCallType,
+                    target:Protocol.Instance().progressFn('context_repository_set_with_passport') as FnCallType,
                     arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, repository), 
                         Protocol.TXB_OBJECT(this.txb, this.machine), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 })            
             } else {
                 this.txb.moveCall({
-                    target:Protocol.Instance().ProgressFn('context_repository_none_with_passport') as FnCallType,
+                    target:Protocol.Instance().progressFn('context_repository_none_with_passport') as FnCallType,
                     arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), 
                         Protocol.TXB_OBJECT(this.txb, this.machine), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 })           
@@ -170,13 +170,13 @@ export class Progress {
         } else {
             if (repository) {
                 this.txb.moveCall({
-                    target:Protocol.Instance().ProgressFn('context_repository_set') as FnCallType,
+                    target:Protocol.Instance().progressFn('context_repository_set') as FnCallType,
                     arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, repository), 
                         Protocol.TXB_OBJECT(this.txb, this.machine), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 })            
             } else {
                 this.txb.moveCall({
-                    target:Protocol.Instance().ProgressFn('context_repository_none') as FnCallType,
+                    target:Protocol.Instance().progressFn('context_repository_none') as FnCallType,
                     arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), Protocol.TXB_OBJECT(this.txb, this.permission)],
                 })           
             }
@@ -191,14 +191,14 @@ export class Progress {
 
         if (passport) {
             this.txb.moveCall({
-                target:Protocol.Instance().ProgressFn('unhold_with_passport') as FnCallType,
+                target:Protocol.Instance().progressFn('unhold_with_passport') as FnCallType,
                 arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), 
                     Protocol.TXB_OBJECT(this.txb, this.machine), this.txb.pure.string(next.next_node_name), 
                     this.txb.pure.string(next.forward), Protocol.TXB_OBJECT(this.txb, this.permission), this.txb.object(clock)],
             })     
         } else {
             this.txb.moveCall({
-                target:Protocol.Instance().ProgressFn('unhold') as FnCallType,
+                target:Protocol.Instance().progressFn('unhold') as FnCallType,
                 arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), 
                     this.txb.pure.string(next.next_node_name), this.txb.pure.string(next.forward), 
                     Protocol.TXB_OBJECT(this.txb, this.permission), this.txb.object(clock)],
@@ -208,13 +208,13 @@ export class Progress {
     parent_none(passport?:PassportObject) {
         if (passport) {
             this.txb.moveCall({
-                target:Protocol.Instance().ProgressFn('parent_none_with_passport') as FnCallType,
+                target:Protocol.Instance().progressFn('parent_none_with_passport') as FnCallType,
                 arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), 
                     Protocol.TXB_OBJECT(this.txb, this.machine), Protocol.TXB_OBJECT(this.txb, this.permission)],
             }) 
         } else {
             this.txb.moveCall({
-                target:Protocol.Instance().ProgressFn('parent_none') as FnCallType,
+                target:Protocol.Instance().progressFn('parent_none') as FnCallType,
                 arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), 
                     Protocol.TXB_OBJECT(this.txb, this.permission)],
             }) 
@@ -231,7 +231,7 @@ export class Progress {
 
         if (passport) {
             this.txb.moveCall({
-                target:Protocol.Instance().ProgressFn('parent_set_with_passport') as FnCallType,
+                target:Protocol.Instance().progressFn('parent_set_with_passport') as FnCallType,
                 arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), 
                     this.txb.object(parent.parent_id), 
                     this.txb.pure.u64(parent.parent_session_id), 
@@ -241,7 +241,7 @@ export class Progress {
             })  
         } else {
             this.txb.moveCall({
-                target:Protocol.Instance().ProgressFn('parent_set') as FnCallType,
+                target:Protocol.Instance().progressFn('parent_set') as FnCallType,
                 arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), 
                     this.txb.object(parent.parent_id), 
                     this.txb.pure.u64(parent.parent_session_id), 
@@ -261,7 +261,7 @@ export class Progress {
         }
 
         const d = this.txb.moveCall({ 
-            target:Protocol.Instance().ProgressFn('deliverable_new') as FnCallType,
+            target:Protocol.Instance().progressFn('deliverable_new') as FnCallType,
             arguments: [this.txb.pure.string(deliverable.msg)],
         })   
         deliverable.orders.forEach(v => {
@@ -269,7 +269,7 @@ export class Progress {
                 ERROR(Errors.IsValidTokenType, 'deliverable.orders:' + v.object)
             }
             this.txb.moveCall({ 
-                target:Protocol.Instance().OrderFn('as_deliverable') as FnCallType,
+                target:Protocol.Instance().orderFn('as_deliverable') as FnCallType,
                 arguments: [this.txb.object(v.object), d],
                 typeArguments:[v.pay_token_type]
             })   
@@ -287,7 +287,7 @@ export class Progress {
 
         if (passport) {
             return this.txb.moveCall({
-                target:Protocol.Instance().ProgressFn('next_with_passport') as FnCallType,
+                target:Protocol.Instance().progressFn('next_with_passport') as FnCallType,
                 arguments: [passport, Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), 
                     this.txb.pure.string(next.next_node_name), 
                     this.txb.pure.string(next.forward), d, 
@@ -295,7 +295,7 @@ export class Progress {
             })    
         } else {
             return this.txb.moveCall({
-                target:Protocol.Instance().ProgressFn('next') as FnCallType,
+                target:Protocol.Instance().progressFn('next') as FnCallType,
                 arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), this.txb.pure.string(next.next_node_name), 
                     this.txb.pure.string(next.forward), d, Protocol.TXB_OBJECT(this.txb, this.permission), this.txb.object(clock)],
             })               
@@ -308,7 +308,7 @@ export class Progress {
         }
         const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         return this.txb.moveCall({
-            target:Protocol.Instance().ProgressFn('hold') as FnCallType,
+            target:Protocol.Instance().progressFn('hold') as FnCallType,
             arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.machine), this.txb.pure.string(next.next_node_name), 
                 this.txb.pure.string(next.forward), this.txb.pure.bool(hold), Protocol.TXB_OBJECT(this.txb, this.permission), this.txb.object(clock)],
         })  

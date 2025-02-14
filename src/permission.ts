@@ -270,7 +270,7 @@ export class  Permission {
         }
         let p = new Permission(txb);
         p.object = txb.moveCall({
-            target: Protocol.Instance().PermissionFn('new') as FnCallType,
+            target: Protocol.Instance().permissionFn('new') as FnCallType,
             arguments: [txb.pure.string(description)]
         });
         return p
@@ -278,7 +278,7 @@ export class  Permission {
 
     launch() : PermissionAddress {
         return this.txb.moveCall({ // address returned
-            target:Protocol.Instance().PermissionFn('create')  as FnCallType,
+            target:Protocol.Instance().permissionFn('create')  as FnCallType,
             arguments:[ Protocol.TXB_OBJECT(this.txb, this.object) ]        
         })
     }
@@ -292,7 +292,7 @@ export class  Permission {
             ERROR(Errors.IsValidName, 'add_userdefine');
         }
         this.txb.moveCall({
-            target:Protocol.Instance().PermissionFn('user_define_add') as FnCallType,
+            target:Protocol.Instance().permissionFn('user_define_add') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u64(index), this.txb.pure.string(name)]
         })   
     }
@@ -303,7 +303,7 @@ export class  Permission {
         }
 
         this.txb.moveCall({
-            target:Protocol.Instance().PermissionFn('user_define_remove') as FnCallType,
+            target:Protocol.Instance().permissionFn('user_define_remove') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u64(index)]
         })   
     }
@@ -314,7 +314,7 @@ export class  Permission {
         }
 
         this.txb.moveCall({
-            target:Protocol.Instance().PermissionFn('change_entity') as FnCallType,
+            target:Protocol.Instance().permissionFn('change_entity') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(old_entity), 
                 this.txb.pure.address(new_entity) ]
         })     
@@ -329,13 +329,13 @@ export class  Permission {
 
         if (index !== undefined) {
             this.txb.moveCall({
-                target:Protocol.Instance().PermissionFn('add_with_index') as FnCallType,
+                target:Protocol.Instance().permissionFn('add_with_index') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u64(index),
                     this.txb.pure.vector('address', array_unique(entities))]
             })       
         } else {
             this.txb.moveCall({
-                target:Protocol.Instance().PermissionFn('add') as FnCallType,
+                target:Protocol.Instance().permissionFn('add') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(entities))]
             })                   
         }
@@ -398,7 +398,7 @@ export class  Permission {
 
             if (indexes.length > 0) {
                 this.txb.moveCall({
-                    target:Protocol.Instance().PermissionFn('add_batch') as FnCallType,
+                    target:Protocol.Instance().permissionFn('add_batch') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity.address), 
                         this.txb.pure.vector('u64', indexes)]
                 })            
@@ -407,7 +407,7 @@ export class  Permission {
         // set guards
         guards.forEach(({address, index, guard}) => {
             this.txb.moveCall({
-                target:Protocol.Instance().PermissionFn('guard_set') as FnCallType,
+                target:Protocol.Instance().permissionFn('guard_set') as FnCallType,
                 arguments:[ Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address), 
                     this.txb.pure.u64(index), Protocol.TXB_OBJECT(this.txb, guard)]
             })
@@ -425,13 +425,13 @@ export class  Permission {
 
         if (guard) {
             this.txb.moveCall({
-                target:Protocol.Instance().PermissionFn('guard_set') as FnCallType,
+                target:Protocol.Instance().permissionFn('guard_set') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address), 
                     this.txb.pure.u64(index), Protocol.TXB_OBJECT(this.txb, guard)]
             })    
         } else {
             this.txb.moveCall({
-                target:Protocol.Instance().PermissionFn('guard_none') as FnCallType,
+                target:Protocol.Instance().permissionFn('guard_none') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address), 
                     this.txb.pure.u64(index)]
             })       
@@ -448,7 +448,7 @@ export class  Permission {
         }
 
         this.txb.moveCall({
-            target:Protocol.Instance().PermissionFn('remove_index') as FnCallType,
+            target:Protocol.Instance().permissionFn('remove_index') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address), 
                 this.txb.pure.vector('u64', array_unique(index))]
         })            
@@ -460,7 +460,7 @@ export class  Permission {
         }
 
         this.txb.moveCall({
-            target:Protocol.Instance().PermissionFn('remove') as FnCallType,
+            target:Protocol.Instance().permissionFn('remove') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(address))]
         })           
     }
@@ -471,7 +471,7 @@ export class  Permission {
         }
 
         this.txb.moveCall({
-            target:Protocol.Instance().PermissionFn('description_set') as FnCallType,
+            target:Protocol.Instance().permissionFn('description_set') as FnCallType,
             arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(description)]
         })
         ;
@@ -485,7 +485,7 @@ export class  Permission {
         }
 
         this.txb.moveCall({
-            target:Protocol.Instance().PermissionFn('admin_add_batch')  as FnCallType,
+            target:Protocol.Instance().permissionFn('admin_add_batch')  as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address',  array_unique(admin))]
         });           
     }
@@ -498,12 +498,12 @@ export class  Permission {
 
         if (removeall) {
             this.txb.moveCall({
-                target:Protocol.Instance().PermissionFn('admins_clear')  as FnCallType,
+                target:Protocol.Instance().permissionFn('admins_clear')  as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object)]
             });    
         } else if (admin) {
             this.txb.moveCall({
-                target:Protocol.Instance().PermissionFn('admin_remove_batch')  as FnCallType,
+                target:Protocol.Instance().permissionFn('admin_remove_batch')  as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(admin))]
             });            
         }
@@ -516,7 +516,7 @@ export class  Permission {
         }
 
         this.txb.moveCall({
-            target:Protocol.Instance().PermissionFn('builder_set')  as FnCallType,
+            target:Protocol.Instance().permissionFn('builder_set')  as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(new_owner)]
         });        
     }
@@ -528,7 +528,7 @@ export class  Permission {
         }
 
         this.txb.moveCall({
-            target:Protocol.Instance().PermissionFn('query_permissions_all') as FnCallType,
+            target:Protocol.Instance().permissionFn('query_permissions_all') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address_queried)]
         })   
     }
@@ -536,7 +536,7 @@ export class  Permission {
     QueryPermissions(permission:string, address_queried:string, onPermissionAnswer:OnPermissionAnswer, sender?:string) {
         //@ be the same txb
         this.query_permissions_all(address_queried);
-        console.log(address_queried)
+        //console.log(address_queried)
         Protocol.Client().devInspectTransactionBlock({sender:sender ?? address_queried, transactionBlock:this.txb}).then((res) => {
             if (res.results && res.results[0].returnValues && res.results[0].returnValues.length !== 2)  {
                 onPermissionAnswer({who:address_queried, object:permission});

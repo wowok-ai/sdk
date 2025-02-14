@@ -86,14 +86,14 @@ export class GuardParser {
             ERROR(Errors.IsValidAddress,  'GuardObject guard')
         }
 
-        let res = await protocol.Query_Raw([guard]);
+        let res = await protocol.query_raw([guard]);
         if (res.length == 0 || !res[0].data || res[0].data?.objectId != guard) {
             ERROR(Errors.Fail, 'GuardObject query error');
         }
 
         // console.log(res[0].data?.content);
         let content = res[0].data!.content as any;
-        if (content?.type != protocol.Package('base') + '::guard::Guard') {
+        if (content?.type != protocol.package('base') + '::guard::Guard') {
             ERROR(Errors.Fail, 'GuardObject object invalid')
         }
 
@@ -251,7 +251,7 @@ export class GuardParser {
             if (index === -1) ERROR(Errors.Fail, 'Parse_Guard_Helper invalid type: ' + c.type);
 
 
-            if (c.fields.input.type === (protocol.Package('base') + '::bcs::BCS')) {
+            if (c.fields.input.type === (protocol.package('base') + '::bcs::BCS')) {
                 const constants = GuardParser.parse_constant(c.fields.constants); // MUST first
                 const inputs = GuardParser.parse_bcs(constants, Uint8Array.from(c.fields.input.fields.bytes));
                 me.guard_list.push({id: c.fields.id.id, input:[...inputs],  constant:[...constants], digest:r.data?.digest??'', version:r.data?.version ?? ''});
@@ -270,7 +270,7 @@ export class GuardParser {
 
         let guard_list = array_unique(guards);
         if (onGuardInfo) {
-            Protocol.Instance().Query_Raw(guard_list)
+            Protocol.Instance().query_raw(guard_list)
                 .then((res) => { 
                     onGuardInfo(GuardParser.Parse_Guard_Helper(guards, res)); 
                 }).catch((e) => { 
@@ -278,7 +278,7 @@ export class GuardParser {
                     onGuardInfo(undefined); 
                 })            
         } else {
-            const res = await Protocol.Instance().Query_Raw(guard_list);
+            const res = await Protocol.Instance().query_raw(guard_list);
             return GuardParser.Parse_Guard_Helper(guards, res);
         }
     }
@@ -534,7 +534,7 @@ export class GuardParser {
                 onPassportQueryReady(this.done_helper([]));
                 return
             }
-            Protocol.Instance().Query_Raw(array_unique(objects), {showType:true}).then((res) => {
+            Protocol.Instance().query_raw(array_unique(objects), {showType:true}).then((res) => {
                 onPassportQueryReady(this.done_helper(res));
             }).catch(e => {
                 console.log(e);
@@ -544,7 +544,7 @@ export class GuardParser {
         } else {
             let res:any[] = [];
             if (objects.length > 0) {
-                res = await Protocol.Instance().Query_Raw(array_unique(objects), {showType:true});
+                res = await Protocol.Instance().query_raw(array_unique(objects), {showType:true});
             }
             return this.done_helper(res);
         }
@@ -605,7 +605,7 @@ export class Passport {
 
         this.txb = txb;  //console.log(query)
         this.passport = this.txb.moveCall({
-            target:Protocol.Instance().PassportFn('new') as FnCallType,
+            target:Protocol.Instance().passportFn('new') as FnCallType,
             arguments: []
         });
 
@@ -624,7 +624,7 @@ export class Passport {
                 txb.object(g.id);
             //console.log(ids); console.log(values)
             this.txb.moveCall({
-                target:Protocol.Instance().PassportFn('guard_add') as FnCallType,
+                target:Protocol.Instance().passportFn('guard_add') as FnCallType,
                 arguments:[this.passport, guard, this.txb.pure.vector('u8', [].slice.call(ids)), 
                     this.txb.pure(Bcs.getInstance().ser('vector<vector<u8>>', [...values]))]
             });      
@@ -634,7 +634,7 @@ export class Passport {
         // rules: 'verify' & 'query' in turns; 'verify' at final end.
         query?.query.forEach((q) => {
             this.txb.moveCall({
-                target: Protocol.Instance().PassportFn('passport_verify') as FnCallType,
+                target: Protocol.Instance().passportFn('passport_verify') as FnCallType,
                 arguments: [ this.passport, this.txb.object(clock)]
             }); 
             this.txb.moveCall({
@@ -644,28 +644,28 @@ export class Passport {
             })
         }) 
         this.txb.moveCall({
-            target: Protocol.Instance().PassportFn('passport_verify') as FnCallType,
+            target: Protocol.Instance().passportFn('passport_verify') as FnCallType,
             arguments: [ this.passport,  this.txb.object(clock) ]
         });  
     }
     
     destroy() {
         this.txb.moveCall({
-            target: Protocol.Instance().PassportFn('destroy') as FnCallType,
+            target: Protocol.Instance().passportFn('destroy') as FnCallType,
             arguments: [ this.passport ]
         });  
     }
 
     freeze() {
         this.txb.moveCall({
-            target: Protocol.Instance().PassportFn('freezen') as FnCallType,
+            target: Protocol.Instance().passportFn('freezen') as FnCallType,
             arguments: [ this.passport ]
         });  
     }
 
     query_result(sender:string, handleResult:OnQueryPassportResult) {
         this.txb.moveCall({
-            target: Protocol.Instance().PassportFn('query_result') as FnCallType,
+            target: Protocol.Instance().passportFn('query_result') as FnCallType,
             arguments: [ this.passport ]
         });  
 
@@ -679,7 +679,7 @@ export class Passport {
 
     query_result_async = async (sender:string) : Promise<QueryPassportResult | undefined> => {
         this.txb.moveCall({
-            target: Protocol.Instance().PassportFn('query_result') as FnCallType,
+            target: Protocol.Instance().passportFn('query_result') as FnCallType,
             arguments: [ this.passport ]
         });  
 

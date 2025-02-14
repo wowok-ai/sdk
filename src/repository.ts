@@ -82,12 +82,12 @@ export class Repository {
 
         if (passport) {
             r.object = txb.moveCall({
-                target:Protocol.Instance().RepositoryFn('new_with_passport') as FnCallType,
+                target:Protocol.Instance().repositoryFn('new_with_passport') as FnCallType,
                 arguments:[passport, txb.pure.string(description), txb.pure.u8(policy_mode), Protocol.TXB_OBJECT(txb, permission)],
             })
         } else {
             r.object = txb.moveCall({
-                target:Protocol.Instance().RepositoryFn('new') as FnCallType,
+                target:Protocol.Instance().repositoryFn('new') as FnCallType,
                 arguments:[txb.pure.string(description), txb.pure.u8(policy_mode), Protocol.TXB_OBJECT(txb, permission)],
             })
         }
@@ -96,7 +96,7 @@ export class Repository {
 
     launch() : RepositoryAddress {
         return this.txb.moveCall({
-            target:Protocol.Instance().RepositoryFn('create') as FnCallType,
+            target:Protocol.Instance().repositoryFn('create') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object)],
         })    
     }
@@ -117,7 +117,7 @@ export class Repository {
         
         if (data?.value_type !== undefined) {
             data.data.forEach((d) => this.txb.moveCall({
-                target:Protocol.Instance().RepositoryFn('add') as FnCallType,
+                target:Protocol.Instance().repositoryFn('add') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
                     this.txb.pure.address(d.address),
                     this.txb.pure.string(data.key), 
@@ -128,7 +128,7 @@ export class Repository {
             }))       
         } else {
             data.data.forEach((d) => this.txb.moveCall({
-                target:Protocol.Instance().RepositoryFn('add_typed_data') as FnCallType,
+                target:Protocol.Instance().repositoryFn('add_typed_data') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
                     this.txb.pure.address(d.address),
                     this.txb.pure.string(data.key), 
@@ -155,7 +155,7 @@ export class Repository {
         
         if (data?.value_type !== undefined) {
             data.data.forEach((d) => this.txb.moveCall({
-                target:Protocol.Instance().RepositoryFn('add') as FnCallType,
+                target:Protocol.Instance().repositoryFn('add') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
                     this.txb.pure.address(data.address),
                     this.txb.pure.string(d.key), 
@@ -166,7 +166,7 @@ export class Repository {
             }))       
         } else {
             data.data.forEach((d) => this.txb.moveCall({
-                target:Protocol.Instance().RepositoryFn('add_typed_data') as FnCallType,
+                target:Protocol.Instance().repositoryFn('add_typed_data') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
                     this.txb.pure.address(data.address),
                     this.txb.pure.string(d.key), 
@@ -186,7 +186,7 @@ export class Repository {
         }
         
         this.txb.moveCall({
-            target:Protocol.Instance().RepositoryFn('remove') as FnCallType,
+            target:Protocol.Instance().repositoryFn('remove') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
                 this.txb.pure.address(address),
                 this.txb.pure.string(key), 
@@ -202,14 +202,14 @@ export class Repository {
         
         if (passport) {
             this.txb.moveCall({
-                target:Protocol.Instance().RepositoryFn('reference_add_with_passport') as FnCallType,
+                target:Protocol.Instance().repositoryFn('reference_add_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
                     this.txb.pure.vector('address', array_unique(references)),
                     Protocol.TXB_OBJECT(this.txb, this.permission)]
             })      
         } else {
             this.txb.moveCall({
-                target:Protocol.Instance().RepositoryFn('reference_add') as FnCallType,
+                target:Protocol.Instance().repositoryFn('reference_add') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
                     this.txb.pure.vector('address', array_unique(references)),
                     Protocol.TXB_OBJECT(this.txb, this.permission)]
@@ -226,13 +226,13 @@ export class Repository {
         if (removeall) {
             if (passport) {
                 this.txb.moveCall({
-                    target:Protocol.Instance().RepositoryFn('reference_removeall_with_passport') as FnCallType,
+                    target:Protocol.Instance().repositoryFn('reference_removeall_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
                         Protocol.TXB_OBJECT(this.txb, this.permission)]
                 })      
             } else {
                 this.txb.moveCall({
-                    target:Protocol.Instance().RepositoryFn('reference_removeall') as FnCallType,
+                    target:Protocol.Instance().repositoryFn('reference_removeall') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
                         Protocol.TXB_OBJECT(this.txb, this.permission)]
                 })  
@@ -240,14 +240,14 @@ export class Repository {
         } else {
             if (passport) {
                 this.txb.moveCall({
-                    target:Protocol.Instance().RepositoryFn('reference_remove_with_passport') as FnCallType,
+                    target:Protocol.Instance().repositoryFn('reference_remove_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
                         this.txb.pure.vector('address', array_unique(references)),
                         Protocol.TXB_OBJECT(this.txb, this.permission)]
                 })      
             } else {
                 this.txb.moveCall({
-                    target:Protocol.Instance().RepositoryFn('reference_remove') as FnCallType,
+                    target:Protocol.Instance().repositoryFn('reference_remove') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
                         this.txb.pure.vector('address', array_unique(references)),
                         Protocol.TXB_OBJECT(this.txb, this.permission)]
@@ -273,7 +273,7 @@ export class Repository {
             let permission_index = this.txb.pure.option('u64', policy?.permissionIndex ? policy?.permissionIndex : undefined);
             if (passport) {
                 this.txb.moveCall({
-                    target:Protocol.Instance().RepositoryFn('policy_add_with_passport') as FnCallType,
+                    target:Protocol.Instance().repositoryFn('policy_add_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
                         this.txb.pure.string(policy.key), 
                         this.txb.pure.string(policy.description),
@@ -282,7 +282,7 @@ export class Repository {
                 })              
             } else {
                 this.txb.moveCall({
-                    target:Protocol.Instance().RepositoryFn('policy_add') as FnCallType,
+                    target:Protocol.Instance().repositoryFn('policy_add') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
                         this.txb.pure.string(policy.key), 
                         this.txb.pure.string(policy.description),
@@ -302,13 +302,13 @@ export class Repository {
         if (passport) {
             if (removeall) {
                 this.txb.moveCall({
-                    target:Protocol.Instance().RepositoryFn('policy_removeall_with_passport') as FnCallType,
+                    target:Protocol.Instance().repositoryFn('policy_removeall_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
                         Protocol.TXB_OBJECT(this.txb, this.permission)]
                 })    
             } else {
                 this.txb.moveCall({
-                    target:Protocol.Instance().RepositoryFn('policy_remove_with_passport') as FnCallType,
+                    target:Protocol.Instance().repositoryFn('policy_remove_with_passport') as FnCallType,
                     arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
                         this.txb.pure.vector('string', array_unique(policy_keys)), 
                         Protocol.TXB_OBJECT(this.txb, this.permission)]
@@ -317,13 +317,13 @@ export class Repository {
         } else {
             if (removeall) {
                 this.txb.moveCall({
-                    target:Protocol.Instance().RepositoryFn('policy_removeall') as FnCallType,
+                    target:Protocol.Instance().repositoryFn('policy_removeall') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
                         Protocol.TXB_OBJECT(this.txb, this.permission)]
                 })       
             } else {
                 this.txb.moveCall({
-                    target:Protocol.Instance().RepositoryFn('policy_remove') as FnCallType,
+                    target:Protocol.Instance().repositoryFn('policy_remove') as FnCallType,
                     arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
                         this.txb.pure.vector('string', array_unique(policy_keys)), 
                         Protocol.TXB_OBJECT(this.txb, this.permission)]
@@ -338,14 +338,14 @@ export class Repository {
         
         if (passport) {
             this.txb.moveCall({
-                target:Protocol.Instance().RepositoryFn('policy_rename_with_passport') as FnCallType,
+                target:Protocol.Instance().repositoryFn('policy_rename_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), 
                     this.txb.pure.string(policy_key), this.txb.pure.string(new_policy_key), 
                     Protocol.TXB_OBJECT(this.txb, this.permission)]
             })     
         } else {
             this.txb.moveCall({
-                target:Protocol.Instance().RepositoryFn('policy_rename') as FnCallType,
+                target:Protocol.Instance().repositoryFn('policy_rename') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
                     this.txb.pure.string(policy_key), this.txb.pure.string(new_policy_key), 
                     Protocol.TXB_OBJECT(this.txb, this.permission)]
@@ -361,12 +361,12 @@ export class Repository {
         
         if (passport) {
             this.txb.moveCall({
-                target:Protocol.Instance().RepositoryFn('description_set_with_passport') as FnCallType,
+                target:Protocol.Instance().repositoryFn('description_set_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(description), Protocol.TXB_OBJECT(this.txb, this.permission)]
             }) 
         } else {
             this.txb.moveCall({
-                target:Protocol.Instance().RepositoryFn('description_set') as FnCallType,
+                target:Protocol.Instance().repositoryFn('description_set') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(description), Protocol.TXB_OBJECT(this.txb, this.permission)]
             }) 
         }        
@@ -376,12 +376,12 @@ export class Repository {
     set_policy_mode(policy_mode:Repository_Policy_Mode, passport?:PassportObject)  {
         if (passport) {
             this.txb.moveCall({
-                target:Protocol.Instance().RepositoryFn('policy_mode_set_with_passport') as FnCallType,
+                target:Protocol.Instance().repositoryFn('policy_mode_set_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u8(policy_mode), Protocol.TXB_OBJECT(this.txb, this.permission)]
             })  
         } else {
             this.txb.moveCall({
-                target:Protocol.Instance().RepositoryFn('policy_mode_set') as FnCallType,
+                target:Protocol.Instance().repositoryFn('policy_mode_set') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u8(policy_mode), Protocol.TXB_OBJECT(this.txb, this.permission)]
             })  
         }  
@@ -397,13 +397,13 @@ export class Repository {
         
         if (passport) {
             this.txb.moveCall({
-                target:Protocol.Instance().RepositoryFn('policy_description_set_with_passport') as FnCallType,
+                target:Protocol.Instance().repositoryFn('policy_description_set_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(policy), this.txb.pure.string(description), 
                     Protocol.TXB_OBJECT(this.txb, this.permission)]
             })   
         } else {
             this.txb.moveCall({
-                target:Protocol.Instance().RepositoryFn('policy_description_set') as FnCallType,
+                target:Protocol.Instance().repositoryFn('policy_description_set') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(policy), this.txb.pure.string(description), 
                     Protocol.TXB_OBJECT(this.txb, this.permission)]
             })   
@@ -425,12 +425,12 @@ export class Repository {
 
         if (passport) {
             this.txb.moveCall({
-                target:Protocol.Instance().RepositoryFn('policy_permission_set_with_passport') as FnCallType,
+                target:Protocol.Instance().repositoryFn('policy_permission_set_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), index, Protocol.TXB_OBJECT(this.txb, this.permission)]
             })   
         } else {
             this.txb.moveCall({
-                target:Protocol.Instance().RepositoryFn('policy_permission_set') as FnCallType,
+                target:Protocol.Instance().repositoryFn('policy_permission_set') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), index, Protocol.TXB_OBJECT(this.txb, this.permission)]
             })   
         }     
@@ -442,7 +442,7 @@ export class Repository {
         }
         
         this.txb.moveCall({
-            target:Protocol.Instance().RepositoryFn('permission_set') as FnCallType,
+            target:Protocol.Instance().repositoryFn('permission_set') as FnCallType,
             arguments: [Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, this.permission), Protocol.TXB_OBJECT(this.txb, new_permission)],
             typeArguments:[]            
         })  

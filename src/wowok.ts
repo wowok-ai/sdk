@@ -16,7 +16,7 @@ export class Wowok {
 
     static From(txb:TransactionBlock) : Wowok {
         let r = new Wowok(txb);
-        r.object = Protocol.TXB_OBJECT(txb, Protocol.Instance().WowokObject());
+        r.object = Protocol.TXB_OBJECT(txb, Protocol.Instance().objectWowok());
         return r
     }
 
@@ -26,7 +26,7 @@ export class Wowok {
         const clock = this.txb.sharedObjectRef(Protocol.CLOCK_OBJECT);
         
         this.txb.moveCall({
-            target:Protocol.Instance().WowokFn('grantor_register') as FnCallType,
+            target:Protocol.Instance().wowokFn('grantor_register') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(name), this.txb.object(clock), 
                 Protocol.TXB_OBJECT(this.txb, grantee_permission)]
         })
@@ -35,7 +35,7 @@ export class Wowok {
     grantor_time_expand_1year(grantor:string) {
         if (!IsValidAddress(grantor)) ERROR(Errors.IsValidAddress, 'grantor_time_expand_1year');
         this.txb.moveCall({
-            target:Protocol.Instance().WowokFn('grantor_time_expand_1year') as FnCallType,
+            target:Protocol.Instance().wowokFn('grantor_time_expand_1year') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(grantor)]
         })
     }
@@ -43,7 +43,7 @@ export class Wowok {
     grantor_rename(new_name:string) {
         if (!IsValidName(new_name)) ERROR(Errors.IsValidName, 'grantor_rename');
         this.txb.moveCall({
-            target:Protocol.Instance().WowokFn('grantor_time_expand_1year') as FnCallType,
+            target:Protocol.Instance().wowokFn('grantor_time_expand_1year') as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(new_name)]
         })
     }
@@ -52,8 +52,8 @@ export class Wowok {
         if (!IsValidAddress(recipient)) ERROR(Errors.IsValidAddress, 'mint');
         if (!IsValidU64(amount)) ERROR(Errors.IsValidU64, 'mint');
         this.txb.moveCall({
-            target:Protocol.Instance().BaseWowokFn('mint') as FnCallType, //@ base package
-            arguments:[Protocol.TXB_OBJECT(this.txb, Protocol.Instance().TreasuryCap()), this.txb.pure.u64(amount), 
+            target:Protocol.Instance().baseWowokFn('mint') as FnCallType, //@ base package
+            arguments:[Protocol.TXB_OBJECT(this.txb, Protocol.Instance().objectTreasuryCap()), this.txb.pure.u64(amount), 
                 this.txb.pure.address(recipient)]
         })
     }
@@ -61,8 +61,8 @@ export class Wowok {
         if (!IsValidDesription(description)) ERROR(Errors.IsValidDesription, 'oracle.description');
         if (!Protocol.IsValidObjects([permission])) ERROR(Errors.IsValidObjects, 'oracle.permission');
         return this.txb.moveCall({
-            target:Protocol.Instance().WowokFn('oracle_repository') as FnCallType, //@ base package
-            arguments:[Protocol.TXB_OBJECT(this.txb, Protocol.Instance().OracleObject()), this.txb.pure.string(description), 
+            target:Protocol.Instance().wowokFn('oracle_repository') as FnCallType, //@ base package
+            arguments:[Protocol.TXB_OBJECT(this.txb, Protocol.Instance().objectOracle()), this.txb.pure.string(description), 
                 this.txb.object(permission)]
         })
     }

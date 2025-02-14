@@ -77,7 +77,7 @@ export class Guard {
         // reserve the  bytes for guard
         let g = new Guard(txb);
         g.object = txb.moveCall({
-            target: Protocol.Instance().GuardFn('new') as FnCallType,
+            target: Protocol.Instance().guardFn('new') as FnCallType,
             arguments: [txb.pure.string(description), txb.pure.vector('u8', [].slice.call(input.reverse()))],  
         });
 
@@ -85,13 +85,13 @@ export class Guard {
             if (v.bWitness) {
                 const n = new Uint8Array(1); n.set([v.type], 0);
                 txb.moveCall({
-                    target:Protocol.Instance().GuardFn("constant_add") as FnCallType,
+                    target:Protocol.Instance().guardFn("constant_add") as FnCallType,
                     arguments:[txb.object(g.object), txb.pure.u8(k), txb.pure.bool(true), txb.pure.vector('u8', [].slice.call(n)), txb.pure.bool(true)]
                 }) 
             } else {
                 const n = insertAtHead(v.value!, v.type);
                 txb.moveCall({
-                    target:Protocol.Instance().GuardFn("constant_add") as FnCallType,
+                    target:Protocol.Instance().guardFn("constant_add") as FnCallType,
                     arguments:[txb.object(g.object), txb.pure.u8(k), txb.pure.bool(false),  txb.pure.vector('u8', [].slice.call(n)), txb.pure.bool(true)]
                 }) 
             }
@@ -101,14 +101,14 @@ export class Guard {
 
     launch() : GuardAddress  {
         return this.txb.moveCall({
-            target:Protocol.Instance().GuardFn("create") as FnCallType,
+            target:Protocol.Instance().guardFn("create") as FnCallType,
             arguments:[this.txb.object(this.object)]
         });
     }
     
     static everyone_guard(txb:TransactionBlock) : GuardAddress {
         return txb.moveCall({
-            target: Protocol.Instance().GuardFn('everyone_guard') as FnCallType,
+            target: Protocol.Instance().guardFn('everyone_guard') as FnCallType,
             arguments: []
         }); 
     }
@@ -116,7 +116,7 @@ export class Guard {
     static QueryAddressIdentifiers(guard:GuardObject, onQueryAnswer:OnQueryAnswer, sender:string) {    
         const txb = new TransactionBlock();
         txb.moveCall({
-            target: Protocol.Instance().GuardFn('query_address_identifiers') as FnCallType,
+            target: Protocol.Instance().guardFn('query_address_identifiers') as FnCallType,
             arguments: [txb.object(guard)]
         })
 
