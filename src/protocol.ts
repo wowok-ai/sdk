@@ -1,4 +1,4 @@
-import { SuiClient, SuiObjectResponse, SuiTransactionBlockResponseOptions, 
+import { SuiClient, SuiObjectResponse, SuiObjectDataOptions, SuiTransactionBlockResponseOptions, 
     SuiTransactionBlockResponse } from '@mysten/sui/client';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
 import { fromHEX } from '@mysten/bcs';
@@ -345,7 +345,7 @@ export class Protocol {
     arbitrationFn = (fn: any) => { return `${this.packages.get('wowok')}::${MODULES.arbitration}::${fn}`};
     arbFn = (fn: any) => { return `${this.packages.get('wowok')}::${MODULES.arb}::${fn}`};
 
-    query = async (objects: Query_Param[], options={showContent:true}) : Promise<SuiObjectResponse[]> => {
+    query = async (objects: Query_Param[], options:SuiObjectDataOptions={showContent:true}) : Promise<SuiObjectResponse[]> => {
         const client =  new SuiClient({ url: this.networkUrl() });  
         const ids = objects.map((value) => value.objectid);
         const res = await client.call('sui_multiGetObjects', [ids, options]) as SuiObjectResponse[];
@@ -357,7 +357,7 @@ export class Protocol {
         }   
         return res;
     } 
-    query_raw = async (objects: string[], options={showContent:true}) : Promise<SuiObjectResponse[]> => {
+    query_raw = async (objects: string[], options:SuiObjectDataOptions={showContent:true}) : Promise<SuiObjectResponse[]> => {
         const client =  new SuiClient({ url: this.networkUrl() });  
         return await client.call('sui_multiGetObjects', [objects, options]) as SuiObjectResponse[];
     }
@@ -550,7 +550,7 @@ export class RpcResultParser {
 
 export type Query_Param = {
     objectid: string;
-    callback: (protocol:Protocol, response:SuiObjectResponse, param:Query_Param, option:any)=>void;
+    callback: (protocol:Protocol, response:SuiObjectResponse, param:Query_Param, option:SuiObjectDataOptions)=>void;
     parser?: (result:any[], guardid: string, chain_sense_bsc:Uint8Array, constant?:GuardConstant)  => boolean;
     data?: any; // response data filted by callback
     constants?: GuardConstant;
