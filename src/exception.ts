@@ -24,6 +24,7 @@ export enum Errors {
     IsValidUserDefinedIndex = 'invalid user defined permission index',
     bcsTypeInvalid = 'invalid bcs type',
     IsValidServiceItemName = 'invalid service item name',
+    noPermission = 'no permission',
 }
 
 export const ERROR = (error:Errors, info?:any) =>  {

@@ -54,8 +54,6 @@ export interface PassportQuery {
 export class GuardParser {
     protected guard_list: GuardInfo[] = [];
     protected guards: string[];
-    private index:number = 0;
-    private get_index() { return this.index++ }
 
     private constructor(guards: string[]) { 
         this.guards = guards;

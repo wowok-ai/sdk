@@ -313,8 +313,27 @@ export class Progress {
                 this.txb.pure.string(next.forward), this.txb.pure.bool(hold), Protocol.TXB_OBJECT(this.txb, this.permission), this.txb.object(clock)],
         })  
     }
+    static QueryForwardGuard = async (progress:ProgressObject, machine:MachineObject, sender:string, next_node:string, forward:string): Promise<string | undefined> => {
+        if (!progress || !machine || !next_node || !forward) { // prior_node maybe ''
+            ERROR(Errors.InvalidParam, 'QueryForwardGuard');
+            return ;
+        }
 
-    static rpc_de_sessions = (session: any) : Session[] => {
+        const txb = new TransactionBlock();
+        txb.moveCall({
+            target:Protocol.Instance().progressFn('query_guard') as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(txb, progress), Protocol.TXB_OBJECT(txb, machine), 
+                txb.pure.string(next_node), txb.pure.string(forward)],
+        });
+
+        const res = await Protocol.Client().devInspectTransactionBlock({sender:sender, transactionBlock:txb});
+        if (res.results?.length === 1 && res.results[0].returnValues?.length === 1) {
+            const guard = Bcs.getInstance().de('Option<address>', Uint8Array.from(res.results[0].returnValues[0][0]));
+            return guard?.some?('0x'+guard?.some):undefined;
+        }
+    }
+
+    static DeSessions = (session: any) : Session[] => {
         let sessions : Session[] = [];
         session?.fields?.contents?.forEach((v:any) => {
             var s:Session = {next_node: v.fields.key, holders:[], weights:v.fields.value.fields.weights, threshold:v.fields.value.fields.threshold};
@@ -328,15 +347,15 @@ export class Progress {
         return sessions;
     }
 
-    static rpc_de_histories = (fields: any) : History[] => {
+    static DeHistories = (fields: any) : History[] => {
         return fields?.map((v:any) => {
-          return Progress.rpc_de_history(v?.data?.content?.fields)
+          return Progress.DeHistory(v?.data?.content?.fields)
         })
     }
 
-    static rpc_de_history = (data: any) : History => {
+    static DeHistory = (data: any) : History => {
         return {id:parseInt(data?.name), node:data?.value?.fields?.node, next_node:data?.value?.fields?.next_node, 
-            sessions:Progress.rpc_de_sessions(data?.value.fields?.session), time: data?.value?.fields?.time
+            sessions:Progress.DeSessions(data?.value.fields?.session), time: data?.value?.fields?.time
           }
     }
 

@@ -1,11 +1,11 @@
-import { SuiClient, SuiObjectResponse, SuiObjectDataOptions, SuiTransactionBlockResponseOptions, 
-    SuiTransactionBlockResponse, SuiObjectChange } from '@mysten/sui/client';
+import { SuiClient, SuiObjectResponse, SuiTransactionBlockResponseOptions, 
+    SuiTransactionBlockResponse } from '@mysten/sui/client';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
-import { toHEX, fromHEX, BcsReader } from '@mysten/bcs';
-import { Transaction as TransactionBlock, Inputs, TransactionResult, TransactionArgument } from '@mysten/sui/transactions';
+import { fromHEX } from '@mysten/bcs';
+import { Transaction as TransactionBlock, TransactionResult, TransactionArgument } from '@mysten/sui/transactions';
 import { capitalize, IsValidAddress, IsValidArray, IsValidU128, IsValidU256, IsValidU64, IsValidU8 } from './utils'
 import { GuardConstant } from './guard';
-import { isValidSuiAddress, isValidSuiObjectId } from '@mysten/sui/utils'
+import { isValidSuiObjectId } from '@mysten/sui/utils'
 
 export enum MODULES {
     machine = 'machine',
@@ -219,13 +219,13 @@ const TESTNET = {
 }
 */
 const TESTNET = {
-    wowok: "0x5091944f647fdcd1a5a90016933a9eac13b2c1dc41291d1ce31ed7a0cd664a02",
-    wowok_origin:'0x5091944f647fdcd1a5a90016933a9eac13b2c1dc41291d1ce31ed7a0cd664a02' ,
+    wowok: "0x30ed8dfa0b8597b1c753b8345e3c7b8792041feeaa7dc765bacd10f63c4402b7",
+    wowok_origin:'0x30ed8dfa0b8597b1c753b8345e3c7b8792041feeaa7dc765bacd10f63c4402b7' ,
     base: '0x75eae2a5c8e9bcee76ff8f684bcc38e49a26530526ef8c32703dc0b4a4281f93',
     base_origin: '0x75eae2a5c8e9bcee76ff8f684bcc38e49a26530526ef8c32703dc0b4a4281f93',
 
-    wowok_object: '0x6cfe6ee9f53b33eed11a6d4d1e09fb43278f222ced15aef7246243ecadf3c00f',
-    entity_object: '0x5469d38103ab78f91222338b489b512f9de86932edde064f7d2d77a6e78cf7a9',
+    wowok_object: '0xc26fcc691dbd4c05d753e170a11c151dbdec130b77691b391d1012dfb8c445bf',
+    entity_object: '0x1de2c69c9a795f56a8c409b54bbf50e544d4178d7c64b5520d929f5eea65b5ff',
     treasury_cap:'0x9f415c863f0c26103e70fc4a739fea479ff20544057a3c5665db16c0b8650f7c',
     oracle_object:'0x6c7d9b8ab0e9d21291e0128ca3e0d550b30f375f1e008381f2fbeef6753e6dcf',
 }
@@ -345,7 +345,7 @@ export class Protocol {
     arbitrationFn = (fn: any) => { return `${this.packages.get('wowok')}::${MODULES.arbitration}::${fn}`};
     arbFn = (fn: any) => { return `${this.packages.get('wowok')}::${MODULES.arb}::${fn}`};
 
-    query = async (objects: Query_Param[], options:SuiObjectDataOptions={showContent:true}) : Promise<SuiObjectResponse[]> => {
+    query = async (objects: Query_Param[], options={showContent:true}) : Promise<SuiObjectResponse[]> => {
         const client =  new SuiClient({ url: this.networkUrl() });  
         const ids = objects.map((value) => value.objectid);
         const res = await client.call('sui_multiGetObjects', [ids, options]) as SuiObjectResponse[];
@@ -357,7 +357,7 @@ export class Protocol {
         }   
         return res;
     } 
-    query_raw = async (objects: string[], options:SuiObjectDataOptions={showContent:true}) : Promise<SuiObjectResponse[]> => {
+    query_raw = async (objects: string[], options={showContent:true}) : Promise<SuiObjectResponse[]> => {
         const client =  new SuiClient({ url: this.networkUrl() });  
         return await client.call('sui_multiGetObjects', [objects, options]) as SuiObjectResponse[];
     }
@@ -550,7 +550,7 @@ export class RpcResultParser {
 
 export type Query_Param = {
     objectid: string;
-    callback: (protocol:Protocol, response:SuiObjectResponse, param:Query_Param, option:SuiObjectDataOptions)=>void;
+    callback: (protocol:Protocol, response:SuiObjectResponse, param:Query_Param, option:any)=>void;
     parser?: (result:any[], guardid: string, chain_sense_bsc:Uint8Array, constant?:GuardConstant)  => boolean;
     data?: any; // response data filted by callback
     constants?: GuardConstant;

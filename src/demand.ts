@@ -25,10 +25,7 @@ export class Demand {
         this.object = '';
     }
     static New(txb:TransactionBlock, bounty_type:string, ms_expand:boolean, time:number, permission:PermissionObject, description:string, 
-        bounty:TransactionResult | string, passport?:PassportObject) : Demand {
-        if (!Protocol.IsValidObjects([permission, bounty])) {
-            ERROR(Errors.IsValidObjects, 'permission, bounty');
-        }
+        passport?:PassportObject) : Demand {
         if (!IsValidDesription(description)) {
             ERROR(Errors.IsValidDesription);
         } 
@@ -44,14 +41,14 @@ export class Demand {
         if (passport) {
             d.object = txb.moveCall({
                 target:Protocol.Instance().demandFn('new_with_passport') as FnCallType,
-                arguments:[passport, txb.pure.string(description), txb.object(bounty), txb.pure.bool(ms_expand), txb.pure.u64(time), 
+                arguments:[passport, txb.pure.string(description), txb.pure.bool(ms_expand), txb.pure.u64(time), 
                     txb.object(clock), Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments:[bounty_type],
             })        
         } else {
             d.object = txb.moveCall({
                 target:Protocol.Instance().demandFn('new') as FnCallType,
-                arguments:[txb.pure.string(description), txb.object(bounty), txb.pure.bool(ms_expand), txb.pure.u64(time), 
+                arguments:[txb.pure.string(description), txb.pure.bool(ms_expand), txb.pure.u64(time), 
                     txb.object(clock), Protocol.TXB_OBJECT(txb, permission)],
                 typeArguments:[bounty_type],
             })        

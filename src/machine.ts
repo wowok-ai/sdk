@@ -543,28 +543,6 @@ export class Machine {
         return ''
     }
 
-
-    QueryForwardGuard(sender:string, node:string, prior_node:string, forward:string, onGuard:OnQueryGuard) {
-        if (!node || !forward) { // prior_node maybe ''
-            ERROR(Errors.InvalidParam, 'QueryForwardGuard');
-            return ;
-        }
-
-        this.txb.moveCall({
-            target:Protocol.Instance().machineFn('query_guard') as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(node), 
-                this.txb.pure.string(prior_node), this.txb.pure.string(forward)],
-        });
-
-        Protocol.Client().devInspectTransactionBlock({sender:sender, transactionBlock:this.txb}).then((res) => {
-            if (res.results?.length === 1 && res.results[0].returnValues?.length === 1) {
-                const guard = Bcs.getInstance().de('Option<address>', Uint8Array.from(res.results[0].returnValues[0][0]));
-                onGuard({node:node, prior_node:prior_node, forward:forward, guard:guard?.some?('0x'+guard?.some):'', txb:this.txb});
-            }
-        }).catch(e=>{
-            console.log(e);
-        })
-    }
     static INITIAL_NODE_NAME = '';
     static OPERATOR_ORDER_PAYER = 'OrderPayer';
 }

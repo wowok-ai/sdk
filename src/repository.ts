@@ -376,12 +376,12 @@ export class Repository {
     set_policy_mode(policy_mode:Repository_Policy_Mode, passport?:PassportObject)  {
         if (passport) {
             this.txb.moveCall({
-                target:Protocol.Instance().repositoryFn('policy_mode_set_with_passport') as FnCallType,
+                target:Protocol.Instance().repositoryFn('mode_set_with_passport') as FnCallType,
                 arguments:[passport, Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u8(policy_mode), Protocol.TXB_OBJECT(this.txb, this.permission)]
             })  
         } else {
             this.txb.moveCall({
-                target:Protocol.Instance().repositoryFn('policy_mode_set') as FnCallType,
+                target:Protocol.Instance().repositoryFn('mode_set') as FnCallType,
                 arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u8(policy_mode), Protocol.TXB_OBJECT(this.txb, this.permission)]
             })  
         }  
