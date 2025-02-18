@@ -1,19 +1,14 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.Permission = exports.PermissionInfo = exports.PermissionIndex = void 0;
-var protocol_1 = require("./protocol");
-var utils_1 = require("./utils");
-var exception_1 = require("./exception");
-var bcs_1 = require("@mysten/bcs");
-var PermissionIndex;
+import { Protocol, MODULES } from './protocol';
+import { array_unique, IsValidAddress, IsValidArray, IsValidDesription, Bcs, IsValidName, IsValidU64 } from './utils';
+import { ERROR, Errors } from './exception';
+import { BCS } from '@mysten/bcs';
+export var PermissionIndex;
 (function (PermissionIndex) {
     PermissionIndex[PermissionIndex["repository"] = 100] = "repository";
     PermissionIndex[PermissionIndex["repository_description"] = 101] = "repository_description";
-    PermissionIndex[PermissionIndex["repository_policy_mode"] = 102] = "repository_policy_mode";
+    PermissionIndex[PermissionIndex["repository_mode"] = 102] = "repository_mode";
     PermissionIndex[PermissionIndex["repository_policies"] = 103] = "repository_policies";
-    PermissionIndex[PermissionIndex["repository_policy_description"] = 105] = "repository_policy_description";
-    PermissionIndex[PermissionIndex["repository_policy_permission"] = 106] = "repository_policy_permission";
-    PermissionIndex[PermissionIndex["repository_reference"] = 107] = "repository_reference";
+    PermissionIndex[PermissionIndex["repository_reference"] = 104] = "repository_reference";
     /*
         vote = 150,
         vote_description = 151,
@@ -28,27 +23,22 @@ var PermissionIndex;
     */
     PermissionIndex[PermissionIndex["service"] = 200] = "service";
     PermissionIndex[PermissionIndex["service_description"] = 201] = "service_description";
-    PermissionIndex[PermissionIndex["service_price"] = 202] = "service_price";
-    PermissionIndex[PermissionIndex["service_stock"] = 203] = "service_stock";
-    PermissionIndex[PermissionIndex["service_sale_endpoint"] = 204] = "service_sale_endpoint";
-    PermissionIndex[PermissionIndex["service_payee"] = 205] = "service_payee";
-    PermissionIndex[PermissionIndex["service_repository"] = 206] = "service_repository";
-    PermissionIndex[PermissionIndex["service_withdraw_guards"] = 208] = "service_withdraw_guards";
-    PermissionIndex[PermissionIndex["service_refund_guards"] = 210] = "service_refund_guards";
-    PermissionIndex[PermissionIndex["service_add_sales"] = 212] = "service_add_sales";
-    PermissionIndex[PermissionIndex["service_remove_sales"] = 213] = "service_remove_sales";
-    PermissionIndex[PermissionIndex["service_discount_transfer"] = 214] = "service_discount_transfer";
-    PermissionIndex[PermissionIndex["service_withdraw"] = 216] = "service_withdraw";
-    PermissionIndex[PermissionIndex["service_buyer_guard"] = 217] = "service_buyer_guard";
-    PermissionIndex[PermissionIndex["service_machine"] = 218] = "service_machine";
-    PermissionIndex[PermissionIndex["service_endpoint"] = 219] = "service_endpoint";
-    PermissionIndex[PermissionIndex["service_publish"] = 220] = "service_publish";
-    PermissionIndex[PermissionIndex["service_clone"] = 221] = "service_clone";
-    PermissionIndex[PermissionIndex["service_customer_required"] = 222] = "service_customer_required";
-    //service_change_order_required_pubkey = 224,
-    PermissionIndex[PermissionIndex["service_pause"] = 225] = "service_pause";
-    PermissionIndex[PermissionIndex["service_treasury"] = 226] = "service_treasury";
-    PermissionIndex[PermissionIndex["service_arbitration"] = 227] = "service_arbitration";
+    PermissionIndex[PermissionIndex["service_sales"] = 202] = "service_sales";
+    PermissionIndex[PermissionIndex["service_payee"] = 203] = "service_payee";
+    PermissionIndex[PermissionIndex["service_repository"] = 204] = "service_repository";
+    PermissionIndex[PermissionIndex["service_withdraw_guards"] = 205] = "service_withdraw_guards";
+    PermissionIndex[PermissionIndex["service_refund_guards"] = 206] = "service_refund_guards";
+    PermissionIndex[PermissionIndex["service_discount_transfer"] = 207] = "service_discount_transfer";
+    PermissionIndex[PermissionIndex["service_withdraw"] = 208] = "service_withdraw";
+    PermissionIndex[PermissionIndex["service_buyer_guard"] = 209] = "service_buyer_guard";
+    PermissionIndex[PermissionIndex["service_machine"] = 210] = "service_machine";
+    PermissionIndex[PermissionIndex["service_endpoint"] = 211] = "service_endpoint";
+    PermissionIndex[PermissionIndex["service_publish"] = 212] = "service_publish";
+    PermissionIndex[PermissionIndex["service_clone"] = 213] = "service_clone";
+    PermissionIndex[PermissionIndex["service_customer_required"] = 214] = "service_customer_required";
+    PermissionIndex[PermissionIndex["service_pause"] = 215] = "service_pause";
+    PermissionIndex[PermissionIndex["service_treasury"] = 216] = "service_treasury";
+    PermissionIndex[PermissionIndex["service_arbitration"] = 217] = "service_arbitration";
     /*
         reward = 240,
         reward_refund = 241,
@@ -99,15 +89,13 @@ var PermissionIndex;
     PermissionIndex[PermissionIndex["arbitration_withdraw"] = 809] = "arbitration_withdraw";
     PermissionIndex[PermissionIndex["arbitration_treasury"] = 810] = "arbitration_treasury";
     PermissionIndex[PermissionIndex["user_defined_start"] = 1000] = "user_defined_start";
-})(PermissionIndex || (exports.PermissionIndex = PermissionIndex = {}));
-exports.PermissionInfo = [
-    { index: PermissionIndex.repository, name: 'Repository', description: 'Launch new Repository', module: 'repository' },
-    { index: PermissionIndex.repository_description, name: 'Description', description: 'Set Repository description', module: 'repository' },
-    { index: PermissionIndex.repository_policy_mode, name: 'Policy mode', description: 'Set Repository policy mode', module: 'repository' },
-    { index: PermissionIndex.repository_policies, name: 'Policy', description: 'Add/Remove/Edit Repository policy', module: 'repository' },
-    { index: PermissionIndex.repository_policy_description, name: 'Policy Description', description: 'Set Repository policy description', module: 'repository' },
-    { index: PermissionIndex.repository_policy_permission, name: 'Policy Permission', description: 'Set Repository policy permission', module: 'repository' },
-    { index: PermissionIndex.repository_reference, name: 'Reference', description: 'Set Repository reference', module: 'repository' },
+})(PermissionIndex || (PermissionIndex = {}));
+export const PermissionInfo = [
+    { index: PermissionIndex.repository, name: 'Repository', description: 'Launch new Repository', module: MODULES.repository },
+    { index: PermissionIndex.repository_description, name: 'Description', description: 'Set Repository description', module: MODULES.repository },
+    { index: PermissionIndex.repository_mode, name: 'Policy mode', description: 'Set Repository mode', module: MODULES.repository },
+    { index: PermissionIndex.repository_policies, name: 'Policy', description: 'Set Repository policies', module: MODULES.repository },
+    { index: PermissionIndex.repository_reference, name: 'Reference', description: 'Set Repository reference', module: MODULES.repository },
     /*
         {index:PermissionIndex.vote, name:'Vote', description:'Launch new Vote', module: 'vote'},
         {index:PermissionIndex.vote_description, name:'Description', description:'Set Vote description', module: 'vote'},
@@ -120,28 +108,24 @@ exports.PermissionInfo = [
         {index:PermissionIndex.vote_expand_deadline, name:'Expand deadline', description:'Expand Vote deadline', module: 'vote'},
         {index:PermissionIndex.vote_lock_guard, name:'Lock Guard', description:'Set Vote guards immutable', module: 'vote'},
     */
-    { index: PermissionIndex.service, name: 'Service', description: 'Launch new Service', module: 'service' },
-    { index: PermissionIndex.service_description, name: 'Description', description: 'Set Service description', module: 'service' },
-    { index: PermissionIndex.service_price, name: 'Price', description: 'Set Service item price', module: 'service' },
-    { index: PermissionIndex.service_stock, name: 'Inventory', description: 'Set Service item inventory', module: 'service' },
-    { index: PermissionIndex.service_payee, name: 'Payee', description: 'Set Service payee', module: 'service' },
-    { index: PermissionIndex.service_repository, name: 'Repository', description: 'Set Service repositories', module: 'service' },
-    { index: PermissionIndex.service_withdraw_guards, name: 'Withdraw Guard', description: 'Set Service withdraw guards', module: 'service' },
-    { index: PermissionIndex.service_refund_guards, name: 'Refund Guard', description: 'Set Service refund guards', module: 'service' },
-    { index: PermissionIndex.service_add_sales, name: 'Add sales', description: 'Add sale items for Service', module: 'service' },
-    { index: PermissionIndex.service_remove_sales, name: 'Remove sales', description: 'Remove sale items for Service', module: 'service' },
-    { index: PermissionIndex.service_discount_transfer, name: 'Discount', description: 'Launch discounts for Service', module: 'service' },
-    { index: PermissionIndex.service_withdraw, name: 'Withdraw', description: 'Widthraw from Service orders', module: 'service' },
-    { index: PermissionIndex.service_buyer_guard, name: 'Buyer Guard', description: 'Set Guard of buying for Service', module: 'service' },
-    { index: PermissionIndex.service_machine, name: 'Machine', description: 'Set Machine for Service', module: 'service' },
-    { index: PermissionIndex.service_endpoint, name: 'Endpoint', description: 'Set Service endpoint', module: 'service' },
-    { index: PermissionIndex.service_publish, name: 'Publish', description: 'Allowing the creation of Order', module: 'service' },
-    { index: PermissionIndex.service_clone, name: 'Clone', description: 'Clone Service', module: 'service' },
-    { index: PermissionIndex.service_customer_required, name: 'Buyer info', description: 'Set Service buyer info required', module: 'service' },
-    //{index:PermissionIndex.service_change_order_required_pubkey, name:'Order pubkey', description:'Update Serivce order pubkey', module: 'service'},
-    { index: PermissionIndex.service_pause, name: 'Pause', description: 'Pause/Unpause Service', module: 'service' },
-    { index: PermissionIndex.service_treasury, name: 'Treasury', description: 'Externally withdrawable treasury for compensation or rewards', module: 'service' },
-    { index: PermissionIndex.service_arbitration, name: 'Arbitration', description: 'Add/Remove arbitration that allows refunds from orders at any time based on arbitration results', module: 'service' },
+    { index: PermissionIndex.service, name: 'Service', description: 'Launch new Service', module: MODULES.service },
+    { index: PermissionIndex.service_description, name: 'Description', description: 'Set Service description', module: MODULES.service },
+    { index: PermissionIndex.service_sales, name: 'Sales', description: 'Set Service sales items', module: MODULES.service },
+    { index: PermissionIndex.service_payee, name: 'Payee', description: 'Set Service payee', module: MODULES.service },
+    { index: PermissionIndex.service_repository, name: 'Repository', description: 'Set Service repositories', module: MODULES.service },
+    { index: PermissionIndex.service_withdraw_guards, name: 'Withdraw Guard', description: 'Set Service withdraw guards', module: MODULES.service },
+    { index: PermissionIndex.service_refund_guards, name: 'Refund Guard', description: 'Set Service refund guards', module: MODULES.service },
+    { index: PermissionIndex.service_discount_transfer, name: 'Discount', description: 'Launch discounts for Service', module: MODULES.service },
+    { index: PermissionIndex.service_buyer_guard, name: 'Buyer Guard', description: 'Set Guard of buying for Service', module: MODULES.service },
+    { index: PermissionIndex.service_machine, name: 'Machine', description: 'Set Machine for Service', module: MODULES.service },
+    { index: PermissionIndex.service_endpoint, name: 'Endpoint', description: 'Set Service endpoint', module: MODULES.service },
+    { index: PermissionIndex.service_publish, name: 'Publish', description: 'Allowing the creation of Order', module: MODULES.service },
+    { index: PermissionIndex.service_clone, name: 'Clone', description: 'Clone Service', module: MODULES.service },
+    { index: PermissionIndex.service_customer_required, name: 'Buyer info', description: 'Set Service buyer info required', module: MODULES.service },
+    //{index:PermissionIndex.service_change_order_required_pubkey, name:'Order pubkey', description:'Update Serivce order pubkey', module: MODULES.service},
+    { index: PermissionIndex.service_pause, name: 'Pause', description: 'Pause/Unpause Service', module: MODULES.service },
+    { index: PermissionIndex.service_treasury, name: 'Treasury', description: 'Externally withdrawable treasury for compensation or rewards', module: MODULES.service },
+    { index: PermissionIndex.service_arbitration, name: 'Arbitration', description: 'Add/Remove arbitration that allows refunds from orders at any time based on arbitration results', module: MODULES.service },
     /*
     {index:PermissionIndex.reward, name:'reward', description:'Launch new reward', module: 'reward'},
     {index:PermissionIndex.reward_refund, name:'Refund', description:'Refund from reward', module: 'reward'},
@@ -152,343 +136,362 @@ exports.PermissionInfo = [
     {index:PermissionIndex.reward_claim_repeatably, name:'Claim repeatably', description:'Allow claimming repeatably', module: 'reward'},
     {index:PermissionIndex.reward_allow_claiming, name:'Allow claiming', description:'Allow claiming', module: 'reward'},
 */
-    { index: PermissionIndex.demand, name: 'Demand', description: 'Launch new Demand', module: 'demand' },
-    { index: PermissionIndex.demand_refund, name: 'Refund', description: 'Refund from Demand', module: 'demand' },
-    { index: PermissionIndex.demand_expand_time, name: 'Expand deadline', description: 'Expand Demand deadline', module: 'demand' },
-    { index: PermissionIndex.demand_guard, name: 'Guard', description: 'Set Demand guard', module: 'demand' },
-    { index: PermissionIndex.demand_description, name: 'Description', description: 'Set Demand description', module: 'demand' },
-    { index: PermissionIndex.demand_yes, name: 'Yes', description: 'Pick the Deamand serice', module: 'demand' },
-    { index: PermissionIndex.machine, name: 'Machine', description: 'Launch new Machine', module: 'machine' },
-    { index: PermissionIndex.machine_description, name: 'Description', description: 'Set Machine description', module: 'machine' },
-    { index: PermissionIndex.machine_repository, name: 'Repository', description: 'Set Machine repository', module: 'machine' },
-    { index: PermissionIndex.machine_clone, name: 'Clone', description: 'Clone Machine', module: 'machine' },
-    { index: PermissionIndex.machine_node, name: 'Node', description: 'Set Machine nodes', module: 'machine' },
-    { index: PermissionIndex.machine_endpoint, name: 'Endpoint', description: 'Set Machine endpoint', module: 'machine' },
-    { index: PermissionIndex.machine_pause, name: 'Pause', description: 'Pause/Unpause Machine', module: 'machine' },
-    { index: PermissionIndex.machine_publish, name: 'Publish', description: 'Allowing the creation of Progress', module: 'machine' },
-    { index: PermissionIndex.progress, name: 'Progress', description: 'Launch new Progress', module: 'progress' },
-    { index: PermissionIndex.progress_namedOperator, name: 'Operator', description: 'Set Progress operators', module: 'progress' },
-    { index: PermissionIndex.progress_bind_task, name: 'Bind', description: 'Set Progress task', module: 'progress' },
-    { index: PermissionIndex.progress_context_repository, name: 'Repository', description: 'Set Progress repository', module: 'progress' },
-    { index: PermissionIndex.progress_unhold, name: 'Unhold', description: 'Release Progress holdings', module: 'progress' },
-    { index: PermissionIndex.progress_parent, name: 'Parent', description: 'Set Progress parent', module: 'progress' },
-    { index: PermissionIndex.treasury, name: 'Treasury', description: 'Launch new Treasury', module: 'treasury' },
-    { index: PermissionIndex.treasury_deposit, name: 'Deposit', description: 'Deposit coins', module: 'treasury' },
-    { index: PermissionIndex.treasury_receive, name: 'Receive', description: 'Receive coins from some address sent', module: 'treasury' },
-    { index: PermissionIndex.treasury_withdraw, name: 'Withdraw', description: 'Withdraw coins', module: 'treasury' },
-    { index: PermissionIndex.treasury_withdraw_guard, name: 'Withdraw Guard', description: 'Add/Remove Treasury withdraw guard', module: 'treasury' },
-    { index: PermissionIndex.treasury_withdraw_mode, name: 'Withdraw mode', description: 'Set Treasury withdraw mode', module: 'treasury' },
-    { index: PermissionIndex.treasury_deposit_guard, name: 'Deposit Guard', description: 'Set Treasury deposit guard', module: 'treasury' },
-    { index: PermissionIndex.treasury_descritption, name: 'Description', description: 'Set Treasury description', module: 'treasury' },
-    { index: PermissionIndex.arbitration, name: 'Arbitration', description: 'Launch new Arbitration', module: 'arbitration' },
-    { index: PermissionIndex.arbitration_description, name: 'Description', description: 'Set Arbitration description', module: 'arbitration' },
-    { index: PermissionIndex.arbitration_endpoint, name: 'Endpoint', description: 'Set Arbitration endpoint', module: 'arbitration' },
-    { index: PermissionIndex.arbitration_fee, name: 'Fee', description: 'Set Arbitration fee', module: 'arbitration' },
-    { index: PermissionIndex.arbitration_guard, name: 'Guard', description: 'Set Guard to apply for arbitration', module: 'arbitration' },
-    { index: PermissionIndex.arbitration_arbitration, name: 'Arbitrate', description: 'Determine the outcome of arbitration', module: 'arbitration' },
-    { index: PermissionIndex.arbitration_pause, name: 'Pause', description: 'Allowing/forbidding the creation of Arb', module: 'arbitration' },
-    { index: PermissionIndex.arbitration_voting_guard, name: 'Voting Guard', description: 'Add/Remove voting Guard', module: 'arbitration' },
-    { index: PermissionIndex.arbitration_vote, name: 'Vote', description: 'Vote on the application for arbitration', module: 'arbitration' },
-    { index: PermissionIndex.arbitration_withdraw, name: 'Withdraw', description: 'Withdraw the arbitration fee', module: 'arbitration' },
-    { index: PermissionIndex.arbitration_treasury, name: 'Withdraw', description: 'Set Treasury that fees was collected at the time of withdrawal', module: 'arbitration' },
+    { index: PermissionIndex.demand, name: 'Demand', description: 'Launch new Demand', module: MODULES.demand },
+    { index: PermissionIndex.demand_refund, name: 'Refund', description: 'Refund from Demand', module: MODULES.demand },
+    { index: PermissionIndex.demand_expand_time, name: 'Expand deadline', description: 'Expand Demand deadline', module: MODULES.demand },
+    { index: PermissionIndex.demand_guard, name: 'Guard', description: 'Set Demand guard', module: MODULES.demand },
+    { index: PermissionIndex.demand_description, name: 'Description', description: 'Set Demand description', module: MODULES.demand },
+    { index: PermissionIndex.demand_yes, name: 'Yes', description: 'Pick the Deamand serice', module: MODULES.demand },
+    { index: PermissionIndex.machine, name: 'Machine', description: 'Launch new Machine', module: MODULES.machine },
+    { index: PermissionIndex.machine_description, name: 'Description', description: 'Set Machine description', module: MODULES.machine },
+    { index: PermissionIndex.machine_repository, name: 'Repository', description: 'Set Machine repository', module: MODULES.machine },
+    { index: PermissionIndex.machine_clone, name: 'Clone', description: 'Clone Machine', module: MODULES.machine },
+    { index: PermissionIndex.machine_node, name: 'Node', description: 'Set Machine nodes', module: MODULES.machine },
+    { index: PermissionIndex.machine_endpoint, name: 'Endpoint', description: 'Set Machine endpoint', module: MODULES.machine },
+    { index: PermissionIndex.machine_pause, name: 'Pause', description: 'Pause/Unpause Machine', module: MODULES.machine },
+    { index: PermissionIndex.machine_publish, name: 'Publish', description: 'Allowing the creation of Progress', module: MODULES.machine },
+    { index: PermissionIndex.progress, name: 'Progress', description: 'Launch new Progress', module: MODULES.progress },
+    { index: PermissionIndex.progress_namedOperator, name: 'Operator', description: 'Set Progress operators', module: MODULES.progress },
+    { index: PermissionIndex.progress_bind_task, name: 'Bind', description: 'Set Progress task', module: MODULES.progress },
+    { index: PermissionIndex.progress_context_repository, name: 'Repository', description: 'Set Progress repository', module: MODULES.progress },
+    { index: PermissionIndex.progress_unhold, name: 'Unhold', description: 'Release Progress holdings', module: MODULES.progress },
+    { index: PermissionIndex.progress_parent, name: 'Parent', description: 'Set Progress parent', module: MODULES.progress },
+    { index: PermissionIndex.treasury, name: 'Treasury', description: 'Launch new Treasury', module: MODULES.treasury },
+    { index: PermissionIndex.treasury_deposit, name: 'Deposit', description: 'Deposit coins', module: MODULES.treasury },
+    { index: PermissionIndex.treasury_receive, name: 'Receive', description: 'Receive coins from some address sent', module: MODULES.treasury },
+    { index: PermissionIndex.treasury_withdraw, name: 'Withdraw', description: 'Withdraw coins', module: MODULES.treasury },
+    { index: PermissionIndex.treasury_withdraw_guard, name: 'Withdraw Guard', description: 'Add/Remove Treasury withdraw guard', module: MODULES.treasury },
+    { index: PermissionIndex.treasury_withdraw_mode, name: 'Withdraw mode', description: 'Set Treasury withdraw mode', module: MODULES.treasury },
+    { index: PermissionIndex.treasury_deposit_guard, name: 'Deposit Guard', description: 'Set Treasury deposit guard', module: MODULES.treasury },
+    { index: PermissionIndex.treasury_descritption, name: 'Description', description: 'Set Treasury description', module: MODULES.treasury },
+    { index: PermissionIndex.arbitration, name: 'Arbitration', description: 'Launch new Arbitration', module: MODULES.arbitration },
+    { index: PermissionIndex.arbitration_description, name: 'Description', description: 'Set Arbitration description', module: MODULES.arbitration },
+    { index: PermissionIndex.arbitration_endpoint, name: 'Endpoint', description: 'Set Arbitration endpoint', module: MODULES.arbitration },
+    { index: PermissionIndex.arbitration_fee, name: 'Fee', description: 'Set Arbitration fee', module: MODULES.arbitration },
+    { index: PermissionIndex.arbitration_guard, name: 'Guard', description: 'Set Guard to apply for arbitration', module: MODULES.arbitration },
+    { index: PermissionIndex.arbitration_arbitration, name: 'Arbitrate', description: 'Determine the outcome of arbitration', module: MODULES.arbitration },
+    { index: PermissionIndex.arbitration_pause, name: 'Pause', description: 'Allowing/forbidding the creation of Arb', module: MODULES.arbitration },
+    { index: PermissionIndex.arbitration_voting_guard, name: 'Voting Guard', description: 'Add/Remove voting Guard', module: MODULES.arbitration },
+    { index: PermissionIndex.arbitration_vote, name: 'Vote', description: 'Vote on the application for arbitration', module: MODULES.arbitration },
+    { index: PermissionIndex.arbitration_withdraw, name: 'Withdraw', description: 'Withdraw the arbitration fee', module: MODULES.arbitration },
+    { index: PermissionIndex.arbitration_treasury, name: 'Withdraw', description: 'Set Treasury that fees was collected at the time of withdrawal', module: MODULES.arbitration },
 ];
-var Permission = /** @class */ (function () {
-    function Permission(txb) {
+export class Permission {
+    txb;
+    object;
+    get_object() { return this.object; }
+    constructor(txb) {
         this.txb = txb;
         this.object = '';
     }
-    Permission.prototype.get_object = function () { return this.object; };
-    Permission.From = function (txb, object) {
-        var p = new Permission(txb);
-        p.object = protocol_1.Protocol.TXB_OBJECT(txb, object);
+    static From(txb, object) {
+        let p = new Permission(txb);
+        p.object = Protocol.TXB_OBJECT(txb, object);
         return p;
-    };
-    Permission.New = function (txb, description) {
-        if (!(0, utils_1.IsValidDesription)(description)) {
-            (0, exception_1.ERROR)(exception_1.Errors.IsValidDesription);
+    }
+    static New(txb, description) {
+        if (!IsValidDesription(description)) {
+            ERROR(Errors.IsValidDesription);
         }
-        var p = new Permission(txb);
+        let p = new Permission(txb);
         p.object = txb.moveCall({
-            target: protocol_1.Protocol.Instance().PermissionFn('new'),
+            target: Protocol.Instance().permissionFn('new'),
             arguments: [txb.pure.string(description)]
         });
         return p;
-    };
-    Permission.prototype.launch = function () {
+    }
+    launch() {
         return this.txb.moveCall({
-            target: protocol_1.Protocol.Instance().PermissionFn('create'),
-            arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object)]
+            target: Protocol.Instance().permissionFn('create'),
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object)]
         });
-    };
-    Permission.prototype.add_userdefine = function (index, name) {
+    }
+    add_userdefine(index, name) {
         if (!Permission.IsValidUserDefinedIndex(index)) {
-            (0, exception_1.ERROR)(exception_1.Errors.IsValidUserDefinedIndex, 'add_userdefine');
+            ERROR(Errors.IsValidUserDefinedIndex, 'add_userdefine');
         }
-        if (!(0, utils_1.IsValidName)(name)) {
-            (0, exception_1.ERROR)(exception_1.Errors.IsValidName, 'add_userdefine');
+        if (!IsValidName(name)) {
+            ERROR(Errors.IsValidName, 'add_userdefine');
         }
         this.txb.moveCall({
-            target: protocol_1.Protocol.Instance().PermissionFn('user_define_add'),
-            arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u64(index), this.txb.pure.string(name)]
+            target: Protocol.Instance().permissionFn('user_define_add'),
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u64(index), this.txb.pure.string(name)]
         });
-    };
-    Permission.prototype.remove_userdefine = function (index) {
+    }
+    remove_userdefine(index) {
         if (!Permission.IsValidUserDefinedIndex(index)) {
-            (0, exception_1.ERROR)(exception_1.Errors.IsValidUserDefinedIndex, 'add_userdefine');
+            ERROR(Errors.IsValidUserDefinedIndex, 'add_userdefine');
         }
         this.txb.moveCall({
-            target: protocol_1.Protocol.Instance().PermissionFn('user_define_remove'),
-            arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u64(index)]
+            target: Protocol.Instance().permissionFn('user_define_remove'),
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u64(index)]
         });
-    };
-    Permission.prototype.change_entity = function (old_entity, new_entity) {
-        if (!(0, utils_1.IsValidAddress)(old_entity) || !(0, utils_1.IsValidAddress)(new_entity)) {
-            (0, exception_1.ERROR)(exception_1.Errors.IsValidAddress, 'change_entity');
+    }
+    transfer_permission(old_entity, new_entity) {
+        if (!IsValidAddress(old_entity) || !IsValidAddress(new_entity)) {
+            ERROR(Errors.IsValidAddress, 'transfer_permission');
         }
         this.txb.moveCall({
-            target: protocol_1.Protocol.Instance().PermissionFn('change_entity'),
-            arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(old_entity),
+            target: Protocol.Instance().permissionFn('change_entity'),
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(old_entity),
                 this.txb.pure.address(new_entity)]
         });
-    };
-    Permission.prototype.add_entity2 = function (entities, index) {
+    }
+    add_entity2(entities, index) {
         if (entities.length === 0)
             return;
-        if (!(0, utils_1.IsValidArray)(entities, utils_1.IsValidAddress)) {
-            (0, exception_1.ERROR)(exception_1.Errors.IsValidArray, 'add_entity2');
+        if (!IsValidArray(entities, IsValidAddress)) {
+            ERROR(Errors.IsValidArray, 'add_entity2');
         }
         if (index !== undefined) {
             this.txb.moveCall({
-                target: protocol_1.Protocol.Instance().PermissionFn('add_with_index'),
-                arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u64(index),
-                    this.txb.pure.vector('address', (0, utils_1.array_unique)(entities))]
+                target: Protocol.Instance().permissionFn('add_with_index'),
+                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.u64(index),
+                    this.txb.pure.vector('address', array_unique(entities))]
             });
         }
         else {
             this.txb.moveCall({
-                target: protocol_1.Protocol.Instance().PermissionFn('add'),
-                arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', (0, utils_1.array_unique)(entities))]
+                target: Protocol.Instance().permissionFn('add'),
+                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(entities))]
             });
         }
-    };
-    Permission.prototype.add_entity = function (entities) {
-        var _this = this;
+    }
+    add_entity3(entities) {
         if (entities.length === 0)
             return;
-        var bValid = true;
-        var e = entities.forEach(function (v) {
-            if (!(0, utils_1.IsValidAddress)(v.entity_address))
+        const e = [];
+        entities.forEach((v) => {
+            v.entities.forEach((p) => {
+                const f = e.find((i) => i.address === p.address);
+                if (f) {
+                    const t = f.permissions.find((k) => k.index === v.index);
+                    if (t) {
+                        t.guard = p.guard;
+                    }
+                    else {
+                        f.permissions.push({ guard: p.guard, index: v.index });
+                    }
+                }
+                else {
+                    e.push({ address: p.address, permissions: [{ guard: p.guard, index: v.index }] });
+                }
+            });
+        });
+        this.add_entity(e);
+    }
+    add_entity(entities) {
+        if (entities.length === 0)
+            return;
+        let bValid = true;
+        entities.forEach((v) => {
+            if (!IsValidAddress(v.address))
                 bValid = false;
-            v.permissions.forEach(function (p) {
+            v.permissions.forEach((p) => {
                 if (!Permission.IsValidPermissionIndex(p.index))
                     bValid = false;
-                if ((p === null || p === void 0 ? void 0 : p.guard) && !protocol_1.Protocol.IsValidObjects([p.guard]))
+                if (p?.guard && !Protocol.IsValidObjects([p.guard]))
                     bValid = false;
             });
         });
         if (!bValid) {
-            (0, exception_1.ERROR)(exception_1.Errors.InvalidParam, 'entities');
+            ERROR(Errors.InvalidParam, 'add_entity.entities');
         }
-        var guards = [];
-        for (var i = 0; i < entities.length; i++) {
-            var entity = entities[i];
-            var indexes = [];
-            for (var j = 0; j < entity.permissions.length; j++) {
-                var index = entity.permissions[j];
+        let guards = [];
+        for (let i = 0; i < entities.length; i++) {
+            let entity = entities[i];
+            let indexes = [];
+            for (let j = 0; j < entity.permissions.length; j++) {
+                let index = entity.permissions[j];
                 if (!Permission.IsValidPermissionIndex(index.index)) {
                     continue;
                 }
                 if (!indexes.includes(index.index)) {
                     indexes.push(index.index);
-                    if (index === null || index === void 0 ? void 0 : index.guard) {
-                        guards.push({ entity_address: entity.entity_address, index: index.index, guard: index.guard });
+                    if (index?.guard) {
+                        guards.push({ address: entity.address, index: index.index, guard: index.guard });
                     }
                 }
             }
             if (indexes.length > 0) {
                 this.txb.moveCall({
-                    target: protocol_1.Protocol.Instance().PermissionFn('add_batch'),
-                    arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity.entity_address),
+                    target: Protocol.Instance().permissionFn('add_batch'),
+                    arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity.address),
                         this.txb.pure.vector('u64', indexes)]
                 });
             }
         }
         // set guards
-        guards.forEach(function (_a) {
-            var entity_address = _a.entity_address, index = _a.index, guard = _a.guard;
-            _this.txb.moveCall({
-                target: protocol_1.Protocol.Instance().PermissionFn('guard_set'),
-                arguments: [protocol_1.Protocol.TXB_OBJECT(_this.txb, _this.object), _this.txb.pure.address(entity_address),
-                    _this.txb.pure.u64(index), protocol_1.Protocol.TXB_OBJECT(_this.txb, guard)]
+        guards.forEach(({ address, index, guard }) => {
+            this.txb.moveCall({
+                target: Protocol.Instance().permissionFn('guard_set'),
+                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address),
+                    this.txb.pure.u64(index), Protocol.TXB_OBJECT(this.txb, guard)]
             });
         });
-    };
+    }
     // guard: undefine to set none
-    Permission.prototype.set_guard = function (entity_address, index, guard) {
-        if (!(0, utils_1.IsValidAddress)(entity_address)) {
-            (0, exception_1.ERROR)(exception_1.Errors.IsValidAddress, 'entity_address');
+    set_guard(address, index, guard) {
+        if (!IsValidAddress(address)) {
+            ERROR(Errors.IsValidAddress, 'address');
         }
         if (!Permission.IsValidPermissionIndex(index) && !Permission.IsValidUserDefinedIndex(index)) {
-            (0, exception_1.ERROR)(exception_1.Errors.IsValidPermissionIndex, 'index');
+            ERROR(Errors.IsValidPermissionIndex, 'index');
         }
         if (guard) {
             this.txb.moveCall({
-                target: protocol_1.Protocol.Instance().PermissionFn('guard_set'),
-                arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity_address),
-                    this.txb.pure.u64(index), protocol_1.Protocol.TXB_OBJECT(this.txb, guard)]
+                target: Protocol.Instance().permissionFn('guard_set'),
+                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address),
+                    this.txb.pure.u64(index), Protocol.TXB_OBJECT(this.txb, guard)]
             });
         }
         else {
             this.txb.moveCall({
-                target: protocol_1.Protocol.Instance().PermissionFn('guard_none'),
-                arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity_address),
+                target: Protocol.Instance().permissionFn('guard_none'),
+                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address),
                     this.txb.pure.u64(index)]
             });
         }
         ;
-    };
-    Permission.prototype.remove_index = function (entity_address, index) {
-        if (!(0, utils_1.IsValidAddress)(entity_address)) {
-            (0, exception_1.ERROR)(exception_1.Errors.IsValidAddress);
+    }
+    remove_index(address, index) {
+        if (!IsValidAddress(address)) {
+            ERROR(Errors.IsValidAddress);
         }
         if (index.length === 0)
             return;
-        if (!((0, utils_1.IsValidArray)(index, Permission.IsValidPermissionIndex))) {
-            (0, exception_1.ERROR)(exception_1.Errors.InvalidParam, 'index');
+        if (!(IsValidArray(index, Permission.IsValidPermissionIndex))) {
+            ERROR(Errors.InvalidParam, 'index');
         }
         this.txb.moveCall({
-            target: protocol_1.Protocol.Instance().PermissionFn('remove_index'),
-            arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(entity_address),
-                this.txb.pure.vector('u64', (0, utils_1.array_unique)(index))]
+            target: Protocol.Instance().permissionFn('remove_index'),
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address),
+                this.txb.pure.vector('u64', array_unique(index))]
         });
-    };
-    Permission.prototype.remove_entity = function (entity_address) {
-        if (entity_address.length === 0)
+    }
+    remove_entity(address) {
+        if (address.length === 0)
             return;
-        if (!(0, utils_1.IsValidArray)(entity_address, utils_1.IsValidAddress)) {
-            (0, exception_1.ERROR)(exception_1.Errors.IsValidArray);
+        if (!IsValidArray(address, IsValidAddress)) {
+            ERROR(Errors.IsValidArray);
         }
         this.txb.moveCall({
-            target: protocol_1.Protocol.Instance().PermissionFn('remove'),
-            arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', (0, utils_1.array_unique)(entity_address))]
+            target: Protocol.Instance().permissionFn('remove'),
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(address))]
         });
-    };
-    Permission.prototype.set_description = function (description) {
-        if (!(0, utils_1.IsValidDesription)(description)) {
-            (0, exception_1.ERROR)(exception_1.Errors.IsValidDesription);
+    }
+    set_description(description) {
+        if (!IsValidDesription(description)) {
+            ERROR(Errors.IsValidDesription);
         }
         this.txb.moveCall({
-            target: protocol_1.Protocol.Instance().PermissionFn('description_set'),
-            arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(description)]
+            target: Protocol.Instance().permissionFn('description_set'),
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(description)]
         });
-    };
-    Permission.prototype.add_admin = function (admin) {
+    }
+    add_admin(admin) {
         if (admin.length === 0)
             return;
-        if (!(0, utils_1.IsValidArray)(admin, utils_1.IsValidAddress)) {
-            (0, exception_1.ERROR)(exception_1.Errors.IsValidArray);
+        if (!IsValidArray(admin, IsValidAddress)) {
+            ERROR(Errors.IsValidArray);
         }
         this.txb.moveCall({
-            target: protocol_1.Protocol.Instance().PermissionFn('admin_add_batch'),
-            arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', (0, utils_1.array_unique)(admin))]
+            target: Protocol.Instance().permissionFn('admin_add_batch'),
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(admin))]
         });
-    };
-    Permission.prototype.remove_admin = function (admin, removeall) {
+    }
+    remove_admin(admin, removeall) {
         if (!removeall && admin.length === 0)
             return;
-        if (!(0, utils_1.IsValidArray)(admin, utils_1.IsValidAddress)) {
-            (0, exception_1.ERROR)(exception_1.Errors.IsValidArray, 'admin');
+        if (!IsValidArray(admin, IsValidAddress)) {
+            ERROR(Errors.IsValidArray, 'admin');
         }
         if (removeall) {
             this.txb.moveCall({
-                target: protocol_1.Protocol.Instance().PermissionFn('admins_clear'),
-                arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object)]
+                target: Protocol.Instance().permissionFn('admins_clear'),
+                arguments: [Protocol.TXB_OBJECT(this.txb, this.object)]
             });
         }
         else if (admin) {
             this.txb.moveCall({
-                target: protocol_1.Protocol.Instance().PermissionFn('admin_remove_batch'),
-                arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', (0, utils_1.array_unique)(admin))]
+                target: Protocol.Instance().permissionFn('admin_remove_batch'),
+                arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.vector('address', array_unique(admin))]
             });
         }
-    };
-    Permission.prototype.change_owner = function (new_owner) {
-        if (!(0, utils_1.IsValidAddress)(new_owner)) {
-            (0, exception_1.ERROR)(exception_1.Errors.IsValidAddress);
+    }
+    change_owner(new_owner) {
+        if (!IsValidAddress(new_owner)) {
+            ERROR(Errors.IsValidAddress);
         }
         this.txb.moveCall({
-            target: protocol_1.Protocol.Instance().PermissionFn('builder_set'),
-            arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(new_owner)]
+            target: Protocol.Instance().permissionFn('builder_set'),
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(new_owner)]
         });
-    };
+    }
     // query all permissions for address
-    Permission.prototype.query_permissions_all = function (address_queried) {
-        if (!(0, utils_1.IsValidAddress)(address_queried)) {
-            (0, exception_1.ERROR)(exception_1.Errors.InvalidParam, 'query_permissions');
+    query_permissions_all(address_queried) {
+        if (!IsValidAddress(address_queried)) {
+            ERROR(Errors.InvalidParam, 'query_permissions');
         }
         this.txb.moveCall({
-            target: protocol_1.Protocol.Instance().PermissionFn('query_permissions_all'),
-            arguments: [protocol_1.Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address_queried)]
+            target: Protocol.Instance().permissionFn('query_permissions_all'),
+            arguments: [Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.address(address_queried)]
         });
-    };
-    Permission.prototype.QueryPermissions = function (permission, address_queried, onPermissionAnswer, sender) {
+    }
+    QueryPermissions(permission, address_queried, onPermissionAnswer, sender) {
         //@ be the same txb
         this.query_permissions_all(address_queried);
-        protocol_1.Protocol.Client().devInspectTransactionBlock({ sender: sender !== null && sender !== void 0 ? sender : address_queried, transactionBlock: this.txb }).then(function (res) {
-            if (res.results && res.results[0].returnValues && res.results[0].returnValues.length !== 3) {
+        //console.log(address_queried)
+        Protocol.Client().devInspectTransactionBlock({ sender: sender ?? address_queried, transactionBlock: this.txb }).then((res) => {
+            if (res.results && res.results[0].returnValues && res.results[0].returnValues.length !== 2) {
                 onPermissionAnswer({ who: address_queried, object: permission });
                 return;
             }
-            var perm = utils_1.Bcs.getInstance().de(bcs_1.BCS.U8, Uint8Array.from(res.results[0].returnValues[0][0]));
+            const perm = Bcs.getInstance().de(BCS.U8, Uint8Array.from(res.results[0].returnValues[0][0]));
             if (perm === Permission.PERMISSION_ADMIN || perm === Permission.PERMISSION_OWNER_AND_ADMIN) {
                 onPermissionAnswer({ who: address_queried, admin: true, owner: perm % 2 === 1, items: [], object: permission });
             }
             else {
-                var perms = utils_1.Bcs.getInstance().de('vector<u64>', Uint8Array.from(res.results[0].returnValues[1][0]));
-                var guards = utils_1.Bcs.getInstance().de_guards(Uint8Array.from(res.results[0].returnValues[2][0]));
-                var items = [];
-                for (var i = 0; i < perms.length; ++i) {
-                    items.push({ query: perms[i], permission: true, guard: guards[i] ? ('0x' + guards[i]) : undefined });
-                }
-                onPermissionAnswer({ who: address_queried, admin: false, owner: perm % 2 === 1, items: items, object: permission });
+                const perms = Bcs.getInstance().de_perms(Uint8Array.from(res.results[0].returnValues[1][0]));
+                onPermissionAnswer({ who: address_queried, admin: false, owner: perm % 2 === 1, items: perms.map((v) => {
+                        return { query: v?.index, permission: true, guard: v?.guard };
+                    }), object: permission });
             }
-        }).catch(function (e) {
+        }).catch((e) => {
             console.log(e);
             onPermissionAnswer({ who: address_queried, object: permission });
         });
-    };
-    Permission.HasPermission = function (answer, index, bStrict) {
-        var _a;
-        if (bStrict === void 0) { bStrict = false; }
+    }
+    static HasPermission(answer, index, bStrict = false) {
         if (answer) {
             if (answer.admin)
                 return { has: true, owner: answer.owner }; // admin
-            var i = (_a = answer.items) === null || _a === void 0 ? void 0 : _a.find(function (v) { return v.query == index; }); // index maybe string, so ==
+            let i = answer.items?.find((v) => v.query == index); // index maybe string, so ==
             if (i) {
                 return { has: i.permission, guard: i.guard, owner: answer.owner };
             }
             else {
-                return { has: false, guard: undefined, owner: answer === null || answer === void 0 ? void 0 : answer.owner };
+                return { has: false, guard: undefined, owner: answer?.owner };
             }
         }
         if (bStrict) {
             return { has: false, guard: undefined, owner: false };
         }
         return undefined; // basic: !== false ; otherwise: !
+    }
+    static MAX_ADMIN_COUNT = 64;
+    static MAX_ENTITY_COUNT = 2000;
+    static MAX_PERMISSION_INDEX_COUNT = 200;
+    static MAX_PERSONAL_PERMISSION_COUNT = 200;
+    static PERMISSION_NORMAL = 0;
+    static PERMISSION_OWNER = 1;
+    static PERMISSION_ADMIN = 2;
+    static PERMISSION_OWNER_AND_ADMIN = 3;
+    static BUSINESS_PERMISSIONS_START = PermissionIndex.user_defined_start;
+    static IsValidUserDefinedIndex = (index) => {
+        return index >= Permission.BUSINESS_PERMISSIONS_START && IsValidU64(index);
     };
-    Permission.MAX_ADMIN_COUNT = 64;
-    Permission.MAX_ENTITY_COUNT = 2000;
-    Permission.MAX_PERMISSION_INDEX_COUNT = 200;
-    Permission.MAX_PERSONAL_PERMISSION_COUNT = 200;
-    Permission.PERMISSION_NORMAL = 0;
-    Permission.PERMISSION_OWNER = 1;
-    Permission.PERMISSION_ADMIN = 2;
-    Permission.PERMISSION_OWNER_AND_ADMIN = 3;
-    Permission.BUSINESS_PERMISSIONS_START = PermissionIndex.user_defined_start;
-    Permission.IsValidUserDefinedIndex = function (index) {
-        return index >= Permission.BUSINESS_PERMISSIONS_START && (0, utils_1.IsValidU64)(index);
-    };
-    Permission.IsValidPermissionIndex = function (index) {
+    static IsValidPermissionIndex = (index) => {
         //console.log(index)
         if (Object.values(PermissionIndex).includes(index)) {
             return true;
@@ -496,6 +499,4 @@ var Permission = /** @class */ (function () {
         //console.log(Object.keys(PermissionIndex))
         return Permission.IsValidUserDefinedIndex(index);
     };
-    return Permission;
-}());
-exports.Permission = Permission;
+}

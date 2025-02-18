@@ -1,60 +1,10 @@
-"use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
-    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
-    function verb(n) { return function (v) { return step([n, v]); }; }
-    function step(op) {
-        if (f) throw new TypeError("Generator is already executing.");
-        while (g && (g = 0, op[0] && (_ = 0)), _) try {
-            if (f = 1, y && (t = op[0] & 2 ? y["return"] : op[0] ? y["throw"] || ((t = y["return"]) && t.call(y), 0) : y.next) && !(t = t.call(y, op[1])).done) return t;
-            if (y = 0, t) op = [op[0] & 2, t.value];
-            switch (op[0]) {
-                case 0: case 1: t = op; break;
-                case 4: _.label++; return { value: op[1], done: false };
-                case 5: _.label++; y = op[1]; op = [0]; continue;
-                case 7: op = _.ops.pop(); _.trys.pop(); continue;
-                default:
-                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
-                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
-                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
-                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
-                    if (t[2]) _.ops.pop();
-                    _.trys.pop(); continue;
-            }
-            op = body.call(thisArg, _);
-        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
-        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
-    }
-};
-var __values = (this && this.__values) || function(o) {
-    var s = typeof Symbol === "function" && Symbol.iterator, m = s && o[s], i = 0;
-    if (m) return m.call(o);
-    if (o && typeof o.length === "number") return {
-        next: function () {
-            if (o && i >= o.length) o = void 0;
-            return { value: o && o[i++], done: !o };
-        }
-    };
-    throw new TypeError(s ? "Object is not iterable." : "Symbol.iterator is not defined.");
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.RpcResultParser = exports.Protocol = exports.ENTRYPOINT = exports.SER_VALUE = exports.ContextType = exports.IsNumberType = exports.IsValidValueType = exports.IsValidOperatorType = exports.ValueTypeArray = exports.OperatorTypeArray = exports.RepositoryValueTypeInfo = exports.RepositoryValueType = exports.ValueType = exports.LogicsInfo = exports.OperatorType = exports.MODULES = void 0;
-var client_1 = require("@mysten/sui/client");
-var ed25519_1 = require("@mysten/sui/keypairs/ed25519");
-var bcs_1 = require("@mysten/bcs");
-var transactions_1 = require("@mysten/sui/transactions");
-var utils_1 = require("./utils");
-var utils_2 = require("@mysten/sui/utils");
-var MODULES;
+import { SuiClient } from '@mysten/sui/client';
+import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
+import { fromHEX } from '@mysten/bcs';
+import { Transaction as TransactionBlock } from '@mysten/sui/transactions';
+import { capitalize, IsValidAddress, IsValidArray, IsValidU128, IsValidU256, IsValidU64, IsValidU8 } from './utils';
+import { isValidSuiObjectId } from '@mysten/sui/utils';
+export var MODULES;
 (function (MODULES) {
     MODULES["machine"] = "machine";
     MODULES["progress"] = "progress";
@@ -72,8 +22,8 @@ var MODULES;
     MODULES["payment"] = "payment";
     MODULES["arbitration"] = "arbitration";
     MODULES["arb"] = "arb";
-})(MODULES || (exports.MODULES = MODULES = {}));
-var OperatorType;
+})(MODULES || (MODULES = {}));
+export var OperatorType;
 (function (OperatorType) {
     OperatorType[OperatorType["TYPE_QUERY"] = 1] = "TYPE_QUERY";
     OperatorType[OperatorType["TYPE_NUMBER_ADD"] = 2] = "TYPE_NUMBER_ADD";
@@ -92,8 +42,8 @@ var OperatorType;
     OperatorType[OperatorType["TYPE_LOGIC_NOT"] = 19] = "TYPE_LOGIC_NOT";
     OperatorType[OperatorType["TYPE_LOGIC_AND"] = 20] = "TYPE_LOGIC_AND";
     OperatorType[OperatorType["TYPE_LOGIC_OR"] = 21] = "TYPE_LOGIC_OR";
-})(OperatorType || (exports.OperatorType = OperatorType = {}));
-exports.LogicsInfo = [
+})(OperatorType || (OperatorType = {}));
+export const LogicsInfo = [
     [OperatorType.TYPE_LOGIC_AS_U256_GREATER, 'Unsigned Integer >', 'The first item > anything that follows'],
     [OperatorType.TYPE_LOGIC_AS_U256_GREATER_EQUAL, 'Unsigned Integer >=', 'The first item >= anything that follows'],
     [OperatorType.TYPE_LOGIC_AS_U256_LESSER, 'Unsigned Integer <', 'The first item < anything that follows'],
@@ -106,7 +56,7 @@ exports.LogicsInfo = [
     [OperatorType.TYPE_LOGIC_AND, 'And', 'All Items And operations'],
     [OperatorType.TYPE_LOGIC_OR, 'Or', 'All Items Or operations'],
 ];
-var ValueType;
+export var ValueType;
 (function (ValueType) {
     ValueType[ValueType["TYPE_BOOL"] = 100] = "TYPE_BOOL";
     ValueType[ValueType["TYPE_ADDRESS"] = 101] = "TYPE_ADDRESS";
@@ -131,8 +81,8 @@ var ValueType;
     ValueType[ValueType["TYPE_STRING"] = 120] = "TYPE_STRING";
     ValueType[ValueType["TYPE_VEC_STRING"] = 121] = "TYPE_VEC_STRING";
     ValueType[ValueType["TYPE_U256"] = 122] = "TYPE_U256";
-})(ValueType || (exports.ValueType = ValueType = {}));
-var RepositoryValueType;
+})(ValueType || (ValueType = {}));
+export var RepositoryValueType;
 (function (RepositoryValueType) {
     RepositoryValueType[RepositoryValueType["Address"] = 200] = "Address";
     RepositoryValueType[RepositoryValueType["Address_Vec"] = 201] = "Address_Vec";
@@ -141,8 +91,8 @@ var RepositoryValueType;
     RepositoryValueType[RepositoryValueType["String"] = 204] = "String";
     RepositoryValueType[RepositoryValueType["String_Vec"] = 205] = "String_Vec";
     RepositoryValueType[RepositoryValueType["Bool"] = 206] = "Bool";
-})(RepositoryValueType || (exports.RepositoryValueType = RepositoryValueType = {}));
-exports.RepositoryValueTypeInfo = [
+})(RepositoryValueType || (RepositoryValueType = {}));
+export const RepositoryValueTypeInfo = [
     { type: RepositoryValueType.String, name: 'string', description: 'String.' },
     { type: RepositoryValueType.Address, name: 'address', description: 'Object id or Personal address.' },
     { type: RepositoryValueType.PositiveNumber, name: 'unsigned integer', description: 'Including u8, u16 ,..., u256' },
@@ -151,35 +101,32 @@ exports.RepositoryValueTypeInfo = [
     { type: RepositoryValueType.PositiveNumber_Vec, name: 'unsigned integer vector', description: 'Vector of unsigned integer' },
     { type: RepositoryValueType.Bool, name: 'bool', description: 'True or False.' },
 ];
-exports.OperatorTypeArray = Object.values(OperatorType).filter(function (v) { return typeof (v) === 'number'; });
-exports.ValueTypeArray = Object.values(ValueType).filter(function (v) { return typeof (v) === 'number'; });
-var IsValidOperatorType = function (type) { return exports.OperatorTypeArray.includes(type); };
-exports.IsValidOperatorType = IsValidOperatorType;
-var IsValidValueType = function (type) { return exports.ValueTypeArray.includes(type); };
-exports.IsValidValueType = IsValidValueType;
-var IsNumberType = function (type) {
+export const OperatorTypeArray = Object.values(OperatorType).filter((v) => typeof (v) === 'number');
+export const ValueTypeArray = Object.values(ValueType).filter((v) => typeof (v) === 'number');
+export const IsValidOperatorType = (type) => { return OperatorTypeArray.includes(type); };
+export const IsValidValueType = (type) => { return ValueTypeArray.includes(type); };
+export const IsNumberType = (type) => {
     return type === ValueType.TYPE_U128 || type === ValueType.TYPE_U256 ||
         type === ValueType.TYPE_U64 || type === ValueType.TYPE_U8;
 };
-exports.IsNumberType = IsNumberType;
-var ContextType;
+export var ContextType;
 (function (ContextType) {
     ContextType[ContextType["TYPE_SIGNER"] = 60] = "TYPE_SIGNER";
     ContextType[ContextType["TYPE_CLOCK"] = 61] = "TYPE_CLOCK";
     ContextType[ContextType["TYPE_GUARD"] = 62] = "TYPE_GUARD";
     //TYPE_STACK_ADDRESS = 63, // object queried from current stack top
     ContextType[ContextType["TYPE_CONSTANT"] = 80] = "TYPE_CONSTANT";
-})(ContextType || (exports.ContextType = ContextType = {}));
-exports.SER_VALUE = [
-    { type: ValueType.TYPE_BOOL, name: 'bool', description: 'boolean. eg:true or false', validator: function (value) { return (value === true || value === false); } },
-    { type: ValueType.TYPE_ADDRESS, name: 'address', description: 'address or object-id. eg:0x6789af', validator: utils_1.IsValidAddress },
+})(ContextType || (ContextType = {}));
+export const SER_VALUE = [
+    { type: ValueType.TYPE_BOOL, name: 'bool', description: 'boolean. eg:true or false', validator: (value) => { return (value === true || value === false); } },
+    { type: ValueType.TYPE_ADDRESS, name: 'address', description: 'address or object-id. eg:0x6789af', validator: IsValidAddress },
     { type: ContextType.TYPE_SIGNER, name: 'txn signer', description: "signer address of the transaction" },
     { type: ContextType.TYPE_GUARD, name: 'guard address', description: "current guard address" },
     { type: ContextType.TYPE_CLOCK, name: 'txn time', description: "unsigned-64 number for the transaction time" },
-    { type: ValueType.TYPE_U64, name: 'number', description: 'unsigned-64 number. eg:23870233', validator: utils_1.IsValidU64 },
-    { type: ValueType.TYPE_U8, name: 'number', description: 'unsigned-8 number. eg:255', validator: utils_1.IsValidU8 },
+    { type: ValueType.TYPE_U64, name: 'number', description: 'unsigned-64 number. eg:23870233', validator: IsValidU64 },
+    { type: ValueType.TYPE_U8, name: 'number', description: 'unsigned-8 number. eg:255', validator: IsValidU8 },
     { type: ValueType.TYPE_VEC_U8, name: 'string', description: 'string or unsigned-8 number array. eg:"[1,2,3]"' },
-    { type: ValueType.TYPE_U128, name: 'number', description: 'unsigned-8 number. eg:12348900999', validator: utils_1.IsValidU128 },
+    { type: ValueType.TYPE_U128, name: 'number', description: 'unsigned-8 number. eg:12348900999', validator: IsValidU128 },
     { type: ValueType.TYPE_VEC_ADDRESS, name: '[address]', description: 'address array. eg:[0x2277f2, 0x3344af]' },
     { type: ValueType.TYPE_VEC_BOOL, name: '[bool]', description: 'boolean array. eg:[true, false, true]' },
     { type: ValueType.TYPE_VEC_VEC_U8, name: '[[number]]', description: 'array of unsigned-8 number array. eg:["i", "like", "wowok"]' },
@@ -195,15 +142,15 @@ exports.SER_VALUE = [
     { type: ValueType.TYPE_VEC_STRING, name: '[string]', description: 'ascii string array. eg:["abc", "hi"]' },
     { type: ValueType.TYPE_STRING, name: 'string', description: 'eg:"wowok"', },
     { type: ValueType.TYPE_OPTION_STRING, name: 'option', description: 'option of string. eg:none or string value' },
-    { type: ValueType.TYPE_U256, name: 'number', description: 'unsigned-256 number. eg:12345678901233', validator: utils_1.IsValidU256 },
+    { type: ValueType.TYPE_U256, name: 'number', description: 'unsigned-256 number. eg:12345678901233', validator: IsValidU256 },
 ];
-var ENTRYPOINT;
+export var ENTRYPOINT;
 (function (ENTRYPOINT) {
     ENTRYPOINT["mainnet"] = "mainnet";
     ENTRYPOINT["testnet"] = "testnet";
     ENTRYPOINT["devnet"] = "devnet";
     ENTRYPOINT["localnet"] = "localnet";
-})(ENTRYPOINT || (exports.ENTRYPOINT = ENTRYPOINT = {}));
+})(ENTRYPOINT || (ENTRYPOINT = {}));
 /*
 const TESTNET = {
     wowok: "0xbd3d0929072f7647e521bf72851ccdc7e2169052b22bfdc5b49439c48cfb119a",
@@ -212,17 +159,17 @@ const TESTNET = {
     treasury_cap:'0xb75a2ca2f651755c134ad521175f33f9e3f9008ad44340f76b3229e1f30cfdff',
 }
 */
-var TESTNET = {
-    wowok: "0x5091944f647fdcd1a5a90016933a9eac13b2c1dc41291d1ce31ed7a0cd664a02",
-    wowok_origin: '0x5091944f647fdcd1a5a90016933a9eac13b2c1dc41291d1ce31ed7a0cd664a02',
+const TESTNET = {
+    wowok: "0x30ed8dfa0b8597b1c753b8345e3c7b8792041feeaa7dc765bacd10f63c4402b7",
+    wowok_origin: '0x30ed8dfa0b8597b1c753b8345e3c7b8792041feeaa7dc765bacd10f63c4402b7',
     base: '0x75eae2a5c8e9bcee76ff8f684bcc38e49a26530526ef8c32703dc0b4a4281f93',
     base_origin: '0x75eae2a5c8e9bcee76ff8f684bcc38e49a26530526ef8c32703dc0b4a4281f93',
-    wowok_object: '0x6cfe6ee9f53b33eed11a6d4d1e09fb43278f222ced15aef7246243ecadf3c00f',
-    entity_object: '0x5469d38103ab78f91222338b489b512f9de86932edde064f7d2d77a6e78cf7a9',
+    wowok_object: '0xc26fcc691dbd4c05d753e170a11c151dbdec130b77691b391d1012dfb8c445bf',
+    entity_object: '0x1de2c69c9a795f56a8c409b54bbf50e544d4178d7c64b5520d929f5eea65b5ff',
     treasury_cap: '0x9f415c863f0c26103e70fc4a739fea479ff20544057a3c5665db16c0b8650f7c',
     oracle_object: '0x6c7d9b8ab0e9d21291e0128ca3e0d550b30f375f1e008381f2fbeef6753e6dcf',
 };
-var MAINNET = {
+const MAINNET = {
     wowok: "",
     wowok_origin: "",
     base: "",
@@ -232,230 +179,33 @@ var MAINNET = {
     treasury_cap: '',
     oracle_object: '',
 };
-var Protocol = /** @class */ (function () {
-    function Protocol(network) {
-        var _this = this;
-        if (network === void 0) { network = ENTRYPOINT.testnet; }
-        this.network = '';
-        this.package = new Map();
-        this.signer = '';
-        this.wowok_object = '';
-        this.entity_object = '';
-        this.treasury_cap = '';
-        this.oracle_object = '';
-        this.graphql = '';
-        this.MachineFn = function (fn) { return "".concat(_this.package.get('wowok'), "::").concat(MODULES.machine, "::").concat(fn); };
-        this.ProgressFn = function (fn) { return "".concat(_this.package.get('wowok'), "::").concat(MODULES.progress, "::").concat(fn); };
-        this.RepositoryFn = function (fn) { return "".concat(_this.package.get('wowok'), "::").concat(MODULES.repository, "::").concat(fn); };
-        this.PermissionFn = function (fn) { return "".concat(_this.package.get('wowok'), "::").concat(MODULES.permission, "::").concat(fn); };
-        this.PassportFn = function (fn) { return "".concat(_this.package.get('wowok'), "::").concat(MODULES.passport, "::").concat(fn); };
-        this.DemandFn = function (fn) { return "".concat(_this.package.get('wowok'), "::").concat(MODULES.demand, "::").concat(fn); };
-        this.OrderFn = function (fn) { return "".concat(_this.package.get('wowok'), "::").concat(MODULES.order, "::").concat(fn); };
-        this.ServiceFn = function (fn) { return "".concat(_this.package.get('wowok'), "::").concat(MODULES.service, "::").concat(fn); };
-        this.ResourceFn = function (fn) { return "".concat(_this.package.get('wowok'), "::").concat(MODULES.resource, "::").concat(fn); };
-        this.EntityFn = function (fn) { return "".concat(_this.package.get('wowok'), "::").concat(MODULES.entity, "::").concat(fn); };
-        this.WowokFn = function (fn) { return "".concat(_this.package.get('wowok'), "::").concat(MODULES.wowok, "::").concat(fn); };
-        this.TreasuryFn = function (fn) { return "".concat(_this.package.get('wowok'), "::").concat(MODULES.treasury, "::").concat(fn); };
-        this.PaymentFn = function (fn) { return "".concat(_this.package.get('wowok'), "::").concat(MODULES.payment, "::").concat(fn); };
-        this.GuardFn = function (fn) { return "".concat(_this.package.get('base'), "::").concat(MODULES.guard, "::").concat(fn); };
-        this.BaseWowokFn = function (fn) { return "".concat(_this.package.get('base'), "::").concat(MODULES.wowok, "::").concat(fn); };
-        this.ArbitrationFn = function (fn) { return "".concat(_this.package.get('wowok'), "::").concat(MODULES.arbitration, "::").concat(fn); };
-        this.ArbFn = function (fn) { return "".concat(_this.package.get('wowok'), "::").concat(MODULES.arb, "::").concat(fn); };
-        this.Query = function (objects, options) {
-            if (options === void 0) { options = { showContent: true }; }
-            return __awaiter(_this, void 0, void 0, function () {
-                var client, ids, res, ret, _loop_1, i;
-                var _this = this;
-                return __generator(this, function (_a) {
-                    switch (_a.label) {
-                        case 0:
-                            client = new client_1.SuiClient({ url: this.NetworkUrl() });
-                            ids = objects.map(function (value) { return value.objectid; });
-                            return [4 /*yield*/, client.call('sui_multiGetObjects', [ids, options])];
-                        case 1:
-                            res = _a.sent();
-                            ret = [];
-                            _loop_1 = function (i) {
-                                objects.forEach(function (object) {
-                                    object.callback(_this, res[i], object, options);
-                                });
-                            };
-                            for (i = 0; i < res.length; i++) {
-                                _loop_1(i);
-                            }
-                            return [2 /*return*/, res];
-                    }
-                });
-            });
-        };
-        this.Query_Raw = function (objects, options) {
-            if (options === void 0) { options = { showContent: true }; }
-            return __awaiter(_this, void 0, void 0, function () {
-                var client;
-                return __generator(this, function (_a) {
-                    switch (_a.label) {
-                        case 0:
-                            client = new client_1.SuiClient({ url: this.NetworkUrl() });
-                            return [4 /*yield*/, client.call('sui_multiGetObjects', [objects, options])];
-                        case 1: return [2 /*return*/, _a.sent()];
-                    }
-                });
-            });
-        };
-        this.NewSession = function () {
-            _this.txb = new transactions_1.Transaction();
-            return _this.txb;
-        };
-        this.CurrentSession = function () { return _this.txb ? _this.txb : _this.NewSession(); };
-        this.SignExcute = function (exes, priv_key, param, options) {
-            if (options === void 0) { options = { showObjectChanges: true }; }
-            return __awaiter(_this, void 0, void 0, function () {
-                var client, privkey, keypair, response;
-                var _this = this;
-                return __generator(this, function (_a) {
-                    switch (_a.label) {
-                        case 0:
-                            client = new client_1.SuiClient({ url: this.NetworkUrl() });
-                            exes.forEach(function (e) { e(_this, param); });
-                            privkey = (0, bcs_1.fromHEX)(priv_key);
-                            keypair = ed25519_1.Ed25519Keypair.fromSecretKey(privkey);
-                            return [4 /*yield*/, client.signAndExecuteTransaction({
-                                    transaction: this.CurrentSession(),
-                                    signer: keypair,
-                                    options: options,
-                                })];
-                        case 1:
-                            response = _a.sent();
-                            this.txb = undefined; // reset the txb to undefine
-                            return [2 /*return*/, response];
-                    }
-                });
-            });
-        };
-        this.WOWOK_TOKEN_TYPE = function () { return _this.package.get('base') + '::wowok::WOWOK'; };
-        this.WOWOK_COIN_TYPE = function () { return '0x2::coin::Coin<' + _this.package.get('base') + '::wowok::WOWOK>'; };
-        this.COINS_TYPE = function () {
-            switch (_this.network) {
-                case ENTRYPOINT.testnet:
-                    return _this.CoinTypes_Testnet.filter(function (v) { return v.alias !== true; });
-                case ENTRYPOINT.mainnet:
-                    return _this.CoinTypes_Mainnet.filter(function (v) { return v.alias !== true; });
-            }
-            ;
-            return [];
-        };
-        this.Update_CoinType = function (token_type, decimals, symbol) {
-            if (!symbol || !token_type)
-                return;
-            switch (_this.network) {
-                case ENTRYPOINT.testnet:
-                    var r = _this.CoinTypes_Testnet.filter(function (v) { return (v === null || v === void 0 ? void 0 : v.type) !== token_type; });
-                    r.push({ symbol: symbol, type: token_type, decimals: decimals });
-                    _this.CoinTypes_Testnet = r;
-                    break;
-                case ENTRYPOINT.mainnet:
-                    var r = _this.CoinTypes_Mainnet.filter(function (v) { return (v === null || v === void 0 ? void 0 : v.type) !== token_type; });
-                    r.push({ symbol: symbol, type: token_type, decimals: decimals });
-                    _this.CoinTypes_Mainnet = r;
-                    break;
-            }
-            ;
-        };
-        this.ExplorerUrl = function (objectid, type) {
-            if (type === void 0) { type = 'object'; }
-            if (_this.network === ENTRYPOINT.testnet) {
-                return 'https://testnet.suivision.xyz/' + type + '/' + objectid;
-            }
-            else if (_this.network === ENTRYPOINT.mainnet) {
-                return 'https://suivision.xyz/' + type + '/' + objectid;
-            }
-            ;
-            return '';
-        };
-        this.CoinTypes_Testnet = [
-            { symbol: 'SUI', type: '0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI', decimals: 9, alias: true },
-            { symbol: 'SUI', type: '0x2::sui::SUI', decimals: 9, },
-            { symbol: 'WOW', type: TESTNET.base + '::wowok::WOWOK', decimals: 9 },
-        ];
-        this.CoinTypes_Mainnet = [
-            { symbol: 'SUI', type: '0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI', decimals: 9, alias: true },
-            { symbol: 'SUI', type: '0x2::sui::SUI', decimals: 9, },
-            { symbol: 'WOW', type: TESTNET.base + '::wowok::WOWOK', decimals: 9 },
-            { symbol: 'USDT', type: '0xc060006111016b8a020ad5b33834984a437aaa7d3c74c18e09a95d48aceab08c::coin::COIN', decimals: 6 },
-            { symbol: 'USDC', type: '0x5d4b302506645c37ff133b98c4b50a5ae14841659738d6d733d59d0d217a93bf::coin::COIN', decimals: 6 },
-            { symbol: 'WETH', type: '0xaf8cd5edc19c4512f4259f0bee101a40d41ebed738ade5874359610ef8eeced5::coin::COIN', decimals: 8 },
-            { symbol: 'WBNB', type: '0xb848cce11ef3a8f62eccea6eb5b35a12c4c2b1ee1af7755d02d7bd6218e8226f::coin::COIN', decimals: 8 },
-        ];
-        this.GetCoinTypeInfo = function (token_type, handler) {
-            if (!token_type)
-                return 'loading';
-            var r = _this.COINS_TYPE().find(function (v) { return (v === null || v === void 0 ? void 0 : v.type) === token_type; });
-            if (!r) {
-                Protocol.Client().getCoinMetadata({ coinType: token_type }).then(function (res) {
-                    if ((res === null || res === void 0 ? void 0 : res.decimals) && (res === null || res === void 0 ? void 0 : res.symbol)) {
-                        _this.Update_CoinType(token_type, res === null || res === void 0 ? void 0 : res.decimals, res === null || res === void 0 ? void 0 : res.symbol);
-                        handler({ symbol: res.symbol, decimals: res.decimals, type: token_type });
-                    }
-                }).catch(function (e) {
-                    console.log(e);
-                });
-            }
-            else {
-                return r;
-            }
-            ;
-            return 'loading';
-        };
-        this.WOWOK_OBJECTS_TYPE = function () { return Object.keys(MODULES).map(function (key) { var i = (key === MODULES.guard ? _this.package.get('base') : _this.package.get('wowok')) + '::' + key + '::'; return i + (0, utils_1.capitalize)(key); }); };
-        this.WOWOK_OBJECTS_PREFIX_TYPE = function () { return Object.keys(MODULES).map(function (key) { return (key === MODULES.guard ? _this.package.get('base') : _this.package.get('wowok')) + '::' + key + '::'; }); };
-        this.object_name_from_type_repr = function (type_repr) {
-            if (!type_repr)
-                return '';
-            var i = type_repr.indexOf('::');
-            if (i > 0 && _this.hasPackage(type_repr.slice(0, i))) {
-                i = type_repr.indexOf('<');
-                if (i > 0) {
-                    type_repr = type_repr.slice(0, i);
-                }
-                var n = type_repr.lastIndexOf('::');
-                if (n > 0) {
-                    return type_repr.slice(n + 2);
-                }
-            }
-            return '';
-        };
-        this.module_object_name_from_type_repr = function (type_repr) {
-            if (!type_repr)
-                return '';
-            var i = type_repr.indexOf('::');
-            if (i > 0 && _this.hasPackage(type_repr.slice(0, i))) {
-                i = type_repr.indexOf('<');
-                if (i > 0) {
-                    type_repr = type_repr.slice(0, i);
-                }
-                var n = type_repr.indexOf('::');
-                if (n > 0) {
-                    return type_repr.slice(n + 2);
-                }
-            }
-            return '';
-        };
-        this.UseNetwork(network);
-        this.NewSession();
+export class Protocol {
+    network = '';
+    packages = new Map();
+    signer = '';
+    wowok_object = '';
+    entity_object = '';
+    treasury_cap = '';
+    oracle_object = '';
+    //protected graphql = '';
+    txb;
+    static _instance;
+    constructor(network = ENTRYPOINT.testnet) {
+        this.use_network(network);
+        this.new_session();
     }
-    Protocol.Instance = function () {
+    static Instance() {
         if (!Protocol._instance) {
             Protocol._instance = new Protocol();
         }
         ;
         return Protocol._instance;
-    };
-    Protocol.Client = function () {
-        return new client_1.SuiClient({ url: Protocol.Instance().NetworkUrl() });
-    };
-    Protocol.prototype.client = function () { return new client_1.SuiClient({ url: this.NetworkUrl() }); };
-    Protocol.prototype.UseNetwork = function (network) {
-        if (network === void 0) { network = ENTRYPOINT.testnet; }
+    }
+    static Client() {
+        return new SuiClient({ url: Protocol.Instance().networkUrl() });
+    }
+    client() { return new SuiClient({ url: this.networkUrl() }); }
+    use_network(network = ENTRYPOINT.testnet) {
         this.network = network;
         switch (network) {
             case ENTRYPOINT.localnet:
@@ -463,40 +213,38 @@ var Protocol = /** @class */ (function () {
             case ENTRYPOINT.devnet:
                 break;
             case ENTRYPOINT.testnet:
-                this.package.set('wowok', TESTNET.wowok);
-                this.package.set('base', TESTNET.base);
-                this.package.set('wowok_origin', TESTNET.wowok_origin); //@ orgin package!!!
-                this.package.set('base_origin', TESTNET.base_origin);
+                this.packages.set('wowok', TESTNET.wowok);
+                this.packages.set('base', TESTNET.base);
+                this.packages.set('wowok_origin', TESTNET.wowok_origin); //@ orgin package!!!
+                this.packages.set('base_origin', TESTNET.base_origin);
                 this.wowok_object = TESTNET.wowok_object;
                 this.entity_object = TESTNET.entity_object;
                 this.treasury_cap = TESTNET.treasury_cap;
-                this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
+                //this.graphql = 'https://sui-testnet.mystenlabs.com/graphql';
                 this.oracle_object = TESTNET.oracle_object;
                 break;
             case ENTRYPOINT.mainnet:
-                this.package.set('wowok', MAINNET.wowok);
-                this.package.set('base', MAINNET.base);
-                this.package.set('wowok_origin', MAINNET.wowok_origin); //@ orgin package!!!
-                this.package.set('base_origin', MAINNET.base_origin);
+                this.packages.set('wowok', MAINNET.wowok);
+                this.packages.set('base', MAINNET.base);
+                this.packages.set('wowok_origin', MAINNET.wowok_origin); //@ orgin package!!!
+                this.packages.set('base_origin', MAINNET.base_origin);
                 this.wowok_object = MAINNET.wowok_object;
                 this.entity_object = MAINNET.entity_object;
                 this.treasury_cap = MAINNET.treasury_cap;
-                this.graphql = 'https://sui-mainnet.mystenlabs.com/graphql';
+                //this.graphql = 'https://sui-mainnet.mystenlabs.com/graphql';
                 this.oracle_object = MAINNET.oracle_object;
                 break;
         }
         ;
-    };
-    Protocol.prototype.Package = function (type) {
-        var _a;
-        return (_a = this.package.get(type)) !== null && _a !== void 0 ? _a : '';
-    };
-    Protocol.prototype.WowokObject = function () { return this.wowok_object; };
-    Protocol.prototype.EntityObject = function () { return this.entity_object; };
-    Protocol.prototype.OracleObject = function () { return this.oracle_object; };
-    Protocol.prototype.TreasuryCap = function () { return this.treasury_cap; };
-    Protocol.prototype.GraphqlUrl = function () { return this.graphql; };
-    Protocol.prototype.NetworkUrl = function () {
+    }
+    package(type) {
+        return this.packages.get(type) ?? '';
+    }
+    objectWowok() { return this.wowok_object; }
+    objectEntity() { return this.entity_object; }
+    objectOracle() { return this.oracle_object; }
+    objectTreasuryCap() { return this.treasury_cap; }
+    networkUrl() {
         switch (this.network) {
             case ENTRYPOINT.localnet:
                 return "http://127.0.0.1:9000";
@@ -509,68 +257,210 @@ var Protocol = /** @class */ (function () {
         }
         ;
         return "";
-    };
+    }
     ;
-    Protocol.TXB_OBJECT = function (txb, arg) {
+    machineFn = (fn) => { return `${this.packages.get('wowok')}::${MODULES.machine}::${fn}`; };
+    progressFn = (fn) => { return `${this.packages.get('wowok')}::${MODULES.progress}::${fn}`; };
+    repositoryFn = (fn) => { return `${this.packages.get('wowok')}::${MODULES.repository}::${fn}`; };
+    permissionFn = (fn) => { return `${this.packages.get('wowok')}::${MODULES.permission}::${fn}`; };
+    passportFn = (fn) => { return `${this.packages.get('wowok')}::${MODULES.passport}::${fn}`; };
+    demandFn = (fn) => { return `${this.packages.get('wowok')}::${MODULES.demand}::${fn}`; };
+    orderFn = (fn) => { return `${this.packages.get('wowok')}::${MODULES.order}::${fn}`; };
+    serviceFn = (fn) => { return `${this.packages.get('wowok')}::${MODULES.service}::${fn}`; };
+    resourceFn = (fn) => { return `${this.packages.get('wowok')}::${MODULES.resource}::${fn}`; };
+    entityFn = (fn) => { return `${this.packages.get('wowok')}::${MODULES.entity}::${fn}`; };
+    wowokFn = (fn) => { return `${this.packages.get('wowok')}::${MODULES.wowok}::${fn}`; };
+    treasuryFn = (fn) => { return `${this.packages.get('wowok')}::${MODULES.treasury}::${fn}`; };
+    paymentFn = (fn) => { return `${this.packages.get('wowok')}::${MODULES.payment}::${fn}`; };
+    guardFn = (fn) => { return `${this.packages.get('base')}::${MODULES.guard}::${fn}`; };
+    baseWowokFn = (fn) => { return `${this.packages.get('base')}::${MODULES.wowok}::${fn}`; };
+    arbitrationFn = (fn) => { return `${this.packages.get('wowok')}::${MODULES.arbitration}::${fn}`; };
+    arbFn = (fn) => { return `${this.packages.get('wowok')}::${MODULES.arb}::${fn}`; };
+    query = async (objects, options = { showContent: true }) => {
+        const client = new SuiClient({ url: this.networkUrl() });
+        const ids = objects.map((value) => value.objectid);
+        const res = await client.call('sui_multiGetObjects', [ids, options]);
+        let ret = [];
+        for (let i = 0; i < res.length; i++) {
+            objects.forEach((object) => {
+                object.callback(this, res[i], object, options);
+            });
+        }
+        return res;
+    };
+    query_raw = async (objects, options = { showContent: true }) => {
+        const client = new SuiClient({ url: this.networkUrl() });
+        return await client.call('sui_multiGetObjects', [objects, options]);
+    };
+    new_session = () => {
+        this.txb = new TransactionBlock();
+        return this.txb;
+    };
+    sessionCurrent = () => { return this.txb ? this.txb : this.new_session(); };
+    sign_excute = async (exes, priv_key, param, options = { showObjectChanges: true }) => {
+        const client = new SuiClient({ url: this.networkUrl() });
+        exes.forEach((e) => { e(this, param); });
+        const privkey = fromHEX(priv_key);
+        const keypair = Ed25519Keypair.fromSecretKey(privkey);
+        const response = await client.signAndExecuteTransaction({
+            transaction: this.sessionCurrent(),
+            signer: keypair,
+            options,
+        });
+        this.txb = undefined; // reset the txb to undefine
+        return response;
+    };
+    // used in service, discount, order, because service has COIN wrapper for TOKEN
+    static SUI_TOKEN_TYPE = '0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI'; // TOKEN_TYPE
+    // used in demand, reward, ...
+    static SUI_COIN_TYPE = '0x0000000000000000000000000000000000000000000000000000000000000002::coin::Coin<0x2::sui::SUI>'; // COIN TYPE
+    WOWOK_TOKEN_TYPE = () => { return this.packages.get('base') + '::wowok::WOWOK'; };
+    WOWOK_COIN_TYPE = () => { return '0x2::coin::Coin<' + this.packages.get('base') + '::wowok::WOWOK>'; };
+    COINS_TYPE = () => {
+        switch (this.network) {
+            case ENTRYPOINT.testnet:
+                return this.CoinTypes_Testnet.filter((v) => v.alias !== true);
+            case ENTRYPOINT.mainnet:
+                return this.CoinTypes_Mainnet.filter((v) => v.alias !== true);
+        }
+        ;
+        return [];
+    };
+    update_coinType = (token_type, decimals, symbol) => {
+        if (!symbol || !token_type)
+            return;
+        switch (this.network) {
+            case ENTRYPOINT.testnet:
+                var r = this.CoinTypes_Testnet.filter((v) => v?.type !== token_type);
+                r.push({ symbol: symbol, type: token_type, decimals: decimals });
+                this.CoinTypes_Testnet = r;
+                break;
+            case ENTRYPOINT.mainnet:
+                var r = this.CoinTypes_Mainnet.filter((v) => v?.type !== token_type);
+                r.push({ symbol: symbol, type: token_type, decimals: decimals });
+                this.CoinTypes_Mainnet = r;
+                break;
+        }
+        ;
+    };
+    explorerUrl = (objectid, type = 'object') => {
+        if (this.network === ENTRYPOINT.testnet) {
+            return 'https://testnet.suivision.xyz/' + type + '/' + objectid;
+        }
+        else if (this.network === ENTRYPOINT.mainnet) {
+            return 'https://suivision.xyz/' + type + '/' + objectid;
+        }
+        ;
+        return '';
+    };
+    CoinTypes_Testnet = [
+        { symbol: 'SUI', type: '0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI', decimals: 9, alias: true },
+        { symbol: 'SUI', type: '0x2::sui::SUI', decimals: 9, },
+        { symbol: 'WOW', type: TESTNET.base + '::wowok::WOWOK', decimals: 9 },
+    ];
+    CoinTypes_Mainnet = [
+        { symbol: 'SUI', type: '0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI', decimals: 9, alias: true },
+        { symbol: 'SUI', type: '0x2::sui::SUI', decimals: 9, },
+        { symbol: 'WOW', type: TESTNET.base + '::wowok::WOWOK', decimals: 9 },
+        { symbol: 'USDT', type: '0xc060006111016b8a020ad5b33834984a437aaa7d3c74c18e09a95d48aceab08c::coin::COIN', decimals: 6 },
+        { symbol: 'USDC', type: '0x5d4b302506645c37ff133b98c4b50a5ae14841659738d6d733d59d0d217a93bf::coin::COIN', decimals: 6 },
+        { symbol: 'WETH', type: '0xaf8cd5edc19c4512f4259f0bee101a40d41ebed738ade5874359610ef8eeced5::coin::COIN', decimals: 8 },
+        { symbol: 'WBNB', type: '0xb848cce11ef3a8f62eccea6eb5b35a12c4c2b1ee1af7755d02d7bd6218e8226f::coin::COIN', decimals: 8 },
+    ];
+    coinTypeInfo = (token_type, handler) => {
+        if (!token_type)
+            return 'loading';
+        let r = this.COINS_TYPE().find((v) => v?.type === token_type);
+        if (!r) {
+            Protocol.Client().getCoinMetadata({ coinType: token_type }).then((res) => {
+                if (res?.decimals && res?.symbol) {
+                    this.update_coinType(token_type, res?.decimals, res?.symbol);
+                    handler({ symbol: res.symbol, decimals: res.decimals, type: token_type });
+                }
+            }).catch((e) => {
+                console.log(e);
+            });
+        }
+        else {
+            return r;
+        }
+        ;
+        return 'loading';
+    };
+    static CLOCK_OBJECT = { objectId: '0x6', mutable: false, initialSharedVersion: 1 };
+    static TXB_OBJECT(txb, arg) {
         if (typeof (arg) == 'string')
             return txb.object(arg);
         return arg;
-    };
-    Protocol.prototype.hasPackage = function (pack) {
-        var e_1, _a;
-        try {
-            for (var _b = __values(this.package.values()), _c = _b.next(); !_c.done; _c = _b.next()) {
-                var value = _c.value;
-                if (pack.includes(value)) {
-                    return true;
-                }
-            }
-        }
-        catch (e_1_1) { e_1 = { error: e_1_1 }; }
-        finally {
-            try {
-                if (_c && !_c.done && (_a = _b.return)) _a.call(_b);
-            }
-            finally { if (e_1) throw e_1.error; }
-        }
-        return false;
-    };
-    // used in service, discount, order, because service has COIN wrapper for TOKEN
-    Protocol.SUI_TOKEN_TYPE = '0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI'; // TOKEN_TYPE
-    // used in demand, reward, ...
-    Protocol.SUI_COIN_TYPE = '0x0000000000000000000000000000000000000000000000000000000000000002::coin::Coin<0x2::sui::SUI>'; // COIN TYPE
-    Protocol.CLOCK_OBJECT = { objectId: '0x6', mutable: false, initialSharedVersion: 1 };
-    Protocol.IsValidObjects = function (arr) {
-        return (0, utils_1.IsValidArray)(arr, function (v) {
+    }
+    static IsValidObjects = (arr) => {
+        return IsValidArray(arr, (v) => {
             if (!v)
                 return false;
-            if (typeof (v) === 'string' && !(0, utils_2.isValidSuiObjectId)(v)) {
+            if (typeof (v) === 'string' && !isValidSuiObjectId(v)) {
                 return false;
             }
             return true;
         });
     };
-    return Protocol;
-}());
-exports.Protocol = Protocol;
-var RpcResultParser = /** @class */ (function () {
-    function RpcResultParser() {
+    WOWOK_OBJECTS_TYPE = () => Object.keys(MODULES).map((key) => { let i = (key === MODULES.guard ? this.packages.get('base') : this.packages.get('wowok')) + '::' + key + '::'; return i + capitalize(key); });
+    WOWOK_OBJECTS_PREFIX_TYPE = () => Object.keys(MODULES).map((key) => { return (key === MODULES.guard ? this.packages.get('base') : this.packages.get('wowok')) + '::' + key + '::'; });
+    hasPackage(pack) {
+        for (let value of this.packages.values()) {
+            if (pack.includes(value)) {
+                return true;
+            }
+        }
+        return false;
     }
-    RpcResultParser.Object_Type_Extra = function () {
-        var names = Object.keys(MODULES).map(function (key) { return key + '::' + (0, utils_1.capitalize)(key); });
+    object_name_from_type_repr = (type_repr) => {
+        if (!type_repr)
+            return '';
+        let i = type_repr.indexOf('::');
+        if (i > 0 && this.hasPackage(type_repr.slice(0, i))) {
+            i = type_repr.indexOf('<');
+            if (i > 0) {
+                type_repr = type_repr.slice(0, i);
+            }
+            let n = type_repr.lastIndexOf('::');
+            if (n > 0) {
+                return type_repr.slice(n + 2);
+            }
+        }
+        return '';
+    };
+    module_object_name_from_type_repr = (type_repr) => {
+        if (!type_repr)
+            return '';
+        let i = type_repr.indexOf('::');
+        if (i > 0 && this.hasPackage(type_repr.slice(0, i))) {
+            i = type_repr.indexOf('<');
+            if (i > 0) {
+                type_repr = type_repr.slice(0, i);
+            }
+            let n = type_repr.indexOf('::');
+            if (n > 0) {
+                return type_repr.slice(n + 2);
+            }
+        }
+        return '';
+    };
+}
+export class RpcResultParser {
+    static Object_Type_Extra = () => {
+        let names = Object.keys(MODULES).map((key) => { return key + '::' + capitalize(key); });
         names.push('order::Discount');
         return names;
     };
-    RpcResultParser.objectids_from_response = function (protocol, response, concat_result) {
+    static objectids_from_response = (protocol, response, concat_result) => {
         //console.log(response)
-        var ret = new Map();
-        if (response === null || response === void 0 ? void 0 : response.objectChanges) {
-            response.objectChanges.forEach(function (change) {
-                RpcResultParser.Object_Type_Extra().forEach(function (name) {
-                    var _a;
+        let ret = new Map();
+        if (response?.objectChanges) {
+            response.objectChanges.forEach((change) => {
+                RpcResultParser.Object_Type_Extra().forEach((name) => {
                     if (change.type == 'created' && protocol.module_object_name_from_type_repr(change.objectType) === name) {
                         if (ret.has(name)) {
-                            (_a = ret.get(name)) === null || _a === void 0 ? void 0 : _a.push(change.objectId);
+                            ret.get(name)?.push(change.objectId);
                         }
                         else {
                             ret.set(name, [change.objectId]);
@@ -580,7 +470,7 @@ var RpcResultParser = /** @class */ (function () {
             });
         }
         if (concat_result) {
-            ret.forEach(function (value, key) {
+            ret.forEach((value, key) => {
                 if (concat_result.has(key)) {
                     concat_result.set(key, concat_result.get(key).concat(value));
                 }
@@ -591,6 +481,4 @@ var RpcResultParser = /** @class */ (function () {
         }
         return ret;
     };
-    return RpcResultParser;
-}());
-exports.RpcResultParser = RpcResultParser;
+}

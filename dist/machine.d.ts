@@ -49,7 +49,7 @@ export declare class Machine {
     set_description(description: string, passport?: PassportObject): void;
     add_repository(repository: RepositoryObject, passport?: PassportObject): void;
     remove_repository(repositories: string[], removeall?: boolean, passport?: PassportObject): void;
-    clone(passport?: PassportObject): MachineObject;
+    clone(bLaunch?: boolean, passport?: PassportObject): MachineObject | MachineAddress;
     set_endpoint(endpoint?: string | null | undefined, passport?: PassportObject): void;
     pause(bPaused: boolean, passport?: PassportObject): void;
     publish(passport?: PassportObject): void;
@@ -61,7 +61,6 @@ export declare class Machine {
     static rpc_de_pair(data: any): Machine_Node_Pair[];
     static namedOperators(nodes: Machine_Node[]): string[];
     static checkValidForward(forward: Machine_Forward): string;
-    QueryForwardGuard(sender: string, node: string, prior_node: string, forward: string, onGuard: OnQueryGuard): void;
     static INITIAL_NODE_NAME: string;
     static OPERATOR_ORDER_PAYER: string;
 }

@@ -9,14 +9,16 @@ export interface ResourceData {
     name: string;
     address: string[];
 }
+export declare enum MarkName {
+    LikeName = "like",
+    DislikeName = "dislike",
+    FavorName = "favor",
+    LaunchName = "launch",
+    OrderName = "order"
+}
 export declare class Resource {
     static MAX_ADDRESS_COUNT: number;
     static MAX_TAGS: number;
-    static LikeName: string;
-    static DislikeName: string;
-    static FavorName: string;
-    static LaunchName: string;
-    static OrderName: string;
     protected object: TxbObject;
     protected txb: TransactionBlock;
     get_object(): TxbObject;

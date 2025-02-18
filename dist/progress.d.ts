@@ -52,7 +52,6 @@ export declare class Progress {
     static From(txb: TransactionBlock, machine: MachineObject, permission: PermissionObject, object: TxbObject): Progress;
     static New(txb: TransactionBlock, machine: MachineObject, permission: PermissionObject, task?: string | null, passport?: PassportObject): Progress;
     launch(): ProgressAddress;
-    launch_as_child(parent: ProgressObject, parent_next: ProgressNext): ProgressAddress;
     set_namedOperator(name: string, addresses: string[], passport?: PassportObject): void;
     bind_task(task_address: string, passport?: PassportObject): void;
     set_context_repository(repository?: RepositoryObject, passport?: PassportObject): void;
@@ -62,9 +61,10 @@ export declare class Progress {
     private deliverable;
     next(next: ProgressNext, deliverable: Deliverable, passport?: PassportObject): CurrentSessionId;
     hold(next: ProgressNext, hold: boolean): CurrentSessionId;
-    static rpc_de_sessions: (session: any) => Session[];
-    static rpc_de_histories: (fields: any) => History[];
-    static rpc_de_history: (data: any) => History;
+    static QueryForwardGuard: (progress: ProgressObject, machine: MachineObject, sender: string, next_node: string, forward: string) => Promise<string | undefined>;
+    static DeSessions: (session: any) => Session[];
+    static DeHistories: (fields: any) => History[];
+    static DeHistory: (data: any) => History;
     static MAX_NAMED_OPERATOR_COUNT: number;
     static MAX_DELEVERABLE_ORDER_COUNT: number;
     static IsValidProgressNext: (next: ProgressNext) => boolean;

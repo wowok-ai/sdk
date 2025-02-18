@@ -39,8 +39,8 @@ export declare enum BuyRequiredEnum {
 }
 export type Service_Buy = {
     item: string;
-    max_price: bigint;
-    count: bigint;
+    max_price: string;
+    count: string;
 };
 export type DicountDispatch = {
     receiver: string;
@@ -91,7 +91,7 @@ export declare class Service {
     set_machine(machine?: MachineObject, passport?: PassportObject): void;
     set_endpoint(endpoint?: string, passport?: PassportObject): void;
     publish(passport?: PassportObject): void;
-    clone(new_token_type?: string, passport?: PassportObject): ServiceObject;
+    clone(new_token_type?: string, bLaunch?: boolean, passport?: PassportObject): ServiceObject | ServiceAddress;
     set_customer_required(pubkey: string, customer_required: (BuyRequiredEnum | string)[], passport?: PassportObject): void;
     remove_customer_required(passport?: PassportObject): void;
     change_required_pubkey(pubkey: string, passport?: PassportObject): void;

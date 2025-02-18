@@ -1,4 +1,4 @@
-import { type TransactionResult, Transaction as TransactionBlock } from '@mysten/sui/transactions';
+import { Transaction as TransactionBlock } from '@mysten/sui/transactions';
 import { PassportObject, PermissionObject, GuardObject, DemandAddress, TxbObject, ServiceObject } from './protocol';
 export declare class Demand {
     protected bounty_type: string;
@@ -9,7 +9,7 @@ export declare class Demand {
     get_object(): TxbObject;
     static From(txb: TransactionBlock, bounty_type: string, permission: PermissionObject, object: TxbObject): Demand;
     private constructor();
-    static New(txb: TransactionBlock, bounty_type: string, ms_expand: boolean, time: number, permission: PermissionObject, description: string, bounty: TransactionResult | string, passport?: PassportObject): Demand;
+    static New(txb: TransactionBlock, bounty_type: string, ms_expand: boolean, time: number, permission: PermissionObject, description: string, passport?: PassportObject): Demand;
     launch(): DemandAddress;
     refund(passport?: PassportObject): void;
     expand_time(minutes_duration: boolean, time: number, passport?: PassportObject): void;

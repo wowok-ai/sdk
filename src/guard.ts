@@ -1,7 +1,7 @@
 
 
 import { Protocol, LogicsInfo, GuardAddress, FnCallType, Data_Type, MODULES, ContextType, ValueType,  OperatorType, TxbObject, GuardObject, IsValidOperatorType} from './protocol';
-import { concatenate, array_equal, ValueTypeConvert } from './utils';
+import { concatenate, array_equal, ValueTypeConvert, IsValidU8 } from './utils';
 import { IsValidDesription, Bcs, IsValidInt, IsValidAddress, FirstLetterUppercase, insertAtHead } from './utils';
 import { ERROR, Errors } from './exception';
 import { Transaction as TransactionBlock } from '@mysten/sui/transactions';
@@ -470,22 +470,32 @@ export class GuardMaker {
     protected type_validator : Data_Type[] = [];
     protected constant : GuardConstant = new Map<number, Guard_Variable>();
 
-    private static index: number = 1;
-    private static get_index() { 
-        if (GuardMaker.index == 256) {
-            GuardMaker.index = 1;
+    private static _witness_index: number = 1;
+    private static _const_index: number = 255;
+    private static GetWitnessIndex() {
+        if (this._witness_index >= this._const_index) {
+            ERROR(Errors.Fail, 'too many witness')
         }
-        return GuardMaker.index++
+        return GuardMaker._witness_index++        
+    }
+    private static getConstIndex() { 
+        if (this._const_index <= this._witness_index) {
+            ERROR(Errors.Fail, 'too many const')
+        }
+        return GuardMaker._const_index--
     }
     static IsValidIndentifier = (identifier:number) : boolean => {
-        if (!IsValidInt(identifier) || identifier > 255) return false;
+        if (!IsValidU8(identifier) || identifier > 255) return false;
         return true
     }
     constructor() { }
 
     // undefined value means witness
     add_constant(type:ValueType, value?:any, identifier?:number, bNeedSerialize=true) : number {
-        if (identifier === undefined) identifier = GuardMaker.get_index();
+        if (identifier === undefined) {
+            if (value === undefined) identifier = GuardMaker.GetWitnessIndex();
+            else identifier = GuardMaker.getConstIndex();
+        }
         let v = this.constant.get(identifier);
         if (!v) {
             if (bNeedSerialize && value !== undefined) {

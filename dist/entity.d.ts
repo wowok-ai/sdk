@@ -1,5 +1,5 @@
 import { TxbObject, ResourceAddress, ResourceObject } from './protocol';
-import { Resource } from './resource';
+import { MarkName, Resource } from './resource';
 import { Transaction as TransactionBlock } from '@mysten/sui/transactions';
 export interface Safer {
     name: string;
@@ -19,9 +19,7 @@ export declare class Entity {
     get_object(): TxbObject;
     private constructor();
     static From(txb: TransactionBlock): Entity;
-    mark(resource: Resource, address: string, like: 'like' | 'dislike'): void;
-    add_safer(safer: Safer[], bExistModify?: boolean): void;
-    remove_safer(name: string[], removeall?: boolean): void;
+    mark(resource: Resource, address: string, like: MarkName.LikeName | MarkName.DislikeName): void;
     update(info: Entity_Info): void;
     create_resource(): ResourceAddress;
     create_resource2(): ResourceObject;

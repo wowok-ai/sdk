@@ -40,7 +40,7 @@ export declare class Bcs {
     de(type: ValueType | string, data: Uint8Array | any): any;
     de_ent(data: Uint8Array | undefined): any;
     de_entInfo(data: Uint8Array | undefined): any;
-    de_guards(data: Uint8Array | undefined): any;
+    de_perms(data: Uint8Array | undefined): any;
 }
 export declare function stringToUint8Array(str: string): Uint8Array;
 export declare function numToUint8Array(num: number): Uint8Array;

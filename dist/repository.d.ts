@@ -17,21 +17,34 @@ export interface RepData {
     data: string | string[];
     object: string;
 }
-export type Repository_Policy = {
+export interface Repository_Policy {
     key: string;
     description: string;
     dataType: RepositoryValueType;
     permissionIndex?: PermissionIndexType | null;
-};
-export type Repository_Policy_Data = {
+}
+export interface Repository_Policy_Data {
     key: string;
     data: Repository_Value[];
     value_type?: ValueType;
-};
-export type Repository_Value = {
+}
+export interface Repository_Value {
     address: string;
     bcsBytes: Uint8Array;
-};
+}
+export interface Repository_Value2 {
+    key: string;
+    bcsBytes: Uint8Array;
+}
+export interface Repository_Policy_Data2 {
+    address: string;
+    data: Repository_Value2[];
+    value_type?: ValueType;
+}
+export interface Repository_Policy_Data_Remove {
+    key: string;
+    address: string;
+}
 export declare class Repository {
     protected permission: PermissionObject;
     protected object: TxbObject;
@@ -42,11 +55,12 @@ export declare class Repository {
     static New(txb: TransactionBlock, permission: PermissionObject, description: string, policy_mode?: Repository_Policy_Mode, passport?: PassportObject): Repository;
     launch(): RepositoryAddress;
     add_data(data: Repository_Policy_Data): void;
+    add_data2(data: Repository_Policy_Data2): void;
     remove(address: string, key: string): void;
     add_reference(references: string[], passport?: PassportObject): void;
     remove_reference(references: string[], removeall?: boolean, passport?: PassportObject): void;
     add_policies(policies: Repository_Policy[], passport?: PassportObject): void;
-    remove_policies(policy_keys: string[], passport?: PassportObject): void;
+    remove_policies(policy_keys: string[], removeall?: boolean, passport?: PassportObject): void;
     rename_policy(policy_key: string, new_policy_key: string, passport?: PassportObject): void;
     set_description(description: string, passport?: PassportObject): void;
     set_policy_mode(policy_mode: Repository_Policy_Mode, passport?: PassportObject): void;

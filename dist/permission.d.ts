@@ -3,33 +3,27 @@ import { Transaction as TransactionBlock } from '@mysten/sui/transactions';
 export declare enum PermissionIndex {
     repository = 100,
     repository_description = 101,
-    repository_policy_mode = 102,
+    repository_mode = 102,
     repository_policies = 103,
-    repository_policy_description = 105,
-    repository_policy_permission = 106,
-    repository_reference = 107,
+    repository_reference = 104,
     service = 200,
     service_description = 201,
-    service_price = 202,
-    service_stock = 203,
-    service_sale_endpoint = 204,
-    service_payee = 205,
-    service_repository = 206,
-    service_withdraw_guards = 208,
-    service_refund_guards = 210,
-    service_add_sales = 212,
-    service_remove_sales = 213,
-    service_discount_transfer = 214,
-    service_withdraw = 216,
-    service_buyer_guard = 217,
-    service_machine = 218,
-    service_endpoint = 219,
-    service_publish = 220,
-    service_clone = 221,
-    service_customer_required = 222,
-    service_pause = 225,
-    service_treasury = 226,
-    service_arbitration = 227,
+    service_sales = 202,
+    service_payee = 203,
+    service_repository = 204,
+    service_withdraw_guards = 205,
+    service_refund_guards = 206,
+    service_discount_transfer = 207,
+    service_withdraw = 208,
+    service_buyer_guard = 209,
+    service_machine = 210,
+    service_endpoint = 211,
+    service_publish = 212,
+    service_clone = 213,
+    service_customer_required = 214,
+    service_pause = 215,
+    service_treasury = 216,
+    service_arbitration = 217,
     demand = 260,
     demand_refund = 261,
     demand_expand_time = 262,
@@ -93,14 +87,26 @@ export interface PermissionAnswerItem {
 export type OnPermissionAnswer = (answer: PermissionAnswer) => void;
 export declare const PermissionInfo: PermissionInfoType[];
 export type PermissionIndexType = PermissionIndex | number;
-export type Permission_Index = {
+export interface Permission_Entity_Permission {
     index: PermissionIndexType;
     guard?: TxbObject;
-};
-export type Permission_Entity = {
-    entity_address: string;
-    permissions: Permission_Index[];
-};
+}
+export interface Permission_Entity {
+    address: string;
+    permissions: Permission_Entity_Permission[];
+}
+export interface Permission_Index_Entity {
+    address: string;
+    guard?: TxbObject;
+}
+export interface Permission_Index {
+    index: PermissionIndexType;
+    entities: Permission_Index_Entity[];
+}
+export interface UserDefinedIndex {
+    index: PermissionIndexType;
+    name: string;
+}
 export declare class Permission {
     protected txb: TransactionBlock;
     protected object: TxbObject;
@@ -111,12 +117,13 @@ export declare class Permission {
     launch(): PermissionAddress;
     add_userdefine(index: number, name: string): void;
     remove_userdefine(index: number): void;
-    change_entity(old_entity: string, new_entity: string): void;
+    transfer_permission(old_entity: string, new_entity: string): void;
     add_entity2(entities: string[], index?: PermissionIndexType): void;
+    add_entity3(entities: Permission_Index[]): void;
     add_entity(entities: Permission_Entity[]): void;
-    set_guard(entity_address: string, index: PermissionIndexType, guard?: GuardObject): void;
-    remove_index(entity_address: string, index: PermissionIndexType[]): void;
-    remove_entity(entity_address: string[]): void;
+    set_guard(address: string, index: PermissionIndexType, guard?: GuardObject): void;
+    remove_index(address: string, index: PermissionIndexType[]): void;
+    remove_entity(address: string[]): void;
     set_description(description: string): void;
     add_admin(admin: string[]): void;
     remove_admin(admin: string[], removeall?: boolean): void;

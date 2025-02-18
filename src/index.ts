@@ -18,6 +18,8 @@ export * from './exception'
 export { BCS, getSuiMoveConfig, } from '@mysten/bcs';
 export { Transaction as TransactionBlock, type TransactionArgument, type TransactionResult} from '@mysten/sui/transactions';
 export { SuiClient, type SuiObjectResponse, type SuiTransactionBlockResponseOptions, type DynamicFieldPage,
-    type SuiTransactionBlockResponse } from '@mysten/sui/client';
-export { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
-export { fromHEX } from '@mysten/bcs';
+    type SuiTransactionBlockResponse as CallResponse} from '@mysten/sui/client';
+export { Ed25519Keypair,  } from '@mysten/sui/keypairs/ed25519';
+export { fromHEX, toHEX } from '@mysten/bcs';
+export { decodeSuiPrivateKey, encodeSuiPrivateKey } from '@mysten/sui/cryptography';
+export { getFaucetHost, requestSuiFromFaucetV0,  requestSuiFromFaucetV1} from '@mysten/sui/faucet';

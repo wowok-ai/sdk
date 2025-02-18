@@ -44,8 +44,6 @@ export interface PassportQuery {
 export declare class GuardParser {
     protected guard_list: GuardInfo[];
     protected guards: string[];
-    private index;
-    private get_index;
     private constructor();
     guardlist: () => GuardInfo[];
     static DeGuardObject_FromData: (guard_constants: any, guard_input_bytes: any) => {
