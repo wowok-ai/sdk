@@ -622,7 +622,12 @@ export const query_object = (param:query_object_param) => {
     }
   }
 
-  export const FirstLetterUppercase = (str:string|undefined|null) : string => {
+export const FirstLetterUppercase = (str:string|undefined|null) : string => {
     if (!str) return '';
     return str.substring(0, 1).toUpperCase() + str.substring(1);
-  }
+}
+
+  
+export function hasDuplicates<T>(array: T[]): boolean {
+    return array.some((item, index) => array.findIndex(i => i === item) !== index);
+}
