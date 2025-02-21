@@ -24,6 +24,7 @@ export enum Errors {
     IsValidUserDefinedIndex = 'invalid user defined permission index',
     bcsTypeInvalid = 'invalid bcs type',
     IsValidServiceItemName = 'invalid service item name',
+    IsValidCoinType = 'not the coin type',
     noPermission = 'no permission',
 }
 

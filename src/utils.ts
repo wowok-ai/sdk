@@ -402,6 +402,13 @@ export const IsValidAddress = (addr:string | undefined) : boolean => {
     }
     return true
 }
+export const IsValidCoinType = (coin_type:string | undefined) : boolean => { 
+    if (!coin_type) {
+        return false; 
+    }
+    return coin_type.startsWith('0x2::coin::Coin') || coin_type.startsWith('0x0000000000000000000000000000000000000000000000000000000000000002')
+}
+
 export const IsValidBigint = (value:string | number | undefined | bigint, max:bigint=MAX_U256, min?:bigint) : boolean => {
     if (value === '' || value === undefined) return false;
     try {

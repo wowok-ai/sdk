@@ -1,8 +1,8 @@
 import { Protocol, FnCallType, TxbObject, ResourceAddress, PermissionObject, ResourceObject} from './protocol';
 import { IsValidDesription, IsValidAddress, IsValidName, isValidHttpUrl, Bcs, IsValidArray,  } from './utils';
 import { ERROR, Errors } from './exception';
-import { MarkName, Resource } from './resource';
-import { Transaction as TransactionBlock } from '@mysten/sui/transactions';
+import { GroupName, Resource } from './resource';
+import { Transaction as TransactionBlock, TransactionResult } from '@mysten/sui/transactions';
 
 export interface Safer {
     name: string;
@@ -33,13 +33,15 @@ export class Entity {
         return r
     }
 
-    mark(resource:Resource, address:string, like:MarkName.LikeName | MarkName.DislikeName) {
-        if (!IsValidAddress(address)) ERROR(Errors.IsValidAddress, like);
+    mark(resource:Resource, address:string | TransactionResult, like:GroupName.LikeName | GroupName.DislikeName) {
+        if (typeof(address) === 'string' && !IsValidAddress(address)) {
+            ERROR(Errors.IsValidAddress, like);
+        }
 
         this.txb.moveCall({
             target:Protocol.Instance().entityFn(like) as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), Protocol.TXB_OBJECT(this.txb, resource.get_object()), 
-                this.txb.pure.address(address)]
+                typeof(address) === 'string' ? this.txb.pure.address(address) : address]
         })
     }
     /*
