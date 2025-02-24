@@ -177,6 +177,10 @@ export class Bcs {
             "safer_value": "vector<string>",
             'like': BCS.U32,
             'dislike': BCS.U32,
+        });
+        this.bcs.registerStructType('TagStruct', {
+            'nick': 'string',
+            'tags': "vector<string>",
         })
         this.bcs.registerStructType('PersonalInfo', {
             'name': 'vector<u8>',
@@ -335,7 +339,12 @@ export class Bcs {
         r.name = new TextDecoder().decode(Uint8Array.from(r.name));
         r.description = new TextDecoder().decode(Uint8Array.from(r.description));
         return r
-    }        
+    }    
+    de_tags(data:Uint8Array | undefined) : any {
+        if (!data || data.length === 0) return ''
+        const struct_vec = this.bcs.de('vector<u8>', data);
+        return this.bcs.de('TagStruct', Uint8Array.from(struct_vec));
+    }   
     de_perms(data:Uint8Array | undefined) : any {
         if (!data || data.length  < 1) return ''
         let r = this.bcs.de('Perms', data);
@@ -390,8 +399,8 @@ export const MAX_NAME_LENGTH = 64;
 export const MAX_ENDPOINT_LENGTH = 1024;
 // export const OptionNone = (txb:TransactionBlock) : TransactionArgument => { return txb.pure([], BCS.U8) };
 
-export const IsValidDesription = (description:string) : boolean => { return description?.length <= MAX_DESCRIPTION_LENGTH }
-export const IsValidName = (name:string) : boolean => { if(!name) return false; return name.length <= MAX_NAME_LENGTH && name.length != 0 }
+export const IsValidDesription = (description:string) : boolean => { return description.length <= MAX_DESCRIPTION_LENGTH } 
+export const IsValidName = (name?:string) : boolean => { if(!name) return false; return name.length <= MAX_NAME_LENGTH && name.length != 0 }
 export const IsValidName_AllowEmpty = (name:string) : boolean => { return name.length <= MAX_NAME_LENGTH }
 export const IsValidEndpoint = (endpoint:string) : boolean => { 
     return (endpoint.length > 0 && endpoint.length <= MAX_ENDPOINT_LENGTH && isValidHttpUrl(endpoint)) ;

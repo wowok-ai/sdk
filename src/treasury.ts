@@ -415,7 +415,7 @@ export class Treasury {
         })    
         this.permission = new_permission
     }
-    static parseObjectType = (chain_type:string) : string =>  {
+    static parseObjectType = (chain_type?:string) : string =>  {
         return parseObjectType(chain_type, 'treasury::Treasury<')
     }
     

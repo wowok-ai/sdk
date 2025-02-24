@@ -1,29 +1,32 @@
-import { Protocol, FnCallType, TxbObject, ResourceAddress} from './protocol';
+import { Protocol, FnCallType, TxbObject, TxbAddress} from './protocol';
 import { IsValidDesription, IsValidAddress, IsValidName, IsValidArray,  } from './utils';
 import { ERROR, Errors } from './exception';
 import { type TransactionResult, Transaction as TransactionBlock } from '@mysten/sui/transactions';
+import { Entity } from './entity';
 
 export interface Tags { // tag am address
     address: string; // address to tag
-    nick: string; //  named address
+    name?: string; //  named address
     tags: string[]; // tags for address
 }
 
-export interface ResourceData { // personal folder
-    name: string; // folder name
+export interface TagData { 
+    tag: string; // tag name
     address: string[]; // objects in folder
-}
-export enum GroupName {
-    LikeName = "like",
-    DislikeName = "dislike",
-    FavorName = "favor",
-    LaunchName = 'launch',
-    OrderName = 'order',
+} 
+export enum TagName {
+    Like = "like",
+    Dislike = "dislike",
+    Launch = 'launch',
+    Order = 'order',
+    Payment = 'payment'
 }
 
 export class Resource {
-    static MAX_ADDRESS_COUNT = 600;
-    static MAX_TAGS = 8;
+    static MAX_ADDRESS_COUNT_FOR_TAG = 1000; // max address count
+    static MAX_TAG_COUNT_FOR_ADDRESS = 64; // max tag count for an address
+    //static MAX_ADDRESS_COUNT_FOR_MARK = 200; // max address count for a mark
+    //static MAX_MARK_COUNT = 600; // max mark count
 
     protected object:TxbObject;
     protected txb;
@@ -40,146 +43,124 @@ export class Resource {
         return r
     }
 
-    launch() {
+    launch() : TxbAddress{
         if (!this.object) ERROR(Errors.Fail, 'launch object Invalid');
-        this.txb.moveCall({
+        return this.txb.moveCall({
             target:Protocol.Instance().resourceFn('create')  as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object)]
         });
     }
-    add(name:string, object:string[] | TransactionResult[])  {
-        if (object.length === 0) return;
 
-        var bString = true;
-        if (!IsValidName(name)) ERROR(Errors.IsValidName, 'add.name');
-        if (!IsValidArray(object, (item:any) => {
-            if (typeof(item) === 'string') {
-                return IsValidAddress(item)
-            } else {
-                bString = false;
-            }
-            return true;
-        })) {
-            ERROR(Errors.IsValidArray, 'add.object');
+    private resolve_add(address:TransactionResult | string, tags:string[]) {
+        if (tags.find(v => v===TagName.Like)) {
+            Entity.From(this.txb).mark(this, address, TagName.Like);
         }
-
-        if (bString) {
-            this.txb.moveCall({
-                target:Protocol.Instance().resourceFn('add')  as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(name), 
-                    this.txb.pure.vector('address', object as string[])]
-            });            
-        } else {
-            this.txb.moveCall({
-                target:Protocol.Instance().resourceFn('add')  as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(name), 
-                    this.txb.makeMoveVec({elements:object as TransactionResult[], type:'address'})]
-            });   
-        }
+        if (tags.find(v => v===TagName.Dislike)) {
+            Entity.From(this.txb).mark(this, address, TagName.Dislike);
+        }  
+        return (tags.filter(v => v !== TagName.Like && v !== TagName.Dislike && IsValidName(v)));
     }
 
-    add2(object:TransactionResult | string, name:string[])  {
-        if (name.length === 0) return;
-
-        if (typeof(object) === 'string' && !IsValidAddress(object)) ERROR(Errors.IsValidAddress, 'add2.object');
-        if (!IsValidArray(name, IsValidName)) ERROR(Errors.IsValidArray, 'add2.name');
-
-        this.txb.moveCall({
-            target:Protocol.Instance().resourceFn('add2')  as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), typeof(object) === 'string' ? this.txb.pure.address(object) : object, 
-                this.txb.pure.vector('string', name)]
-        });
-    }
-
-    remove(name:string, object:string[] | TransactionResult[], removeall?:boolean)  {
-        if (object.length===0 && !removeall) return;
-        if (!IsValidName(name)) ERROR(Errors.IsValidName, 'Resource: remove');
-        
-        var bString = true;
-        if (!IsValidArray(object, (item:any) => {
-            if (typeof(item) === 'string') {
-                return IsValidAddress(item)
-            } else {
-                bString = false;
-            }
-            return true;
-        })) {
-            ERROR(Errors.IsValidArray, 'remove.object');
-        }
-
-        if (removeall) {
-            this.txb.moveCall({
-                target:Protocol.Instance().resourceFn('remove_all')  as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(name)]
-            });
-        } else if(object) {
-            this.txb.moveCall({
-                target:Protocol.Instance().resourceFn('remove')  as FnCallType,
-                arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(name), 
-                    bString ? this.txb.pure.vector('address', object as string[]) : this.txb.makeMoveVec({elements:object as TransactionResult[], type:'address'})]
-            });
-        }
-    }
-
-    remove2(object:TransactionResult | string, name:string[])  {
-        if (typeof(object) === 'string' && !IsValidAddress(object)) {
-            ERROR(Errors.IsValidAddress, 'Resource: remove2');
-        }
-        if (!IsValidArray(name, IsValidName)) ERROR(Errors.InvalidParam, 'Resource: remove2');
-        if (!name) return
-        
-        this.txb.moveCall({
-            target:Protocol.Instance().resourceFn('remove2')  as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
-                typeof(object) === 'string' ? this.txb.pure.address(object) : object, 
-                this.txb.pure.vector('string', name)]
-        });
-    }
-
-    rename(old_name:string, new_name:string)  {
-        if (!IsValidName(new_name)) ERROR(Errors.IsValidName, 'Resource: rename');
-        
-        this.txb.moveCall({
-            target:Protocol.Instance().resourceFn('rename')  as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), this.txb.pure.string(old_name), 
-                this.txb.pure.string(new_name)]
-        }); 
-    }
-
-    add_tags(object:TransactionResult | string, nick:string, tags:string[]) {
-        if (!nick && tags.length === 0) return;
-        
-        if (typeof(object) === 'string' && !IsValidAddress(object)) {
-            ERROR(Errors.IsValidAddress, 'Resource: add_tags.object');
+    add(address:TransactionResult | string, tags:string[], name?:string) { 
+        if (typeof(address) === 'string' && !IsValidAddress(address)) {
+            ERROR(Errors.IsValidAddress, 'Resource: add.address');
         }   
 
-        if (nick && !IsValidName(nick)) ERROR(Errors.IsValidName, 'Resource: add_tags.nick');
-        if (!IsValidArray(tags, IsValidName)) ERROR(Errors.IsValidArray, 'Resource: add_tags.tags');
-        if (tags.length > Resource.MAX_TAGS) {
-            tags = tags.slice(0, Resource.MAX_TAGS)
+        var realtags = this.resolve_add(address, tags);
+        if (!name && realtags.length === 0) return;
+
+        if (name && !IsValidName(name)) ERROR(Errors.IsValidName, 'Resource: add.name');
+        if (realtags.length > Resource.MAX_TAG_COUNT_FOR_ADDRESS) {
+            realtags = realtags.slice(0, Resource.MAX_TAG_COUNT_FOR_ADDRESS)
         }
 
         this.txb.moveCall({
-            target:Protocol.Instance().resourceFn('tags_add')  as FnCallType,
+            target:Protocol.Instance().resourceFn('add')  as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
-                typeof(object) === 'string' ? this.txb.pure.address(object) : object, 
-                this.txb.pure.string(nick),
+                typeof(address) === 'string' ? this.txb.pure.address(address) : address, 
+                this.txb.pure.option('string', name),
+                this.txb.pure.vector('string', realtags)
+            ]
+        });
+    }
+
+    remove(address:TransactionResult | string, tags:string[]) { 
+        if (typeof(address) === 'string' && !IsValidAddress(address)) {
+            ERROR(Errors.IsValidAddress, 'Resource: remove.address');
+        }
+        
+        this.txb.moveCall({
+            target:Protocol.Instance().resourceFn('remove')  as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
+                typeof(address) === 'string' ? this.txb.pure.address(address) : address, 
                 this.txb.pure.vector('string', tags)
             ]
         });
     }
 
-    remove_tags(object:TransactionResult | string) {
-        if (typeof(object) === 'string' && !IsValidAddress(object)) {
-            ERROR(Errors.IsValidAddress, 'Resource: remove_tags');
+    removeall(address: TxbAddress) {
+        if (typeof(address) === 'string' && !IsValidAddress(address)) {
+            ERROR(Errors.IsValidAddress, 'Resource: removeall.address');
         }
         
         this.txb.moveCall({
-            target:Protocol.Instance().resourceFn('tags_remove')  as FnCallType,
+            target:Protocol.Instance().resourceFn('removeall')  as FnCallType,
             arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
-                typeof(object) === 'string' ? this.txb.pure.address(object) : object, 
+                typeof(address) === 'string' ? this.txb.pure.address(address) : address, 
             ]
         });
+    }
+
+    query(address: TxbAddress) {
+        if (typeof(address) === 'string' && !IsValidAddress(address)) {
+            ERROR(Errors.IsValidAddress, 'Resource: query.address');
+        } 
+
+        this.txb.moveCall({
+            target:Protocol.Instance().resourceFn('query')  as FnCallType,
+            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
+                typeof(address) === 'string' ? this.txb.pure.address(address) : address, 
+            ]
+        })
+    }
+
+    static TagData(tags: Tags[], innerTag:boolean=true) : TagData[] {
+        const data : TagData[] = [];
+        tags.forEach(v => {
+          v.tags.forEach(i => {
+            const f = data.find(k => k.tag === i);
+            if (f) {
+              if (!f.address.find(k => k === v.address)) { // add address
+                f.address.push(v.address)
+              } 
+            } else {
+                data.push({tag:i, address:[v.address]}); // add tag
+            }
+          })
+        })
+        if (innerTag) {
+            (Object.keys(TagName) as Array<keyof typeof TagName>).forEach(i => {
+                if (!data.find(v => v.tag === TagName[i])) {
+                    data.push({tag:TagName[i], address:[]})
+                }                
+            })
+        }
+        return data;
+    }
+
+    static Tags(data: TagData) : Tags[] {
+        const tags : Tags[] = [];
+        data.address.forEach(v => {
+            const f = tags.find(i => i.address === v);
+            if (f) {
+                if (!f.tags.find(k => k === data.tag)) {
+                    f.tags.push(data.tag)
+                }
+            } else {
+                tags.push({address:v, tags:[data.tag]})
+            }
+        })
+        return tags;
     }
 }
 

@@ -460,9 +460,6 @@ export class Repository {
     static IsValidValue = (value:Uint8Array)  => {
         return value.length < Repository.MAX_VALUE_LENGTH;
     }
-    static parseObjectType = (chain_type?:string | null) : string =>  {
-        return parseObjectType(chain_type, 'repository::Repository<');
-    }
 
     static rpc_de_data(fields:any) : RepData [] {
         const rep: RepData[] = fields?.map((v:any) => {
