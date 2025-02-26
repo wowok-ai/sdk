@@ -466,6 +466,10 @@ export class Guard {
         return Guard.CommonOptions(ret_type);
     }
 }
+
+export const IsValidGuardIdentifier = (identifier:number | undefined) : boolean => {
+    return IsValidU8(identifier) && identifier !== 0;
+}
 export class GuardMaker {
     protected data : Uint8Array[] = [];
     protected type_validator : Data_Type[] = [];
@@ -556,8 +560,8 @@ export class GuardMaker {
             this.type_validator.push(ValueType.TYPE_U64);
             break;
         case ContextType.TYPE_CONSTANT: 
-            if (typeof(param) !== 'number' || !IsValidInt(param) || param > 255) {
-                ERROR(Errors.InvalidParam, 'add_param param:'+type);
+            if (!IsValidGuardIdentifier(param)) {
+                ERROR(Errors.IsValidGuardIdentifier, 'add_param param:'+type);
             }
             
             var v = this.constant.get(param);

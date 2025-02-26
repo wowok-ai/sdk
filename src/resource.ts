@@ -111,19 +111,6 @@ export class Resource {
         });
     }
 
-    query(address: TxbAddress) {
-        if (typeof(address) === 'string' && !IsValidAddress(address)) {
-            ERROR(Errors.IsValidAddress, 'Resource: query.address');
-        } 
-
-        this.txb.moveCall({
-            target:Protocol.Instance().resourceFn('query')  as FnCallType,
-            arguments:[Protocol.TXB_OBJECT(this.txb, this.object), 
-                typeof(address) === 'string' ? this.txb.pure.address(address) : address, 
-            ]
-        })
-    }
-
     static TagData(tags: Tags[], innerTag:boolean=true) : TagData[] {
         const data : TagData[] = [];
         tags.forEach(v => {

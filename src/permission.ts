@@ -233,7 +233,7 @@ export interface Permission_Index {
     entities: Permission_Index_Entity[];
 }
 
-export interface UserDefinedIndex {
+export interface BizPermission {
     index: PermissionIndexType;
     name: string;
 }
@@ -271,13 +271,13 @@ export class  Permission {
         })
     }
 
-    add_userdefine(index: number, name:string) {
-        if (!Permission.IsValidUserDefinedIndex(index)) {
-            ERROR(Errors.IsValidUserDefinedIndex, 'add_userdefine');
+    add_bizPermission(index: number, name:string) {
+        if (!Permission.IsValidBizPermissionIndex(index)) {
+            ERROR(Errors.IsValidBizPermissionIndex, 'add_bizPermission');
         }
 
         if (!IsValidName(name)) {
-            ERROR(Errors.IsValidName, 'add_userdefine');
+            ERROR(Errors.IsValidName, 'add_bizPermission');
         }
         this.txb.moveCall({
             target:Protocol.Instance().permissionFn('user_define_add') as FnCallType,
@@ -285,9 +285,9 @@ export class  Permission {
         })   
     }
     
-    remove_userdefine(index: number) {
-        if (!Permission.IsValidUserDefinedIndex(index)) {
-            ERROR(Errors.IsValidUserDefinedIndex, 'add_userdefine');
+    remove_bizPermission(index: number) {
+        if (!Permission.IsValidBizPermissionIndex(index)) {
+            ERROR(Errors.IsValidBizPermissionIndex, 'remove_bizPermission');
         }
 
         this.txb.moveCall({
@@ -407,7 +407,7 @@ export class  Permission {
         if (!IsValidAddress(address)) {
             ERROR(Errors.IsValidAddress, 'address')
         }
-        if(!Permission.IsValidPermissionIndex(index) && !Permission.IsValidUserDefinedIndex(index)) {
+        if(!Permission.IsValidPermissionIndex(index) && !Permission.IsValidBizPermissionIndex(index)) {
             ERROR(Errors.IsValidPermissionIndex, 'index')
         }
 
@@ -572,7 +572,7 @@ export class  Permission {
     static PERMISSION_OWNER_AND_ADMIN = 3;
     static BUSINESS_PERMISSIONS_START = PermissionIndex.user_defined_start;
 
-    static IsValidUserDefinedIndex = (index:number)  => { 
+    static IsValidBizPermissionIndex = (index:number)  => { 
         return index >= Permission.BUSINESS_PERMISSIONS_START && IsValidU64(index)
     }
     
@@ -582,6 +582,6 @@ export class  Permission {
             return true
         }
         //console.log(Object.keys(PermissionIndex))
-        return Permission.IsValidUserDefinedIndex(index);
+        return Permission.IsValidBizPermissionIndex(index);
     }
 }
