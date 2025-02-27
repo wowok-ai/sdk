@@ -1,3 +1,4 @@
+
 import { IsValidArray,  array_unique, IsValidTokenType, IsValidDesription, parseObjectType,
     IsValidAddress, IsValidEndpoint, IsValidU64, IsValidName, } from './utils'
 import { FnCallType, GuardObject, PassportObject, PermissionObject, CoinObject, Protocol,
@@ -61,7 +62,7 @@ export class Arbitration {
         return s
     }
     static New(txb: TransactionBlock, token_type:string, permission:PermissionObject, description:string, 
-        fee:bigint, withdrawTreasury:TreasuryObject, passport?:PassportObject) : Arbitration {
+        fee:bigint|number|string, withdrawTreasury:TreasuryObject, passport?:PassportObject) : Arbitration {
         if (!Protocol.IsValidObjects([permission, withdrawTreasury])) {
             ERROR(Errors.IsValidObjects)
         }

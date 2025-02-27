@@ -10,7 +10,7 @@ import { ValueType } from './protocol';
 export interface ServiceWrap {
     object: ServiceObject,
     pay_token_type: string,
-    bOptional: boolean,
+    bOptional: boolean, // If ture, An order at least must be placed from this service provider
 }
 export interface Machine_Forward {
     name: string; // foward name
@@ -18,7 +18,7 @@ export interface Machine_Forward {
     permission?: PermissionIndexType; // this.permission-index or named-operator MUST one defined.
     weight?: number;
     guard?: GuardObject;
-    suppliers?: ServiceWrap[];
+    suppliers?: ServiceWrap[]; // List of service providers
 }
 export interface Machine_Node_Pair {
     prior_node: string;
